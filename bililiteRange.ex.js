@@ -166,7 +166,10 @@ var synonyms = {
 	tabstop: 'shiftwidth',
 	transcribe: 'copy',
 	ts: 'shiftwidth',
+	u: 'undo',
+	unabbreviate: 'unabbreviate',
 	undo: 'undo',
+	unmap: 'unmap',
 	v: 'notglobal',
 	wrapscan: 'wrapscan',
 	ws: 'wrapscan',
@@ -291,6 +294,7 @@ function parseCommand(command){
 }
 
 function string(text){
+	console.log('string', text);
 	// we use JSON strings if it is necessary to include special characters
 	if (text === undefined) return '';
 	text = text.trim();
@@ -428,6 +432,7 @@ function booleanOption (option, rng, parameter, variant, state){
 }
 
 funcs.abbreviate = function (rng, parameter, variant, state){
+	// ex doesn't do anything but record the abbreviation
 	var match = /^(\w+)\s*(.*)/.exec(parameter);
 	if (!match) throw {message: 'Bad syntax in abbreviate: '+parameter};
 	state.abbrs[match[1]] = string(match[2]);
@@ -514,11 +519,12 @@ funcs.join = function (rng, parameter, variant, state){
 }
 
 funcs.map = function (rng, parameter, variant, state){
-	// use the control/alt key notation from Microsoft's sendkeys (http://msdn.microsoft.com/en-us/library/system.windows.forms.sendkeys.aspx)
-	// but ^ must precede %. This also will distinguish ^c from ^C (the latter requires having the shift key pressed as well)
-	var match = /^(\^?%?.)\s*(.*)/.exec(parameter);
+	// ex doesn't do anything but record the mapping. The last word (either in a string or not containing spaces) is the replacement; the rest of
+	// the string at the beginning are the mapped key(s)
+	var match = /^(.+?)([^"\s]+|"(?:[^"]|\\")+")$/.exec(parameter);
 	if (!match) throw {message: 'Bad syntax in map: '+parameter};
-	state.maps[match[1]] = (variant ? '!' : '') + string(match[2]);
+	console.log(match);
+	state.maps[(variant ? '!' : ' ')+match[1].trim()] = string(match[2]);
 }
 
 funcs.mark = function (rng, parameter, variant, state){
@@ -591,8 +597,8 @@ funcs.unabbreviate = function (rng, parameter, variant, state){
 	delete state.abbrs[parameter];
 }
 
-funcs.map = function (rng, parameter, variant, state){
-	delete state.maps[(variant ? '!' : '') + parameter];
+funcs.unmap = function (rng, parameter, variant, state){
+	delete state.maps[(variant ? '!' : ' ') + parameter];
 }
 
 funcs.undo = function (rng, parameter, variant, state){
