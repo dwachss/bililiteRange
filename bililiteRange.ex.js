@@ -294,7 +294,6 @@ function parseCommand(command){
 }
 
 function string(text){
-	console.log('string', text);
 	// we use JSON strings if it is necessary to include special characters
 	if (text === undefined) return '';
 	text = text.trim();
@@ -523,7 +522,6 @@ funcs.map = function (rng, parameter, variant, state){
 	// the string at the beginning are the mapped key(s)
 	var match = /^(.+?)([^"\s]+|"(?:[^"]|\\")+")$/.exec(parameter);
 	if (!match) throw {message: 'Bad syntax in map: '+parameter};
-	console.log(match);
 	state.maps[(variant ? '!' : ' ')+match[1].trim()] = string(match[2]);
 }
 
