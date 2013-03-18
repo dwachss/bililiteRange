@@ -72,8 +72,8 @@ if ( !Array.prototype.forEach ) {
 		'num\\*': 'multiply',
 		'num/': 'divide',
 		
-		'\\+(\\w)$': function (match, p1) {return p1.toUpperCase()}, // uppercase shifted letters
-		'[%^]\\w$': function(match) {return match.toUpperCase()}, // control-letters are uppercase
+		'^\\+(\\w)$': function (match, p1) {return p1.toUpperCase()}, // uppercase shifted letters
+		'[+^%]\\w$': function(match) {return match.toUpperCase()}, // control-letters are uppercase
 		'[+^%]+': function (match) { // normalize the order of shift-ctrl-alt
 			return (/\+/.test(match) ? '+' : '') +
 				(/\^/.test(match) ? '^' : '') +
@@ -90,6 +90,8 @@ if ( !Array.prototype.forEach ) {
 	}
 	
 	$.keymap.normalize = function(c){
+		// mark uppercase letters
+		c = c.replace(/\b[A-Z]\b/, '+$&');
 		// simple things to keep notation consistent
 		c = c.replace(/\s/g,'').replace(/\w/g, function (match) {return match.toLowerCase()});
 		aliases.forEach(function(alias) { c=c.replace(alias.alias, alias.name) });
@@ -98,6 +100,11 @@ if ( !Array.prototype.forEach ) {
 		if (!/}/.test(c)) c = c.replace(/[\w.]{2,}/, '$&}');
 		c = c.replace (/num([\d.])/i, '$1');
 		return c;
+	}
+	
+	$.keymap.normalizeList = function(str){
+		// normalize a list of space-delimited characters.
+		return $.trim($.map(str.split(/\s+/), $.keymap.normalize).join(' '));
 	}
 	
 	$.keymap.normal = {
@@ -149,6 +156,59 @@ if ( !Array.prototype.forEach ) {
 		
 	$.keymap.ctrl = {};	
 
-	$.keymap.alt = {};	
+	$.keymap.alt = {};
+	
+	// based on John Resig's hotkeys (https://github.com/jeresig/jquery.hotkeys)
+	// $.event.special documentation at http://learn.jquery.com/events/event-extensions/
+	$.keymap.hotkeys = function (eventtypes){
+		eventtypes.split(/\s+/).forEach(function(type){
+			$.event.special[type] = {
+				setup: function() {
+					$(this).on(type+'.keymap', handlekeydown).data('keymap.sequences.'+type, {});
+					return false; // just let jQuery attach the event listener
+				},
+				add: function(handleObj){
+					if (!handleObj.data || typeof handleObj.data.keys != 'string') return; 
+					var keys = $.keymap.normalizeList(handleObj.data.keys);
+					$.data(this, 'keymap.sequences.'+type)[keys] = handleObj.handler;
+					handleObj.handler = $.noop; // let the single handler handle this.
+				},
+				teardown: function(){
+					$(this).off(type+'.keymap').removeData('keymap.sequences.'+type).
+						removeData('keymap.currSequence.'+type);
+					return false;
+				}
+			};
 
-	})(jQuery);
+			function handlekeydown(event){
+				var self = $(this);
+				var type = event.type;
+				var key = $.keymap(event);
+				var possibles = [key];
+				var currSequence = self.data('keymap.currSequence.'+type);
+				if (currSequence) possibles.unshift (currSequence + ' ' + key); // try the sequence first!
+				var sequences = self.data('keymap.sequences.'+type);
+				// do we have a handler defined for this sequence of keys (or just this key by itself)?
+				for (var i = 0; i < possibles.length; ++i){
+					currSequence = possibles[i];
+					if (sequences[currSequence]){
+						self.removeData('keymap.currSequence.'+type);
+						self.trigger('keymapcomplete', [currSequence]);
+						return sequences[currSequence].apply(this, arguments);
+					}
+					// is this sequence a prefix of some other defined sequence?
+					for (sequence in sequences){
+						if (sequence.indexOf(currSequence) == 0){
+							self.trigger('keymapprefix', [currSequence]);
+							self.data('keymap.currSequence.'+type, currSequence);
+							return false;
+						}
+					}
+				}
+				// nothing matches. Return undefined;
+				self.removeData('keymap.currSequence.'+type);
+			}
+		});
+	};
+
+})(jQuery);
