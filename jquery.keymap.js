@@ -53,8 +53,8 @@ if ( !Array.prototype.forEach ) {
 		// hotkeys plugin (https://github.com/jeresig/jquery.hotkeys/blob/master/jquery.hotkeys.js), and modifiers from VIM
 		's(hift)?[+-]': '+',
 		'c(trl)?[+-]': '^',
-		'a(lt)[+-]': '%',
-		'm(eta)[+-]': '%',
+		'a(lt)?[+-]': '%',
+		'm(eta)?[+-]': '%',
 		pageup: 'pgup',
 		pagedown: 'pgdn',
 		decimal: '.',
