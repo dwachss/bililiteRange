@@ -1,4 +1,28 @@
 // mapping for standard US keyboards. Replace the $.keymap.normal, $.keymap.shift, $.keymap.ctrl and $.keymap.alt arrays as needed
+// Version: 1.0
+// Copyright (c) 2010 Daniel Wachsstock
+// MIT license:
+// Permission is hereby granted, free of charge, to any person
+// obtaining a copy of this software and associated documentation
+// files (the "Software"), to deal in the Software without
+// restriction, including without limitation the rights to use,
+// copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following
+// conditions:
+
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+// OTHER DEALINGS IN THE SOFTWARE.
+
 // requires Array.prototype.forEach, so lets me nice to IE8
 if ( !Array.prototype.forEach ) {
   Array.prototype.forEach = function(fn, scope) {
@@ -160,6 +184,8 @@ if ( !Array.prototype.forEach ) {
 	
 	// based on John Resig's hotkeys (https://github.com/jeresig/jquery.hotkeys)
 	// $.event.special documentation at http://learn.jquery.com/events/event-extensions/
+	// Initialize with $.keymap.hotkeys('keydown');
+	// use with $(element).on('keydown, {keys: '%1', allowDefault: true}, function(){});
 	$.keymap.hotkeys = function (eventtypes){
 		eventtypes.split(/\s+/).forEach(function(type){
 			$.event.special[type] = {
@@ -170,7 +196,9 @@ if ( !Array.prototype.forEach ) {
 				add: function(handleObj){
 					if (!handleObj.data || typeof handleObj.data.keys != 'string') return; 
 					var keys = $.keymap.normalizeList(handleObj.data.keys);
-					$.data(this, 'keymap.sequences.'+type)[keys] = handleObj.handler;
+					$.data(this, 'keymap.sequences.'+type)[keys] = $.extend({
+						handler: handleObj.handler
+					}, handleObj.data); // record the handler and any other parameter passed in
 					handleObj.handler = $.noop; // let the single handler handle this.
 				},
 				teardown: function(){
@@ -194,14 +222,15 @@ if ( !Array.prototype.forEach ) {
 					if (sequences[currSequence]){
 						self.removeData('keymap.currSequence.'+type);
 						self.trigger('keymapcomplete', [currSequence]);
-						return sequences[currSequence].apply(this, arguments);
+						return sequences[currSequence].handler.apply(this, arguments);
 					}
 					// is this sequence a prefix of some other defined sequence?
 					for (sequence in sequences){
 						if (sequence.indexOf(currSequence) == 0){
 							self.trigger('keymapprefix', [currSequence]);
 							self.data('keymap.currSequence.'+type, currSequence);
-							return false;
+							console.log( !!sequences[sequence].allowDefault);
+							return !!sequences[sequence].allowDefault;
 						}
 					}
 				}
