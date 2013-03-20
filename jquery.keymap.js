@@ -199,7 +199,6 @@ if ( !Array.prototype.forEach ) {
 					// since we only allow a single keystroke handler, use that for the guid. This is a hack for removing the handler later.
 					var keys = handleObj.guid = $.keymap.normalizeList(handleObj.data.keys);
 					$.data(this, 'keymap.handlers.'+type)[keys] = $.extend({}, handleObj);
-					console.log($.data(this, 'keymap.handlers.'+type));
 					handleObj.handler = $.noop; // let the single handler handle this
 				},
 				remove: function(handleObj){
