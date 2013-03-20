@@ -1,5 +1,5 @@
 // mapping for standard US keyboards. Replace the $.keymap.normal, $.keymap.shift, $.keymap.ctrl and $.keymap.alt arrays as needed
-// Version: 1.0
+// Version: 1.1
 // Copyright (c) 2010 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
