@@ -188,49 +188,58 @@ if ( !Array.prototype.forEach ) {
 	// use with $(element).on('keydown, {keys: '%1', allowDefault: true}, function(){});
 	$.keymap.hotkeys = function (eventtypes){
 		eventtypes.split(/\s+/).forEach(function(type){
+					
 			$.event.special[type] = {
 				setup: function() {
-					$(this).on(type+'.keymap', handlekeydown).data('keymap.sequences.'+type, {});
+					$(this).on(type+'.keymap', handleevent).data('keymap.handlers.'+type, {});
 					return false; // just let jQuery attach the event listener
 				},
 				add: function(handleObj){
-					if (!handleObj.data || typeof handleObj.data.keys != 'string') return; 
-					var keys = $.keymap.normalizeList(handleObj.data.keys);
-					$.data(this, 'keymap.sequences.'+type)[keys] = $.extend({
-						handler: handleObj.handler
-					}, handleObj.data); // record the handler and any other parameter passed in
-					handleObj.handler = $.noop; // let the single handler handle this.
+					if (!handleObj.data || typeof handleObj.data.keys != 'string') return;
+					// since we only allow a single keystroke handler, use that for the guid. This is a hack for removing the handler later.
+					var keys = handleObj.guid = $.keymap.normalizeList(handleObj.data.keys);
+					$.data(this, 'keymap.handlers.'+type)[keys] = $.extend({}, handleObj);
+					console.log($.data(this, 'keymap.handlers.'+type));
+					handleObj.handler = $.noop; // let the single handler handle this
+				},
+				remove: function(handleObj){
+					delete $.data(this, 'keymap.handlers.'+type)[handleObj.guid];
 				},
 				teardown: function(){
-					$(this).off(type+'.keymap').removeData('keymap.sequences.'+type).
+					$(this).off(type+'.keymap').removeData('keymap.handlers.'+type).
 						removeData('keymap.currSequence.'+type);
 					return false;
 				}
 			};
 
-			function handlekeydown(event){
+			function handleevent(event){
 				var self = $(this);
 				var type = event.type;
 				var key = $.keymap(event);
 				var possibles = [key];
 				var currSequence = self.data('keymap.currSequence.'+type);
 				if (currSequence) possibles.unshift (currSequence + ' ' + key); // try the sequence first!
-				var sequences = self.data('keymap.sequences.'+type);
+				var handlers = self.data('keymap.handlers.'+type);
 				// do we have a handler defined for this sequence of keys (or just this key by itself)?
 				for (var i = 0; i < possibles.length; ++i){
 					currSequence = possibles[i];
-					if (sequences[currSequence]){
+					var h = handlers[currSequence];
+					// if the selector is defined, only trigger if the true target matches
+					if (h && h.selector && $(h.selector, self).index(event.target) < 0) continue;
+					if (h){
 						self.removeData('keymap.currSequence.'+type);
 						self.trigger('keymapcomplete', [currSequence]);
-						return sequences[currSequence].handler.apply(this, arguments);
+						return h.handler.apply(this, arguments);
 					}
 					// is this sequence a prefix of some other defined sequence?
-					for (sequence in sequences){
+					for (sequence in handlers){
+						var h = handlers[sequence];
+						// if the selector is defined, only trigger if the true target matches
+						if (h.selector && $(h.selector, self).index(event.target) < 0) continue;
 						if (sequence.indexOf(currSequence) == 0){
 							self.trigger('keymapprefix', [currSequence]);
 							self.data('keymap.currSequence.'+type, currSequence);
-							console.log( !!sequences[sequence].allowDefault);
-							return !!sequences[sequence].allowDefault;
+							return !!h.data.allowDefault;
 						}
 					}
 				}
@@ -239,5 +248,21 @@ if ( !Array.prototype.forEach ) {
 			}
 		});
 	};
+	// monkey patch remove so we can do $(elem).off('keydown', '^A')
+	var oldRemove = $.event.remove;
+	$.event.remove = function (elem, types, handler, selector){
+		// remove just looks for the guid to match., so we can fake it out.
+		// off(types, object) becomes remove (elem, types, undefined, object)
+		// off(types, selector, object) becomes  remove (elem, types, object, selector)
+		if (handler === undefined && $.isPlainObject(selector) && selector.keys){
+			var args = [elem, types, {guid: $.keymap.normalizeList(selector.keys)}, undefined];
+		}else if ($.isPlainObject(handler)&& handler.keys){
+			handler.guid = $.keymap.normalizeList(handler.keys)
+			args = [elem, types, handler, selector];
+		}else{
+			args = arguments;
+		}
+		return oldRemove.apply(this,args);
+	}
 
 })(jQuery);
