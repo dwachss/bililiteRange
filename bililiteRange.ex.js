@@ -107,9 +107,7 @@ bililiteRange.fn.ex = function (commandstring, state){
 /*********************** defaults *********************************/
 function setdefaults(state){
 	defaults = {
-		options: { wrapscan: true, shiftwidth: 8 },
-		abbrs: {},
-		maps: {},
+		options: { wrapscan: true, multiline: true, shiftwidth: 8 },
 		marks: {},
 		buffers: [], // the delete buffer is a stack, with 0 the most recent (use shift rather than pop)
 		lastRE: /(?:)/, // blank RE's refer to this
@@ -133,7 +131,6 @@ function setdefaults(state){
 var synonyms = {
 	// synonyms for options and commands. Note that all the tab-related options are the same
 	a: 'append',
-	abbreviate: 'abbreviate',
 	ai: 'autoindent',
 	append: 'append',
 	autoindent: 'autoindent',
@@ -151,9 +148,10 @@ var synonyms = {
 	join: 'join',
 	k: 'mark',
 	m: 'move',
-	map: 'map',
 	mark: 'mark',
+	ml: 'multiline',
 	move: 'move',
+	multiline: 'multiline',
 	print: 'print',
 	put: 'put',
 	redo: 'redo',
@@ -167,9 +165,7 @@ var synonyms = {
 	transcribe: 'copy',
 	ts: 'shiftwidth',
 	u: 'undo',
-	unabbreviate: 'unabbreviate',
 	undo: 'undo',
-	unmap: 'unmap',
 	v: 'notglobal',
 	wrapscan: 'wrapscan',
 	ws: 'wrapscan',
@@ -430,13 +426,6 @@ function booleanOption (option, rng, parameter, variant, state){
 	}
 }
 
-funcs.abbreviate = function (rng, parameter, variant, state){
-	// ex doesn't do anything but record the abbreviation
-	var match = /^(\w+)\s*(.*)/.exec(parameter);
-	if (!match) throw {message: 'Bad syntax in abbreviate: '+parameter};
-	state.abbrs[match[1]] = string(match[2]);
-}
-
 funcs.append = function (rng, parameter, variant, state){
 	// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
 	if (!variant != !state.options.autoindent) parameter = autoindent(parameter, rng);
@@ -517,6 +506,7 @@ funcs.join = function (rng, parameter, variant, state){
 	rng.text(rng.text().replace(re, ' '), 'start');
 }
 
+/* comment out; it doesn't belong in ex but in vi, but I wanted to record the correct regular expression
 funcs.map = function (rng, parameter, variant, state){
 	// ex doesn't do anything but record the mapping. The last word (either in a string or not containing spaces) is the replacement; the rest of
 	// the string at the beginning are the mapped key(s)
@@ -524,7 +514,7 @@ funcs.map = function (rng, parameter, variant, state){
 	if (!match) throw {message: 'Bad syntax in map: '+parameter};
 	state.maps[(variant ? '!' : ' ')+match[1].trim()] = string(match[2]);
 }
-
+ */
 funcs.mark = function (rng, parameter, variant, state){
 	state.marks[parameter] = rng.clone().live();
 }
@@ -533,6 +523,10 @@ funcs.move = function (rng, parameter, variant, state){
 	var thisrng = rng.clone().live();
 	funcs.copy (rng, parameter, variant, state);
 	funcs.del (thisrng, '', false, state);
+}
+
+funcs.multiline = function (rng, parameter, variant, state){
+	booleanOption ('multiline', rng, parameter, variant, state);
 }
 
 funcs.notglobal = function (rng, parameter, variant, state){
@@ -591,14 +585,6 @@ funcs.substitute = function (rng, parameter, variant, state){
 	rng.text(rng.text().replace(re, string(re.rest))).bounds('endbounds');
 }
 
-funcs.unabbreviate = function (rng, parameter, variant, state){
-	delete state.abbrs[parameter];
-}
-
-funcs.unmap = function (rng, parameter, variant, state){
-	delete state.maps[(variant ? '!' : ' ') + parameter];
-}
-
 funcs.undo = function (rng, parameter, variant, state){
 	// restores the text only, not the selection point or any other aspects of state
 	state.redos.push(rng.all());
@@ -607,7 +593,7 @@ funcs.undo = function (rng, parameter, variant, state){
 }
 
 funcs.wrapscan = function (rng, parameter, variant, state){
-	booleanOption ('wrapscan', rng, parameter, variant, state)
+	booleanOption ('wrapscan', rng, parameter, variant, state);
 }
 
 funcs.yank = function (rng, parameter, variant, state){
