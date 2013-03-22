@@ -227,19 +227,17 @@ InputRange.prototype._nativeEOL = function(){
 };
 InputRange.prototype._nativeScrollIntoView = function(rng){
 	// I can't remember where I found this clever hack to find the location of text in a text area
-	var style = getComputedStyle(this._el);
-	var oldheight = style.height;
-	var oldval = this._el.value;
-	var oldselection = this._nativeSelection();
-	this._el.style.height = '1px';
-	this._el.value = oldval.slice(0, rng[0]);
-	var top = this._el.scrollHeight;
+	var clone = this._el.cloneNode(true);
+	clone.style.visibility = 'hidden';
+	clone.style.position = 'absolute';
+	this._el.parentNode.insertBefore(clone, this._el);
+	clone.style.height = '1px';
+	clone.value = this._el.value.slice(0, rng[0]);
+	var top = clone.scrollHeight;
 	// this gives the bottom of the text, so we have to subtract the height of a single line
-	this._el.value = 'X';
-	top -= 2*this._el.scrollHeight; // show at least a line above
-	this._el.style.height = oldheight;
-	this._el.value = oldval;
-	this._nativeSelect(oldselection);
+	clone.value = 'X';
+	top -= 2*clone.scrollHeight; // show at least a line above
+	clone.parentNode.removeChild(clone);
 	// scroll into position if necessary
 	if (this._el.scrollTop > top || this._el.scrollTop+this._el.clientHeight < top){
 		this._el.scrollTop = top;
