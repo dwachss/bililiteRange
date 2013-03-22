@@ -246,7 +246,7 @@ InputRange.prototype._nativeScrollIntoView = function(rng){
 	var rect = this._el.getBoundingClientRect();
 	rect.top += this._win.pageYOffset - this._doc.documentElement.clientTop;
 	rect.left += this._win.pageXOffset - this._doc.documentElement.clientLeft;
-	// create an element to scroll to
+	// create an element to scroll to (can't just use the clone above, since scrollIntoView wants a visible element)
 	var div = this._doc.createElement('div');
 	div.style.position = 'absolute';
 	div.style.top = (rect.top+top-this._el.scrollTop)+'px'; // adjust for how far in the range is; it may not have scrolled all the way to the top
