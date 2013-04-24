@@ -1,7 +1,7 @@
 // insert characters in a textarea or text input field
 // special characters are enclosed in {}; use {{} for the { character itself
 // documentation: http://bililite.com/blog/2008/08/20/the-fnsendkeys-plugin/
-// Version: 2.1
+// Version: 2.2
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -54,6 +54,7 @@ $.fn.sendkeys = function (x, opts){
 		x.replace(/\n/g, '{enter}'). // turn line feeds into explicit break insertions
 		  replace(/{[^}]*}|[^{]+/g, function(s){
 				(localkeys[s] || $.fn.sendkeys.defaults[s] || $.fn.sendkeys.defaults.simplechar)(rng, s);
+				rng.select();
 		  });
 		$(this).trigger({type: 'sendkeys', which: x});
 	});
@@ -91,15 +92,15 @@ $.fn.sendkeys.defaults = {
 	'{rightarrow}':  function (rng){
 		var b = rng.bounds();
 		if (b[0] == b[1]) ++b[1]; // no characters selected; it's just an insertion point. Move to the right
-		rng.bounds([b[1], b[1]]).select();
+		rng.bounds([b[1], b[1]]);
 	},
 	'{leftarrow}': function (rng){
 		var b = rng.bounds();
 		if (b[0] == b[1]) --b[0]; // no characters selected; it's just an insertion point. Move to the left
-		rng.bounds([b[0], b[0]]).select();
+		rng.bounds([b[0], b[0]]);
 	},
 	'{selectall}' : function (rng){
-		rng.bounds('all').select();
+		rng.bounds('all');
 	},
 	'{selection}': function (rng){
 		$.fn.sendkeys.defaults.simplechar(rng, $.data(rng._el, 'sendkeys.originalText'));
