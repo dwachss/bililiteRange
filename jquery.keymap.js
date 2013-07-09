@@ -80,6 +80,7 @@ if ( !Array.prototype.forEach ) {
 		'm(eta)?[+-]': '%', // needs to be before a(lt)- so the met[a-] doesn't match!
 		'a(lt)?[+-]': '%',
 		pageup: 'pgup',
+		pguparrow: 'pgup', // in case we overcorrected above
 		pagedown: 'pgdn',
 		decimal: '.',
 		// VIM notation (http://polarhome.com/vim/manual/v71/intro.html#key-notation)
