@@ -82,8 +82,7 @@ function createinput(container, options){
 	inputlabel.remove();
 	inputlabel = $('<label>').
 		addClass('statusbar-input').hide().text(options.prompt).prependTo(container);
-	var input = $('<input>').appendTo(inputlabel).val(oldtext);;
-	var run = options.oncomplete;
+	var input = $('<input>').appendTo(inputlabel).val(oldtext);
 	options.result.always(function(){
 		// when we're done, get rid of the element
 		options.hide.call(inputlabel);
