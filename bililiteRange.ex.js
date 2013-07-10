@@ -296,6 +296,7 @@ function string(text){
 	if (text.charAt(0) == '"') text = JSON.parse(text);
 	return text;
 }
+bililiteRange.fn.ex.string = string; // export it
 /*********************** turn an array of address descriptions into an actual range *********************************/
 function interpretAddresses (rng, addresses, state){
 	var lines = [];
@@ -416,15 +417,19 @@ function autoindent (text, rng){
 }
 /*********************** the editing functions *********************************/
 
-function booleanOption (option, rng, parameter, variant, state){
-	if (parameter=='?'){
-		rng.exMessage = state.options[option];
-	}else if (!parameter || parameter == 'off' || parameter == 'no' || parameter == 'false'){
-		state.options[option] = false;
-	}else{
-		state.options[option] = true;
-	}
+// exported utility function
+function booleanOption (option){
+	return function (rng, parameter, variant, state){
+		if (parameter=='?'){
+			rng.exMessage = state.options[option] ? 'on' : 'off';
+		}else if (parameter == 'off' || parameter == 'no' || parameter == 'false'){
+			state.options[option] = variant;
+		}else{
+			state.options[option] = !variant; // variant == false means take it straight and set the option
+		}
+	};
 }
+bililiteRange.fn.ex.booleanOption = booleanOption;
 
 funcs.append = function (rng, parameter, variant, state){
 	// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
@@ -432,9 +437,7 @@ funcs.append = function (rng, parameter, variant, state){
 	rng.bounds('endbounds').newline(parameter, 'end');
 }
 
-funcs.autoindent = function (rng, parameter, variant, state){
-	booleanOption ('autoindent', rng, parameter, variant, state)
-}
+funcs.autoindent = booleanOption ('autoindent');
 
 funcs.change = function (rng, parameter, variant, state){
 	if (!variant != !state.options.autoindent) parameter = autoindent(parameter, rng);
@@ -484,9 +487,7 @@ funcs.global = function (rng, parameter, variant, state){
 	rng.bounds (rngs.length ? rngs.pop().bounds() : 'endbounds');
 }
 
-funcs.ignorecase = function (rng, parameter, variant, state){
-	booleanOption ('ignorecase', rng, parameter, variant, state)
-}
+funcs.ignorecase = booleanOption ('ignorecase');
 
 funcs.insert = function (rng, parameter, variant, state){
 	if (!variant != !state.options.autoindent) parameter = autoindent(parameter, rng);
@@ -506,15 +507,6 @@ funcs.join = function (rng, parameter, variant, state){
 	rng.text(rng.text().replace(re, ' '), 'start');
 }
 
-/* comment out; it doesn't belong in ex but in vi, but I wanted to record the correct regular expression
-funcs.map = function (rng, parameter, variant, state){
-	// ex doesn't do anything but record the mapping. The last word (either in a string or not containing spaces) is the replacement; the rest of
-	// the string at the beginning are the mapped key(s)
-	var match = /^(.+?)([^"\s]+|"(?:[^"]|\\")+")$/.exec(parameter);
-	if (!match) throw {message: 'Bad syntax in map: '+parameter};
-	state.maps[(variant ? '!' : ' ')+match[1].trim()] = string(match[2]);
-}
- */
 funcs.mark = function (rng, parameter, variant, state){
 	state.marks[parameter] = rng.clone().live();
 }
@@ -525,9 +517,7 @@ funcs.move = function (rng, parameter, variant, state){
 	funcs.del (thisrng, '', false, state);
 }
 
-funcs.multiline = function (rng, parameter, variant, state){
-	booleanOption ('multiline', rng, parameter, variant, state);
-}
+funcs.multiline = booleanOption ('multiline');
 
 funcs.notglobal = function (rng, parameter, variant, state){
 	funcs.global(rng, parameter, !variant, state);
@@ -541,7 +531,7 @@ funcs.put  = function (rng, parameter, variant, state){
 }
 
 funcs.redo = function (rng, parameter, variant, state){
-	// restores the text only, not the selection point or any other aspects of state
+	// restores the text only, not any other aspects of state
 	rng.all(state.redos.pop()).bounds(state.redobounds.pop());
 }
 
@@ -554,9 +544,9 @@ funcs.set = function (rng, parameter, variant, state){
 			if (!match && command.trim()) throw {message: 'Bad syntax in set: '+command};
 			var func = match[2];
 			if (match[1]){
-				var value = false;
+				var value = match[1];
 			}else if (!match[3]){
-				value = true;
+				value = 'on';
 			}else if (match[3] == '?'){
 				value = '?';
 			}else{
@@ -586,15 +576,13 @@ funcs.substitute = function (rng, parameter, variant, state){
 }
 
 funcs.undo = function (rng, parameter, variant, state){
-	// restores the text only, not the selection point or any other aspects of state
+	// restores the text only, not any other aspects of state
 	state.redos.push(rng.all());
 	state.redobounds.push(rng.bounds());
 	rng.all(state.undos.pop()).bounds(state.undobounds.pop());
 }
 
-funcs.wrapscan = function (rng, parameter, variant, state){
-	booleanOption ('wrapscan', rng, parameter, variant, state);
-}
+funcs.wrapscan = booleanOption ('wrapscan');
 
 funcs.yank = function (rng, parameter, variant, state){
 	var match = /^([a-zA-Z]?)\s*(\d*)/.exec(parameter);

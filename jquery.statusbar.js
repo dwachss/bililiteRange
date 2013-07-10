@@ -61,6 +61,7 @@ $.fn.statusbar = function(opts){
 					$(this).trigger('input'); // always need to alert when the text changes
 				}
 			});
+			$('input',input)[0].focus();
 		}
 	});
 };
@@ -89,7 +90,6 @@ function createinput(container, options){
 		inputlabel.promise().done(function() {inputlabel.remove()});
 	});
 	options.show.call(inputlabel);
-	input[0].focus();
 	return inputlabel;
 }
 })(jQuery);
