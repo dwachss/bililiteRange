@@ -231,6 +231,7 @@ var addressRE = new RegExp('^\\s*' + // allow whitespace at the beginning
 		'[.\\$%]', // single character addresses
 		'\\d+', // line numbers
 		"'['a-z]", // marks
+		"'\.", // special vi-mode address; means don't select the whole line. For internal use only.
 		bslash("\\&?[/?]"), // special regexps: \/, \&\, \?, \&?
 		// forward (/ delimited) regexps, a slash followed by some (escaped character or a non slash) ended with a slash, possibly preceded with a question mark
 		'\\??'+bslash('/(?:\\.|[^/])*/['+REflags+']*')
@@ -299,6 +300,7 @@ function string(text){
 bililiteRange.fn.ex.string = string; // export it
 /*********************** turn an array of address descriptions into an actual range *********************************/
 function interpretAddresses (rng, addresses, state){
+	if (addresses[0] == "'.") return; // special internal marker for vi, to not change the selection.
 	var lines = [];
 	var currLine = rng.line();
 	addresses.forEach(function(s){

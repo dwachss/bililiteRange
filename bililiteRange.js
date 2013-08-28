@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 1.5
+// Version: 1.6
 // Copyright (c) 2010 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -54,6 +54,8 @@ bililiteRange = function(el, debug){
 
 function textProp(el){
 	// returns the property that contains the text of the element
+	// note that for <body> elements the text attribute represents the obsolete text color, not the textContent.
+	// we document that these routines do not work for <body> elements so that should not be relevant
 	if (typeof el.value != 'undefined') return 'value';
 	if (typeof el.text != 'undefined') return 'text';
 	if (typeof el.textContent != 'undefined') return 'textContent';
@@ -117,6 +119,10 @@ Range.prototype = {
 	},
 	scrollIntoView: function(){
 		this._nativeScrollIntoView(this._nativeRange(this.bounds()));
+		return this;
+	},
+	wrap: function (n){
+		this._nativeWrap(n, this._nativeRange(this.bounds()));
 		return this;
 	}
 };
@@ -185,6 +191,15 @@ IERange.prototype._nativeEOL = function(){
 IERange.prototype._nativeScrollIntoView = function(rng){
 	rng.scrollIntoView();
 }
+IERange.prototype._nativeWrap = function(n, rng) {
+	// hacky to use string manipulation but I don't see another way to do it.
+	var div = document.createElement('div');
+	div.appendChild(n);
+	// insert the existing range HTML after the first tag
+	var html = div.innerHTML.replace('><', '>'+rng.htmlText+'<');
+	rng.pasteHTML(html);
+};
+
 // IE internals
 function iestart(rng, constraint){
 	// returns the position (in character) of the start of rng within constraint. If it's not in constraint, returns 0 if it's before, length if it's after
@@ -256,6 +271,7 @@ InputRange.prototype._nativeScrollIntoView = function(rng){
 	div.scrollIntoViewIfNeeded ? div.scrollIntoViewIfNeeded() : div.scrollIntoView();
 	div.parentNode.removeChild(div);
 }
+InputRange.prototype._nativeWrap = function() {throw "Cannot wrap in a text element"};
 
 function W3CRange(){}
 W3CRange.prototype = new Range();
@@ -307,6 +323,10 @@ W3CRange.prototype._nativeScrollIntoView = function(rng){
 	span.scrollIntoViewIfNeeded ? span.scrollIntoViewIfNeeded() : span.scrollIntoView();
 	span.parentNode.removeChild(span);
 }
+W3CRange.prototype._nativeWrap = function(n, rng) {
+	rng.surroundContents(n);
+};
+
 // W3C internals
 function nextnode (node, root){
 	//  in-order traversal
@@ -400,5 +420,7 @@ NothingRange.prototype._nativeEOL = function(){
 NothingRange.prototype._nativeScrollIntoView = function(){
 	this._el.scrollIntoView();
 };
+NothingRange.prototype._nativeWrap = function() {throw "Wrapping not implemented"};
+
 
 })();
