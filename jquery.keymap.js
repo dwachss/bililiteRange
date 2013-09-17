@@ -1,5 +1,5 @@
 // mapping for standard US keyboards. Replace the $.keymap.normal, $.keymap.shift, $.keymap.ctrl and $.keymap.alt arrays as needed
-// Version: 1.2
+// Version: 2.0
 // Copyright (c) 2010 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -189,78 +189,62 @@ if ( !Array.prototype.forEach ) {
 	// $.event.special documentation at http://learn.jquery.com/events/event-extensions/
 	// Initialize with $.keymap.hotkeys('keydown');
 	// use with $(element).on('keydown, {keys: '%1', allowDefault: true}, function(){});
-	$.keymap.hotkeys = function (eventtypes){
-		eventtypes.split(/\s+/).forEach(function(type){
-					
-			$.event.special[type] = {
-				setup: function() {
-					$(this).on(type+'.keymap', handleevent).data('keymap.handlers.'+type, {});
-					return false; // just let jQuery attach the event listener
-				},
-				add: function(handleObj){
-					if (!handleObj.data || typeof handleObj.data.keys != 'string') return;
-					// since we only allow a single keystroke handler, use that for the guid. This is a hack for removing the handler later.
-					var keys = handleObj.guid = $.keymap.normalizeList(handleObj.data.keys);
-					$.data(this, 'keymap.handlers.'+type)[keys] = $.extend({}, handleObj);
-					handleObj.handler = $.noop; // let the single handler handle this
-				},
-				remove: function(handleObj){
-					delete $.data(this, 'keymap.handlers.'+type)[handleObj.guid];
-				},
-				teardown: function(){
-					$(this).off(type+'.keymap').removeData('keymap.handlers.'+type).
-						removeData('keymap.currSequence.'+type);
-					return false;
-				}
-			};
-
-			function handleevent(event){
-				var self = $(this);
-				var type = event.type;
-				var key = $.keymap(event);
-				var possibles = [key];
-				var currSequence = self.data('keymap.currSequence.'+type);
-				if (currSequence) possibles.unshift (currSequence + ' ' + key); // try the sequence first!
-				var handlers = self.data('keymap.handlers.'+type);
-				// do we have a handler defined for this sequence of keys (or just this key by itself)?
-				for (var i = 0; i < possibles.length; ++i){
-					currSequence = possibles[i];
-					var h = handlers[currSequence];
-					// if the selector is defined, only trigger if the true target matches
-					if (h && h.selector && $(h.selector, self).index(event.target) < 0) continue;
-					if (h){
-						self.removeData('keymap.currSequence.'+type);
+	
+	// first, create an index of namespaces to identify each keystroke list
+	var nss = {};
+	var nsIndex = 0;
+	function hotkeysnamespace(keys){
+		return nss[keys] || (nss[keys] = 'hotkeys'+ (++nsIndex));
+	}
+	
+	["keydown","keyup"].forEach(function(type){			
+		$.event.special[type] = {
+			add: function(handleObj){
+				if (!handleObj.data || typeof handleObj.data.keys != 'string') return;
+				var keys = ' '+$.keymap.normalizeList(handleObj.data.keys); // the space makes the comparison easier later
+				// Use the keys as a sort of namespace for the event. This is a hack for removing the handler later.
+				handleObj.namespace = handleObj.namespace.split('.').
+				  concat(hotkeysnamespace(keys)).sort().join('.'); // add the new namespace in alphabetical order
+				var origHandler = handleObj.handler;
+				var currSequence = '';
+				handleObj.handler = function (event){
+					var self = $(this);
+					var key = ' '+$.keymap(event);
+					if (!key) return; // avoid problems with control keys
+					currSequence += key;
+					if (currSequence == keys) {
 						self.trigger('keymapcomplete', [currSequence]);
-						return h.handler.apply(this, arguments);
+						currSequence = ''; // restart
+						return origHandler.apply(this, arguments);
+					}else if (keys.indexOf(currSequence) == 0){
+						self.trigger('keymapprefix', [currSequence]);
+						return !!handleObj.data.allowDefault;
+					}else if (keys.indexOf(key) == 0){
+						currSequence = key; // restart the sequence with the current key
+						self.trigger('keymapprefix', [currSequence]);
+						return !!handleObj.data.allowDefault;
+					}else{
+						currSequence = ''; // restart
 					}
-					// is this sequence a prefix of some other defined sequence?
-					for (sequence in handlers){
-						var h = handlers[sequence];
-						// if the selector is defined, only trigger if the true target matches
-						if (h.selector && $(h.selector, self).index(event.target) < 0) continue;
-						if (sequence.indexOf(currSequence) == 0){
-							self.trigger('keymapprefix', [currSequence]);
-							self.data('keymap.currSequence.'+type, currSequence);
-							return !!h.data.allowDefault;
-						}
-					}
-				}
-				// nothing matches. Return undefined;
-				self.removeData('keymap.currSequence.'+type);
+				};
 			}
-		});
-	};
-	// monkey patch remove so we can do $(elem).off('keydown', '^A')
+		};
+	});
+
+	function addnamespace (types, keys){
+		var ns = '.'+hotkeysnamespace(' '+$.keymap.normalizeList(keys)); // note that we added a space in add, above
+		return types.replace (/(\S)(\s)|$/g, '$1'+ns+'$2');;
+	}
+	// monkey patch remove so we can do $(elem).off('keydown', {keys: '^A'}) (basically fake the off('keydown', handler) syntax into accepting an object instead
 	var oldRemove = $.event.remove;
 	$.event.remove = function (elem, types, handler, selector){
 		// remove just looks for the guid to match., so we can fake it out.
 		// off(types, object) becomes remove (elem, types, undefined, object)
 		// off(types, selector, object) becomes  remove (elem, types, object, selector)
 		if (handler === undefined && $.isPlainObject(selector) && selector.keys){
-			var args = [elem, types, {guid: $.keymap.normalizeList(selector.keys)}, undefined];
-		}else if ($.isPlainObject(handler)&& handler.keys){
-			handler.guid = $.keymap.normalizeList(handler.keys)
-			args = [elem, types, handler, selector];
+			var args = [elem, addnamespace (types, selector.keys)];
+		}else if ($.isPlainObject(handler) && handler.keys){
+			args = [elem, addnamespace (types, handler.keys), undefined, selector];
 		}else{
 			args = arguments;
 		}
