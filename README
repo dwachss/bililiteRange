@@ -10,7 +10,8 @@ jquery.jsvk.js: Not really part of the bililiteRange family, but I use them toge
 http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/
 
 jquery.keymap.js: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to turn keyup codes into understandable characters. Documentation at
-http://bililite.com/blog/2013/02/22/parsing-keydown-events/
+http://bililite.com/blog/2013/02/22/parsing-keydown-events/ . Also includes a "hotkeys" plugin that allows keystroke handlers for specific keys, like $(el).on('keydown', {keys: '^A'}, function(){}) . Documentation at
+http://bililite.com/blog/2013/03/20/hotkeys-with-keymap/
 
 jquery.livesearch.js: jQuery plugin to do "live" searching for a regular expression; highlights  the text found and scrolls to it as you type. Documentation at
 http://bililite.com/blog/2013/03/07/new-jquery-plugin-livesearch/
