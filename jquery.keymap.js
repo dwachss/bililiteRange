@@ -1,6 +1,6 @@
 // mapping for standard US keyboards. Replace the $.keymap.normal, $.keymap.shift, $.keymap.ctrl and $.keymap.alt arrays as needed
-// Version: 2.0
-// Copyright (c) 2010 Daniel Wachsstock
+// Version: 2.1
+// Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
 // obtaining a copy of this software and associated documentation
@@ -216,15 +216,15 @@ if ( !Array.prototype.forEach ) {
 						self.trigger('keymapcomplete', [currSequence]);
 						currSequence = ''; // restart
 						return origHandler.apply(this, arguments);
-					}else if (keys.indexOf(currSequence) == 0){
-						self.trigger('keymapprefix', [currSequence]);
-						return !!handleObj.data.allowDefault;
-					}else if (keys.indexOf(key) == 0){
-						currSequence = key; // restart the sequence with the current key
-						self.trigger('keymapprefix', [currSequence]);
-						return !!handleObj.data.allowDefault;
-					}else{
-						currSequence = ''; // restart
+					}
+					// find the portion of the current sequence that could be a prefix of the sought keys
+					while (currSequence){
+						console.log(currSequence, keys);
+						if (keys.indexOf(currSequence) == 0){
+							self.trigger('keymapprefix', [currSequence]);
+							return !!handleObj.data.allowDefault;
+						}
+						currSequence = currSequence.replace(/ \S+/, ''); // strip the first key
 					}
 				};
 			}
