@@ -219,7 +219,6 @@ if ( !Array.prototype.forEach ) {
 					}
 					// find the portion of the current sequence that could be a prefix of the sought keys
 					while (currSequence){
-						console.log(currSequence, keys);
 						if (keys.indexOf(currSequence) == 0){
 							self.trigger('keymapprefix', [currSequence]);
 							return !!handleObj.data.allowDefault;
