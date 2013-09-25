@@ -198,35 +198,34 @@ if ( !Array.prototype.forEach ) {
 	}
 	
 	["keydown","keyup"].forEach(function(type){			
-		$.event.special[type] = {
-			add: function(handleObj){
-				if (!handleObj.data || typeof handleObj.data.keys != 'string') return;
-				var keys = ' '+$.keymap.normalizeList(handleObj.data.keys); // the space makes the comparison easier later
-				// Use the keys as a sort of namespace for the event. This is a hack for removing the handler later.
-				handleObj.namespace = handleObj.namespace.split('.').
-				  concat(hotkeysnamespace(keys)).sort().join('.'); // add the new namespace in alphabetical order
-				var origHandler = handleObj.handler;
-				var currSequence = '';
-				handleObj.handler = function (event){
-					var self = $(this);
-					var key = ' '+$.keymap(event);
-					if (!key) return; // avoid problems with control keys
-					currSequence += key;
-					if (currSequence == keys) {
-						self.trigger('keymapcomplete', [currSequence]);
-						currSequence = ''; // restart
-						return origHandler.apply(this, arguments);
+		$.event.special[type] = $.event.special[type] || {};
+		$.event.special[type].add = function(handleObj){
+			if (!handleObj.data || typeof handleObj.data.keys != 'string') return;
+			var keys = ' '+$.keymap.normalizeList(handleObj.data.keys); // the space makes the comparison easier later
+			// Use the keys as a sort of namespace for the event. This is a hack for removing the handler later.
+			handleObj.namespace = handleObj.namespace.split('.').
+				concat(hotkeysnamespace(keys)).sort().join('.'); // add the new namespace in alphabetical order
+			var origHandler = handleObj.handler;
+			var currSequence = '';
+			handleObj.handler = function (event){
+				var self = $(this);
+				var key = ' '+$.keymap(event);
+				if (!key) return; // avoid problems with control keys
+				currSequence += key;
+				if (currSequence == keys) {
+					self.trigger('keymapcomplete', [currSequence]);
+					currSequence = ''; // restart
+					return origHandler.apply(this, arguments);
+				}
+				// find the portion of the current sequence that could be a prefix of the sought keys
+				while (currSequence){
+					if (keys.indexOf(currSequence) == 0){
+						self.trigger('keymapprefix', [currSequence]);
+						return !!handleObj.data.allowDefault;
 					}
-					// find the portion of the current sequence that could be a prefix of the sought keys
-					while (currSequence){
-						if (keys.indexOf(currSequence) == 0){
-							self.trigger('keymapprefix', [currSequence]);
-							return !!handleObj.data.allowDefault;
-						}
-						currSequence = currSequence.replace(/ \S+/, ''); // strip the first key
-					}
-				};
-			}
+					currSequence = currSequence.replace(/ \S+/, ''); // strip the first key
+				}
+			};
 		};
 	});
 
