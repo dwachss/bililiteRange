@@ -54,7 +54,6 @@ if ( !Array.prototype.forEach ) {
 		}
 		if (!ret) return false;
 		if (alt) ret = '%' + ret;
-		ret = ret.replace('%^', '^%'); // normalize control-alt letters
 		if (ctrl) ret = '^' + ret;
 		if (shift) ret = '+' + ret;
 		// make sure control characters are uppercase
@@ -96,6 +95,9 @@ if ( !Array.prototype.forEach ) {
 		'num-': 'subtract',
 		'num\\*': 'multiply',
 		'num/': 'divide',
+		
+		// make sure the special keys by themselves are marked
+		'^[+%^]$': '{$&}',
 		
 		'^\\+(\\w)$': function (match, p1) {return p1.toUpperCase()}, // uppercase shifted letters
 		'[+^%]\\w$': function(match) {return match.toUpperCase()}, // control-letters are uppercase
