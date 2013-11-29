@@ -34,6 +34,7 @@ $.fn.statusbar = function(opts){
 		}
 		
 		options.result.done(function(data) {
+			console.log(data);
 			if (data.message) message(data.message, 'statusbar-success');
 		}).fail(function(data){
 			if (data.message) message(data.message, 'statusbar-fail');
@@ -48,7 +49,7 @@ $.fn.statusbar = function(opts){
 			var input = createinput(this, options); // this actually returns the label that contains the input
 			var history = $(this).data('statusbar.history') || []; // a stack of past commands
 			$(this).data('statusbar.history', history);
-			$('input',input).on(options.events, options.eventfilter).on('keyup', function (evt){
+			$('input',input).on('keyup', function (evt){
 				var c = $.keymap(evt);
 				if (c == '{enter}'){
 					history.push(this.value);
@@ -60,6 +61,8 @@ $.fn.statusbar = function(opts){
 					this.value = history.pop();
 					$(this).trigger('input'); // always need to alert when the text changes
 				}
+			}).on('keypress', function (evt){
+				if (evt.which == 13) evt.preventDefault(); // don't pass the return to enclosing forms
 			});
 			$('input',input)[0].focus();
 		}
@@ -72,8 +75,6 @@ $.fn.statusbar.options = {
 	result: undefined,
 	run: $.noop, // function to which to pass the text to resolve result
 	noinput: false,
-	events: '', // events to pass to eventfilter
-	eventfilter: $.noop,
 	prompt: false,
 };
 

@@ -31,7 +31,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-(function(funcs, undefined){
+(function(undefined){
 
 /*********************** shims: it's be nice to IE8 day *********************************/
 if ( !Array.prototype.forEach ) {
@@ -51,7 +51,7 @@ if(!String.prototype.trim) {
 bililiteRange.extend ({
 lines: function(i, j){
 	if (arguments.length){
-		// selects the entire lines between i and j. If j < i results will be a collapsed range, but where is left undefined.
+		// selects the entire lines between i and j. 
 		if (i === undefined) i = j;
 		if (j === undefined) j = i;
 		if (i > j) j = (i += j -= i) - j; // ludicrously hacky 1-line swap (http://www.greywyvern.com/?post=265)
@@ -68,7 +68,7 @@ lines: function(i, j){
 },
 
 newline: function(line, select){
-	//insert text in a line by itself
+	//insert text in a line by itself. Note that it's a newline, not a <br/> even if that would be appropriate
 	var b = this.bounds();
 	var text = this.all();
 	if (b[0] > 0 && text.charAt(b[0]-1) != '\n') line = '\n'+line;
@@ -79,108 +79,62 @@ newline: function(line, select){
 });
 
 /*********************** the actual ex plugin *********************************/
-bililiteRange.fn.ex = function (commandstring, state){
-	// set up defaults
+bililiteRange.ex = {}; // namespace for exporting utility functions
+
+bililiteRange.fn.ex = function (commandstring){
 	this.exMessage = '';
-	state = setdefaults(state);
+	var state = this.exState();
 	// set the next-to-last mark
 	state.marks["'"] = state.marks["''"];
 	state.marks["''"] = this.clone().live();
-	// actually do the command
+	// remember the current text to allow undoing
 	var oldtext = this.all();
-	var oldbounds = this.bounds();
-	var oldundostate = state.undos.length;
+	oldtext.bounds = this.bounds();
+	var oldundolength = state.undos.length;
+	// actually do the command
 	commandstring = commandstring.replace(/^:+/,''); // ignore initial colons that were likely accidentally typed.
 	splitCommands(commandstring, '|').forEach(function(command){
 		var parsed = parseCommand(command);
 		interpretAddresses(this, parsed.addresses, state);
-		funcs[parsed.command](this, parsed.parameter, parsed.variant, state);
+		parsed.command.call(this, parsed.parameter, parsed.variant);
 	}, this);	
 	// only remember text changes if it actually changed (since that is all we can undo) and if we haven't done some other undo manipulation
-	if (oldtext != this.all() && oldundostate == state.undos.length){
+	if (oldtext != this.all() && oldundolength == state.undos.length){
 		state.undos.push(oldtext);
-		state.undobounds.push(oldbounds);
 	}
 	return this; // allow for chaining
 };
 
-/*********************** defaults *********************************/
-function setdefaults(state){
-	defaults = {
-		options: { wrapscan: true, multiline: true, shiftwidth: 8 },
+bililiteRange.fn.exState = function(options){
+	// This creates memory leaks! marks contains bililiteRanges which contain DOM elements, so attaching it to the element is bad
+	var state = this.element().exState || (this.element().exState = {
+		// defaults
+		wrapscan: true,
+		multiline: true,
+		shiftwidth: 8,
 		marks: {},
-		buffers: [], // the delete buffer is a stack, with 0 the most recent (use shift rather than pop)
-		lastRE: /(?:)/, // blank RE's refer to this
 		undos: [],
-		redos: [],
-		undobounds: [],
-		redobounds: [],
-		commands: {}
-	};
-	state = state || defaults;
-	for (item in defaults) state[item] = state[item] || defaults[item];
-	for (command in state.commands){
-		// allow for extensions
-		funcs[command] = state.commands[command];
-		synonyms[command] = command;
-	}
-	return state;
+		redos: []
+	});
+	// simple copy, not recursive
+	if (options) for (option in options) state[option] = options[option];
+	return state; 
 }
 
+var buffers = bililiteRange.ex.buffers = []; // the delete buffer is a stack, with 0 the most recent (use shift rather than pop)
+
 /*********************** command completion *********************************/
-var synonyms = {
-	// synonyms for options and commands. Note that all the tab-related options are the same
-	a: 'append',
-	ai: 'autoindent',
-	append: 'append',
-	autoindent: 'autoindent',
-	c: 'change',
-	change: 'change',
-	copy: 'copy',
-	'delete': 'del',
-	global: 'global',
-	hardtabs: 'shiftwidth',
-	ht: 'shiftwidth',
-	i: 'insert',
-	ignorecase: 'ignorecase',
-	insert: 'insert',
-	ic: 'ignorecase',
-	join: 'join',
-	k: 'mark',
-	m: 'move',
-	mark: 'mark',
-	ml: 'multiline',
-	move: 'move',
-	multiline: 'multiline',
-	print: 'print',
-	put: 'put',
-	redo: 'redo',
-	s: 'substitute',
-	set: 'set',
-	shiftwidth: 'shiftwidth',
-	substitute: 'substitute',
-	sw: 'shiftwidth',
-	t: 'copy',
-	tabstop: 'shiftwidth',
-	transcribe: 'copy',
-	ts: 'shiftwidth',
-	u: 'undo',
-	undo: 'undo',
-	v: 'notglobal',
-	wrapscan: 'wrapscan',
-	ws: 'wrapscan',
-	yank: 'yank',
-	'=': '=',
-	'&': 'substitute',
-	'~': '~'
-};
 
 function commandCompletion(command){
-	if (synonyms[command]) return synonyms[command];
-	for(trialCommand in synonyms){
-		if (trialCommand.substr(0,command.length) == command) return synonyms[trialCommand];
-	}
-	throw {message: command+" not defined"};
+	var ret = (function(){
+		if (commands[command]) return commands[command];
+		for(trialCommand in commands){
+			if (trialCommand.substr(0,command.length) == command) return commands[trialCommand];
+		}
+		throw {message: command+" not defined"};
+	})();
+	if (typeof ret == 'string') return commandCompletion(ret); // look for synonyms; beware of infinite loops!
+	return ret;
 }
 
 /*********************** separating a command line into individual commands *********************************/
@@ -238,6 +192,16 @@ var addressRE = new RegExp('^\\s*' + // allow whitespace at the beginning
 	].join('|')+')'
 );
 
+// command id's in the real ex are letters and = & ~ > < 
+var idRE = /^\s*([a-zA-Z=&~><]+)/;
+var notidRE = /[^a-zA-z=&~><]/g;
+bililiteRange.ex.toID = function (s){
+	// creates a legal id from an arbitrary string. Since I use sendkeys/keymap, I special-case those characters and erase the rest
+	return s.replace(/%/g,'alt~').replace(/\^/g,'ctl~').replace(/\+/g,'shift~').
+		replace(/{/g,'<').replace(/}/g,'>').
+		replace(notidRE, '');
+}
+
 function parseCommand(command){
 	return {
 		addresses: parseAddresses(),
@@ -270,7 +234,7 @@ function parseCommand(command){
 	function parseCommandWord(){
 		if (/^\s*$/.test(command)) return 'print'; // blank line just goes to the addressed line, which is what we do with print
 		var ret;
-		command = command.replace(/^\s*([a-zA-Z=&~><]+)/, function (match, c){
+		command = command.replace(idRE, function (match, c){
 			ret = c.toLowerCase();
 			return '';
 		});
@@ -297,10 +261,13 @@ function string(text){
 	if (text.charAt(0) == '"') text = JSON.parse(text);
 	return text;
 }
-bililiteRange.fn.ex.string = string; // export it
+bililiteRange.ex.string = string; // export it
+
 /*********************** turn an array of address descriptions into an actual range *********************************/
-function interpretAddresses (rng, addresses, state){
+var lastRE = /(?:)/; // blank RE's refer to this
+function interpretAddresses (rng, addresses){
 	if (addresses[0] == "'.") return; // special internal marker for vi, to not change the selection.
+	var state = rng.exState();
 	var lines = [];
 	var currLine = rng.line();
 	addresses.forEach(function(s){
@@ -310,12 +277,12 @@ function interpretAddresses (rng, addresses, state){
 			return '';
 		});
 		if (s.charAt(0) == '/'){
-			var re = createRE(s, state.options.ignorecase, state);
-			lines.push(rng.bounds('EOL').find(re, !state.options.wrapscan).bounds('EOL').line()+offset);
+			var re = createRE(s, rng.exState().ignorecase);
+			lines.push(rng.bounds('EOL').find(re, !state.wrapscan).bounds('EOL').line()+offset);
 		}else if (s.charAt(0) == '?'){
 			// since having ? as a delimiter wreaks havoc with Javascript RE's, use ?/....../
-			re = createRE(s.slice(1), state.options.ignorecase, state);
-			lines.push(rng.bounds('BOL').findBack(re, !state.options.wrapscan).bounds('EOL').line()+offset);
+			re = createRE(s.slice(1), rng.exState().ignorecase);
+			lines.push(rng.bounds('BOL').findBack(re, !state.wrapscan).bounds('EOL').line()+offset);
 		}else if (s.charAt(0) == "'"){
 			var mark = state.marks[s.slice(1)];
 			if (mark){
@@ -342,7 +309,7 @@ function interpretAddresses (rng, addresses, state){
 	rng.lines(lines.pop(), lastline);
 }
 
-function createRE(s, ignorecase, state){
+function createRE(s, ignorecase){
 	// create a RegExp from a string (with an aribitrary delimiter), of the form /re/(rest)?/?flags?/? (the "rest" part is for the substitute command)
 	// as with splitCommands above, easier to scan with a simple parser than to use RegExps
 	var delim = s.charAt(0);
@@ -362,8 +329,8 @@ function createRE(s, ignorecase, state){
 	});
 	if (re == ''){
 		// blank string means use last regular expression
-		re = state.lastRE.source;
-		flags = flags || state.lastRE.flags;
+		re = lastRE.source;
+		flags = flags || lastRE.flags;
 	}
 	if (!/M/i.test(flags)) flags += 'm'; // default is multiline mode unless we mark it otherwise with M
 	if (ignorecase && !/I/i.test(flags)) flags += 'i'; // allow for global option to ignore case
@@ -371,8 +338,8 @@ function createRE(s, ignorecase, state){
 	if (/w/.test(flags)) ret.nowrap = false;
 	if (/W/.test(flags)) ret.nowrap = true;
 	ret.rest = s.replace(new RegExp('\\'+delim+'$'), ''); // remove the last delimiter if present
-	state.lastRE = ret;
-	state.lastRE.flags = flags;
+	lastRE = ret;
+	lastRE.flags = flags;
 	return ret;
 }
 
@@ -390,9 +357,9 @@ function interpretOffset(s){
 
 /*********************** the buffers *********************************/
 
-function pushBuffer(text, buffers, buffer){
+function pushBuffer(text, buffer){
 	if (buffer){
-		if (/^[A-Z]/.test(parameter)){
+		if (/^[A-Z]/.test(buffer)){
 			// uppercase means append
 			buffers[buffer.toLowerCase()] += text;
 		}else{
@@ -404,7 +371,7 @@ function pushBuffer(text, buffers, buffer){
 	}		
 }
 
-function popBuffer (buffers, buffer){
+function popBuffer (buffer){
 	return buffer ? buffers[buffer.toLowerCase()] : buffers.shift();
 }
 
@@ -417,198 +384,252 @@ function indentation(rng){
 function autoindent (text, rng){
 	return text.replace(/(^|\n)([ \t]*)/g, '$1$2'+indentation(rng)); // keep existing indentation!
 }
-/*********************** the editing functions *********************************/
+/*********************** the actual editing commands *********************************/
 
 // exported utility function
 function booleanOption (option){
-	return function (rng, parameter, variant, state){
+	return function (parameter, variant){
+		var state = this.exState();
 		if (parameter=='?'){
-			rng.exMessage = state.options[option] ? 'on' : 'off';
+			this.exMessage = state[option] ? 'on' : 'off';
 		}else if (parameter == 'off' || parameter == 'no' || parameter == 'false'){
-			state.options[option] = variant;
+			state[option] = variant;
 		}else{
-			state.options[option] = !variant; // variant == false means take it straight and set the option
+			state[option] = !variant; // variant == false means take it straight and set the option
 		}
 	};
 }
-bililiteRange.fn.ex.booleanOption = booleanOption;
+bililiteRange.ex.booleanOption = booleanOption;
 
-funcs.append = function (rng, parameter, variant, state){
-	// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
-	if (!variant != !state.options.autoindent) parameter = autoindent(parameter, rng);
-	rng.bounds('endbounds').newline(parameter, 'end');
-}
+// a command is a function (parameter {String}, variant{Boolean}). 'this' is the bililiteRange; or a string that marks a synonym
+var commands = bililiteRange.ex.commands = {
+	a: 'append',
 
-funcs.autoindent = booleanOption ('autoindent');
+	ai: 'autoindent',
 
-funcs.change = function (rng, parameter, variant, state){
-	if (!variant != !state.options.autoindent) parameter = autoindent(parameter, rng);
-	pushBuffer (rng.text(), state.buffers);
-	rng.newline(parameter, 'end');
-}
+	append: function (parameter, variant){
+		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
+		if (!variant != !this.exState().autoindent) parameter = autoindent(parameter, this);
+		this.bounds('endbounds').newline(parameter, 'end');
+	},
 
-funcs.copy = function (rng, parameter, variant, state){
-	var targetrng = rng.clone();
-	var parsed = parseCommand(parameter);
-	interpretAddresses(targetrng, parsed.addresses, state);
-	targetrng.bounds('endbounds').newline(rng.text(), 'end');
-	rng.bounds(targetrng.bounds());
-}
+	autoindent: booleanOption ('autoindent'),
 
-funcs.del = function (rng, parameter, variant, state){
-	var match = /^([a-zA-Z]?)\s*(\d*)/.exec(parameter);
-	// the regular expression will match anything (all the components are optional), so match is never false
-	if (match[2]){
-		// a count means we to change the range in e.g., 1,2 d 3 from [1,2] to [2,2+3-1] (3 lines from the end of the range, inclusive)
-		var lines = rng.lines();
-		rng.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
-	}
-	pushBuffer(rng.text(), state.buffers, match[1]);
-	// need to delete the newline as well.
-	rng.bounds([rng.bounds()[0], rng.bounds()[1]+1]);
-	rng.text('', 'end');
-}
+	c: 'change',
 
-funcs.global = function (rng, parameter, variant, state){
-	var re = createRE(parameter, state.options.ignorecase, state);
-	// turn pat into a list of live bookmarks
-	var rngs = [];
-	var lines = rng.lines();
-	for (i = lines[0]; i <= lines[1]; ++i){
-		var line = rng.clone().lines(i);
-		if (re.test(line.text()) ? !variant : variant){ // that's re.test XOR variant
-			rngs.push(line.live());
+	change: function (parameter, variant){
+		if (!variant != !this.exState().autoindent) parameter = autoindent(parameter, this);
+		pushBuffer (this.text());
+		this.newline(parameter, 'end');
+	},
+
+	copy: function (parameter, variant){
+		var targetrng = this.clone();
+		var parsed = parseCommand(parameter);
+		interpretAddresses(targetrng, parsed.addresses);
+		targetrng.bounds('endbounds').newline(this.text(), 'end');
+		this.bounds(targetrng.bounds());
+	},
+
+	del: function (parameter, variant){
+		var match = /^([a-zA-Z]?)\s*(\d*)/.exec(parameter);
+		// the regular expression will match anything (all the components are optional), so match is never false
+		if (match[2]){
+			// a count means we to change the range in e.g., 1,2 d 3 from [1,2] to [2,2+3-1] (3 lines from the end of the range, inclusive)
+			var lines = this.lines();
+			this.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
 		}
-	}
-	rngs.forEach(function(line){
-		splitCommands(re.rest, '\\n').forEach(function(command){
-			var parsed = parseCommand(command);
-			funcs[parsed.command](line, parsed.parameter, parsed.variant, state);
-		});
-	});
-	rng.bounds (rngs.length ? rngs.pop().bounds() : 'endbounds');
-}
+		pushBuffer(this.text(), match[1]);
+		// need to delete the newline as well.
+		this.bounds([this.bounds()[0], this.bounds()[1]+1]);
+		this.text('', 'end');
+	},
 
-funcs.ignorecase = booleanOption ('ignorecase');
+	'delete': 'del',
 
-funcs.insert = function (rng, parameter, variant, state){
-	if (!variant != !state.options.autoindent) parameter = autoindent(parameter, rng);
-	rng.bounds('startbounds').newline(parameter, 'end');
-}
-
-funcs.join = function (rng, parameter, variant, state){
-	var lines = rng.lines();
-	var match = /^\d+/.exec(parameter);
-	if (match){
-		// a count means we to change the range in e.g., 1,2 d 3 from [1,2] to [2,2+3-1] (3 lines from the end of the range, inclusive)
-		lines = [lines[1], lines[1]+parseInt(match[0])-1];
-	}
-	if (lines[0] == lines[1]) ++lines[1]; // join at least 2 lines
-	var re = variant ? /\n/g : /\s*\n\s*/g;
-	rng.lines(lines[0],lines[1]);
-	rng.text(rng.text().replace(re, ' '), 'start');
-}
-
-funcs.mark = function (rng, parameter, variant, state){
-	state.marks[parameter] = rng.clone().live();
-}
-
-funcs.move = function (rng, parameter, variant, state){
-	var thisrng = rng.clone().live();
-	funcs.copy (rng, parameter, variant, state);
-	funcs.del (thisrng, '', false, state);
-}
-
-funcs.multiline = booleanOption ('multiline');
-
-funcs.notglobal = function (rng, parameter, variant, state){
-	funcs.global(rng, parameter, !variant, state);
-}
-
-funcs.print = function(rng) { rng.select() };
-
-funcs.put  = function (rng, parameter, variant, state){
-	// this seems to be the correct definition, but should this respect autoindent?
-	funcs.append(rng, popBuffer(state.buffers, parameter), variant, state);
-}
-
-funcs.redo = function (rng, parameter, variant, state){
-	// restores the text only, not any other aspects of state
-	rng.all(state.redos.pop()).bounds(state.redobounds.pop());
-}
-
-funcs.set = function (rng, parameter, variant, state){
-	if (!parameter || parameter == 'all'){
-		rng.exMessage = JSON.stringify(state.options);
-	}else{
-		splitCommands(parameter, ' ').forEach(function(command){
-			var match = /(no)?(\w+)(\?|=(\S+)|)/.exec(command);
-			if (!match && command.trim()) throw {message: 'Bad syntax in set: '+command};
-			var func = match[2];
-			if (match[1]){
-				var value = match[1];
-			}else if (!match[3]){
-				value = 'on';
-			}else if (match[3] == '?'){
-				value = '?';
-			}else{
-				value = string(match[4]);
+	global: function (parameter, variant){
+		var re = createRE(parameter, this.exState().ignorecase);
+		// turn pat into a list of live bookmarks
+		var rngs = [];
+		var lines = this.lines();
+		for (i = lines[0]; i <= lines[1]; ++i){
+			var line = this.clone().lines(i);
+			if (re.test(line.text()) ? !variant : variant){ // that's re.test XOR variant
+				rngs.push(line.live());
 			}
-			funcs[commandCompletion(func)](rng, value, variant, state); // each option takes care of its own setting
+		}
+		rngs.forEach(function(line){
+			splitCommands(re.rest, '\\n').forEach(function(command){
+				var parsed = parseCommand(command);
+				parsed.command.call(line, parsed.parameter, parsed.variant);
+			});
 		});
+		this.bounds (rngs.length ? rngs.pop().bounds() : 'endbounds');
+	},
+
+	hardtabs: 'shiftwidth',
+
+	ht: 'shiftwidth',
+
+	i: 'insert',
+
+	ignorecase: booleanOption ('ignorecase'),
+
+	insert: function (parameter, variant){
+		if (!variant != !this.exState().autoindent) parameter = autoindent(parameter, this);
+		this.bounds('startbounds').newline(parameter, 'end');
+	},
+
+	ic: 'ignorecase',
+
+	join: function (parameter, variant){
+		var lines = this.lines();
+		var match = /^\d+/.exec(parameter);
+		if (match){
+			// a count means we to change the range in e.g., 1,2 d 3 from [1,2] to [2,2+3-1] (3 lines from the end of the range, inclusive)
+			lines = [lines[1], lines[1]+parseInt(match[0])-1];
+		}
+		if (lines[0] == lines[1]) ++lines[1]; // join at least 2 lines
+		var re = variant ? /\n/g : /\s*\n\s*/g;
+		this.lines(lines[0],lines[1]);
+		this.text(this.text().replace(re, ' '), 'start');
+	},
+
+	k: 'mark',
+
+	m: 'move',
+
+	mark: function (parameter, variant){
+		this.exState().marks[parameter] = this.clone().live();
+	},
+
+	ml: 'multiline',
+
+	move: function (parameter, variant){
+		var thisrng = this.clone().live();
+		commands.copy.call (this, parameter, variant);
+		commands.del.call (thisrng, '', false);
+	},
+
+	multiline: booleanOption ('multiline'),
+
+	notglobal: function (parameter, variant){
+		commands.global.call (this, parameter, !variant);
+	},
+
+	print: function() { this.select() },
+
+	put: function (parameter, variant){
+		// this seems to be the correct definition, but should this respect autoindent?
+		commands.append.call (this, popBuffer(parameter), variant);
+	},
+
+	redo: function (parameter, variant){
+		// restores the text only, not any other aspects of state
+		var text = this.exState().redos.pop();
+		if (text === undefined) return;
+		this.all(text).bounds(text.bounds);
+	},
+
+	s: 'substitute',
+
+	set: function (parameter, variant){
+		if (!parameter || parameter == 'all'){
+			// only display the stringifiable options
+			var options = {}, state = this.exState();
+			for (option in state) if (!(state[option] instanceof Object)) options[option] = state[options];
+			rng.exMessage = JSON.stringify(options);
+		}else{
+			splitCommands(parameter, ' ').forEach(function(command){
+				var match = /(no)?(\w+)(\?|=(\S+)|)/.exec(command);
+				if (!match && command.trim()) throw {message: 'Bad syntax in set: '+command};
+				var func = match[2];
+				if (match[1]){
+					var value = match[1];
+				}else if (!match[3]){
+					value = 'on';
+				}else if (match[3] == '?'){
+					value = '?';
+				}else{
+					value = string(match[4]);
+				}
+				commandCompletion(func).call(this, value, variant); // each option takes care of its own setting
+			});
+		}
+	},
+
+	shiftwidth: function (parameter, variant){
+		if (parameter == '?' || parameter === true || !parameter){
+			this.exMessage = state.options.shiftwidth;
+		}else{
+			var shiftwidth = parseInt(parameter);
+			if (isNaN(shiftwidth) || shiftwidth <= 0) throw {message: 'Invalid value for shiftwidth: '+parameter};
+			this.exState().shiftwidth = shiftwidth;
+			this.element().style.tabSize = shiftwidth; // for browsers that support this.
+		}
+	},
+
+	substitute: function (parameter, variant){
+		// we do not use the count parameter (too hard to interpret s/(f)oo/$1 -- is that last 1 a count or part of the replacement?
+		// easy enough to assume it's part of the replacement but that's probably not what we meant)
+		var re = createRE(parameter, this.exState().ignorecase);
+		this.text(this.text().replace(re, string(re.rest))).bounds('endbounds');
+	},
+
+	sw: 'shiftwidth',
+
+	t: 'copy',
+
+	tabstop: 'shiftwidth',
+
+	transcribe: 'copy',
+
+	ts: 'shiftwidth',
+
+	u: 'undo',
+
+	undo: function (parameter, variant){
+		// restores the text only, not any other aspects of state
+		var text = this.all();
+		text.bounds = this.bounds();
+		var state = this.exState();
+		state.redos.push(text);
+		text = state.undos.pop();
+		this.all(text).bounds(text.bounds);
+	},
+
+	v: 'notglobal',
+
+	wrapscan: booleanOption ('wrapscan'),
+
+	ws: 'wrapscan',
+
+	yank: function (parameter, variant){
+		var match = /^([a-zA-Z]?)\s*(\d*)/.exec(parameter);
+		// the regular expression will match anything (all the components are optional), so match is never false
+		if (match[2]){
+			// a count means we to change the range in e.g., 1,2 y 3 from [1,2] to [2,2+3-1] (3 lines from the end of the range, inclusive)
+			var lines = this.lines();
+			this.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
+		}
+		pushBuffer(this.text(), match[1]);
+	},
+
+	'=': function (){
+		var lines = this.lines();
+		this.exMessage = '['+(lines[0] == lines[1] ? lines[0] : lines[0]+', '+lines[1])+']';
+	},
+	
+	'&': 'substitute',
+
+	'~': function (parameter, variant){
+		// repeat substitution with last replacement string as the search pattern
+		// according to http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ex.html, this is synonymous with &
+		// but according to the original ex manual (http://roguelife.org/~fujita/COOKIES/HISTORY/1BSD/exrefm.pdf)
+		// this is the definition. It seems useless to have two identical shortcuts, so I'll use the latter
+		lastRE = new RegExp (lastRE.rest, 'g');
+		commands.substitute.call (rng, parameter, variant);
 	}
-}
+};
 
-funcs.shiftwidth = function (rng, parameter, variant, state){
-	if (parameter == '?' || parameter === true || !parameter){
-		rng.exMessage = state.options.shiftwidth;
-	}else{
-		var shiftwidth = parseInt(parameter);
-		if (isNaN(shiftwidth) || shiftwidth <= 0) throw {message: 'Invalid value for shiftwidth: '+parameter};
-		state.options.shiftwidth = shiftwidth;
-		rng._el.style.tabSize = shiftwidth; // for browsers that support this.
-	}
-}
-
-funcs.substitute = function (rng, parameter, variant, state){
-	// we do not use the count parameter (too hard to interpret s/(f)oo/$1 -- is that last 1 a count or part of the replacement?
-	// easy enough to assume it's part of the replacement but that's probably not what we meant)
-	var re = createRE(parameter, state.options.ignorecase, state);
-	rng.text(rng.text().replace(re, string(re.rest))).bounds('endbounds');
-}
-
-funcs.undo = function (rng, parameter, variant, state){
-	// restores the text only, not any other aspects of state
-	state.redos.push(rng.all());
-	state.redobounds.push(rng.bounds());
-	rng.all(state.undos.pop()).bounds(state.undobounds.pop());
-}
-
-funcs.wrapscan = booleanOption ('wrapscan');
-
-funcs.yank = function (rng, parameter, variant, state){
-	var match = /^([a-zA-Z]?)\s*(\d*)/.exec(parameter);
-	// the regular expression will match anything (all the components are optional), so match is never false
-	if (match[2]){
-		// a count means we to change the range in e.g., 1,2 d 3 from [1,2] to [2,2+3-1] (3 lines from the end of the range, inclusive)
-		var lines = rng.lines();
-		rng.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
-	}
-	pushBuffer(rng.text(), state.buffers, match[1]);
-}
-
-funcs['='] = function (rng){
-	var lines = rng.lines();
-	rng.exMessage = '['+(lines[0] == lines[1] ? lines[0] : lines[0]+', '+lines[1])+']';
-}
-
-funcs['~'] = function (rng, parameter, variant, state){
-	// repeat substitution with last replacement string as the search pattern
-	// according to http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ex.html, this is synonymous with &
-	// but according to the original ex manual (http://roguelife.org/~fujita/COOKIES/HISTORY/1BSD/exrefm.pdf)
-	// this is the definition. It seems useless to have two identical shortcuts, so I'll use the latter
-	state.lastRE = new RegExp (state.lastRE.rest, 'g');
-	funcs.substitute (rng, parameter, variant, state);
-}
-
-})({});
+})();
