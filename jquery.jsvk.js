@@ -105,7 +105,7 @@
 			var $self = $(this), self = this;
 			onVKready(function(){
 				if (opts == 'off'){
-					if (VirtualKeyboard.getAttachedInput() == this) VirtualKeyboard.close();
+					if (VirtualKeyboard.getAttachedInput() == self) VirtualKeyboard.close();
 					$self.off('.vk');
 					return;
 				}
