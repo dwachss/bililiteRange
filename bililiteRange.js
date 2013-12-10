@@ -96,9 +96,11 @@ Range.prototype = {
 	},
 	text: function(text, select){
 		if (arguments.length){
-			this._nativeSetText(text, this._nativeRange(this.bounds()));
+			var bounds = this.bounds();
+			this._nativeSetText(text, this._nativeRange(bounds));
 			try { // signal the text change (IE < 9 doesn't support this, so we live with it)
-				this._el.dispatchEvent(new CustomEvent('input', {detail: {text: text, bounds: this.bounds()}}));
+				// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
+				this._el.dispatchEvent(new CustomEvent('input', {detail: {text: text, bounds: bounds}}));
 			}catch(e){ /* ignore */ }
 			if (select == 'start'){
 				this.bounds ([this._bounds[0], this._bounds[0]]);
