@@ -1,24 +1,24 @@
 bililiteRange is a javascript library that abstracts text selection and replacement.
 
-The basic function is in `bililiteRange.js`, with the documentation at http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
+The basic function is in bililiteRange.js, with the documentation at http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
 
 
 The other files are assorted javascript libraries that use bililiteRange:
 
-`bililiteRange.util.js`: Adds useful functions for searching and keeping the ranges up-to-date with  changes in the underlying text. Documentation at 
+bililiteRange.util.js: Adds useful functions for searching and keeping the ranges up-to-date with  changes in the underlying text. Documentation at 
 http://bililite.com/blog/2013/02/08/bililiterange-plugins/
 
-`jquery.jsvk.js`: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to use Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/). Documentation at 
+jquery.jsvk.js: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to use Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/). Documentation at 
 http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/
 
-`jquery.keymap.js`: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to turn keyup codes into understandable characters. Documentation at
+jquery.keymap.js: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to turn keyup codes into understandable characters. Documentation at
 http://bililite.com/blog/2013/02/22/parsing-keydown-events/ . Also includes a "hotkeys" plugin that allows keystroke handlers for specific keys, like $(el).on('keydown', {keys: '^A'}, function(){}) . Documentation at
 http://bililite.com/blog/2013/03/20/hotkeys-with-keymap/
 
-`jquery.livesearch.js`: jQuery plugin to do "live" searching for a regular expression; highlights  the text found and scrolls to it as you type. Documentation at
+jquery.livesearch.js: jQuery plugin to do "live" searching for a regular expression; highlights  the text found and scrolls to it as you type. Documentation at
 http://bililite.com/blog/2013/03/07/new-jquery-plugin-livesearch/
 
-`jquery.sendkeys.js`: jQuery plugin to simulate keypresses. Documentation at 
+jquery.sendkeys.js: jQuery plugin to simulate keypresses. Documentation at 
 http://bililite.com/blog/2011/01/23/improved-sendkeys/
 
 The other files are not mature and are not documented at all.
