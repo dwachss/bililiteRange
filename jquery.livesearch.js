@@ -42,7 +42,7 @@ $.fn.livesearch = function(back, filter){
 
 	return function(evt){
 		var text = bililiteRange(this).all();
-		if (evt.type != 'blur'){
+		if (evt.type != 'blur' && evt.type != 'focusout'){
 			rngs.forEach(function(rng){
 				rng = rng.clone().find(filter(text), undefined, back);
 				highlight(rng);
