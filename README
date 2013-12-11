@@ -1,4 +1,4 @@
-bililiteRange is a javascript library that abstracts text selection and replacement. The basic function is in bililiteRange.js, with the documentation at http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
+.js is a javascript library that abstracts text selection and replacement. The basic function is in bililiteRange.js, with the documentation at http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
 
 
 The other files are assorted javascript libraries that use bililiteRange:
