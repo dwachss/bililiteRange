@@ -5,108 +5,84 @@
 
 (function($){
 
-$.fn.vi = function(statusbar, state){
-	state = state || {};
-	$.extend(true, state, {
-		options: {
-			vimode: 'INSERT' // unlike real vi, start in insert mode since that is more "natural" for a GUI
-		},
-		commands: {
-			map: function (rng, parameter, variant, state){
-				// The last word (either in a string or not containing spaces) is the replacement; the rest of
-				// the string at the beginning are the mapped key(s)
-				var match = /^(.+?)([^"\s]+|"(?:[^"]|\\")+")$/.exec(parameter);
-				if (!match) throw {message: 'Bad syntax in map: '+parameter};
-				var keys = match[1].trim();
-				var command = bililiteRange.fn.ex.string(match[2]);
-				var executecommand = function(){
-					return rng.
-						bounds('selection').
-						ex(command, state).
-						select().
-						scrollIntoView().
-						exMessage;
-				};
-				$(rng.element()).on('keydown', {keys: keys}, function() {
-					var mode = state.options.vimode;
-					console.log(keys, mode, variant);
-					if (variant != (mode == 'INSERT')) return; // variant == true means run in insert mode
-					$(statusbar).statusbar({run: executecommand});
-					return false;
-				});
-			},
-			select: function (rng, parameter, variant, state){
-				rng.bounds(parameter).select();
-			},
-			sendkeys: function (rng, parameter, variant, state){
-				$(rng.element()).sendkeys(parameter);
-			},
-			vi: function (rng, parameter, variant, state){
-				parameter = parameter || 'VI MODE';
-				$(rng.element()).trigger('vimode', parameter);
-			},
-			// all the vi* functions are meant to be used with map to attach to a keystroke
-			via:  function (rng, parameter, variant, state){
-				$(rng.element()).trigger('vimode', 'INSERT');
-				rng.bounds('endbounds').select();
-			},
-			viex: function (rng, parameter, variant, state){
-				$(statusbar).statusbar({
-					prompt: ':',
-					run: function(text){
-						return rng.
-							bounds('selection').
-							ex(text, state).
-							select().
-							scrollIntoView().
-							exMessage;
-					},
-					result: $.Deferred().always(function() {rng.element().focus()}), // make sure we return focus to the text!
-				});
-			}
-		}
-	});
-	return this.on('vimode', function(evt, data){
-		state.options.vimode = data;
-	}).each(function(){
-		bililiteRange(this). // TODO:  replace this with the commands below
-			ex('via', state).
-			ex("map {esc} '.vi", state).
-			ex("map! {esc} '.vi", state).
-			ex("map : viex", state).
-			ex('map o "a|via"', state).
-			ex("map a '.via", state);
+$.fn.vi = function(statusbar){
+	return this.each(function(){
+		bililiteRange(this).exState().vimode = 'INSERT'; // unlike real vi, start in insert mode since that is more "natural" for a GUI
+		$(this).trigger('vimode', 'INSERT');
+		$.data(this, 'vi.statusbar', statusbar);
+		addviCommands (this, vimodeCommands, '', 'vi~');
+		addviCommands (this, insertmodeCommands, '!', 'insert~');
+	}).on('vimode', function(evt, data){
+		state.vimode = data;
 	});
 }
 
-var vimodeCommands = {
-	':' : function (rng, parameter, variant, state){
-		$(statusbar).statusbar({
-			prompt: ':',
-			run: function(text){
-				return rng.
-					bounds('selection').
-					ex(text, state).
-					select().
-					scrollIntoView().
-					exMessage;
-			},
-			result: $.Deferred().always(function() {rng.element().focus()}), // make sure we return focus to the text!
+function executeCommand (rng, command){
+	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
+	return function (text){
+		return rng.bounds('selection').ex(command || text).select().scrollIntoView().exMessage;
+	};
+}
+
+$.extend (bililiteRange.ex.commands, {
+	map: function (parameter, variant){
+		// The last word (either in a string or not containing spaces) is the replacement; the rest of
+		// the string at the beginning are the mapped key(s)
+		var rng = this, state = this.exState();
+		var match = /^(.+?)([^"\s]+|"(?:[^"]|\\")+")$/.exec(parameter);
+		if (!match) throw {message: 'Bad syntax in map: '+parameter};
+		var keys = match[1].trim();
+		var command = bililiteRange.ex.string(match[2]);
+		$(rng.element()).on('keydown', {keys: keys}, function() {
+			var mode = state.vimode;
+			if (variant == (mode != 'INSERT')) return; // variant == true means run in insert mode
+			$($.data(this, 'vi.statusbar')).statusbar({run: executeCommand(rng, command)});
+			return false;
 		});
 	},
-	'{esc}' : 'vi',
-	a: 'select endbounds | vi INSERT',
-	h: 'sendkeys {leftarrow}',
-	i: 'select startbounds | vi INSERT',
-	l: 'sendkeys {rightarrow}',
-	o: 'a|via',
-	
+	select: function (parameter, variant){
+		this.bounds(parameter).select();
+	},
+	sendkeys: function (parameter, variant){
+		$(this.element()).sendkeys(parameter);
+		this.bounds('selection');
+	},
+	vi: function (parameter, variant){
+		parameter = parameter || 'VISUAL';
+		this.exState().vimode = parameter;
+		$(this.element()).trigger('vimode', parameter);
+	}
+});
+
+var vimodeCommands = {
+	':' : function (){
+		var statusbar = $.data(this.element(), 'vi.statusbar');
+		$(statusbar).statusbar({
+			prompt: ':',
+			run: executeCommand(this),
+			result: $.Deferred().always(function() {this.element().focus()}), // make sure we return focus to the text!
+		});
+	},
+	'{esc}' : "'.vi", // note that vi commands should use the magic '. marker to indicate not to change the selection
+	a: "'.select endbounds | '.vi INSERT",
+	h: "'.sendkeys {leftarrow}",
+	i: "'.select startbounds | '.vi INSERT",
+	l: "'.sendkeys {rightarrow}",
+	o: "a | vi INSERT" 
 },
 insertmodeCommands = {
-	'{esc}' :'vimode'
+	'{esc}' :"'.vi"
 }
 
-function toexname (s, prefix){
-	// converts a string to a valid ex command name (only letters and 
+function addviCommands(el, commands, variant, prefix){
+	for (key in commands){
+		if ($.isFunction (commands[key])){
+			var id = prefix + bililiteRange.ex.toID(key);
+			bililiteRange.ex.commands[id] = commands[key];
+			commands[key] = "'." + id; // make sure we don't change the selection (that's the magic '. marker)
+		}
+		bililiteRange(el).ex('map'+variant+' '+key+' '+JSON.stringify(commands[key]));
+	}
 }
+
 })(jQuery);

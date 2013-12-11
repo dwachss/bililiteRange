@@ -105,17 +105,21 @@ bililiteRange.fn.ex = function (commandstring){
 	return this; // allow for chaining
 };
 
+var exStates = []; // to avoid memory leaks, 
 bililiteRange.fn.exState = function(options){
 	// This creates memory leaks! marks contains bililiteRanges which contain DOM elements, so attaching it to the element is bad
-	var state = this.element().exState || (this.element().exState = {
-		// defaults
-		wrapscan: true,
-		multiline: true,
-		shiftwidth: 8,
-		marks: {},
-		undos: [],
-		redos: []
-	});
+	var state = exStates[this.element().exState];
+	if (!state){
+		state = exStates[this.element().exState = exStates.length] = {
+			// defaults
+			wrapscan: true,
+			multiline: true,
+			shiftwidth: 8,
+			marks: {},
+			undos: [],
+			redos: []
+		};
+	}
 	// simple copy, not recursive
 	if (options) for (option in options) state[option] = options[option];
 	return state; 
@@ -128,6 +132,7 @@ var buffers = bililiteRange.ex.buffers = []; // the delete buffer is a stack, wi
 function commandCompletion(command){
 	var ret = (function(){
 		if (commands[command]) return commands[command];
+		command = command.toLowerCase();
 		for(trialCommand in commands){
 			if (trialCommand.substr(0,command.length) == command) return commands[trialCommand];
 		}
@@ -194,12 +199,28 @@ var addressRE = new RegExp('^\\s*' + // allow whitespace at the beginning
 
 // command id's in the real ex are letters and = & ~ > < 
 var idRE = /^\s*([a-zA-Z=&~><]+)/;
-var notidRE = /[^a-zA-z=&~><]/g;
+var aUnicode = 'a'.charCodeAt(0);
+function encodeID (c){
+	// encodes a single character in base-26 (a-z) numbers preceded by '&'; sort of like encodeURI with '%'s
+	// but with characters legal in ex commands
+	function encode(x) {
+		if (x < 26) return String.fromCharCode(x + aUnicode);
+		return encode(x/26) + encode(x%26);
+	};
+	return '&' + encode(c.charCodeAt(0));
+}
 bililiteRange.ex.toID = function (s){
-	// creates a legal id from an arbitrary string. Since I use sendkeys/keymap, I special-case those characters and erase the rest
-	return s.replace(/%/g,'alt~').replace(/\^/g,'ctl~').replace(/\+/g,'shift~').
-		replace(/{/g,'<').replace(/}/g,'>').
-		replace(notidRE, '');
+	// creates a legal id from an arbitrary string. Since I use sendkeys/keymap, I special-case those characters
+	return s.replace(/./g, function (c){
+		if (idRE.test(c)) return c;
+		return {
+			'%': 'alt~',
+			'^': 'ctl~',
+			'+': 'shift~',
+			'{': '<',
+			'}': '>'
+		}[c] || encodeID(c) ;
+	});
 }
 
 function parseCommand(command){
@@ -218,7 +239,7 @@ function parseCommand(command){
 			return '';
 		});
 		// relative addresses
-		command = command.replace(/^[-+\d]+/, function (match){
+		command = command.replace(/^\s*[-+\d]+/, function (match){
 			addresses[0] += match;
 			return '';
 		});
@@ -235,7 +256,7 @@ function parseCommand(command){
 		if (/^\s*$/.test(command)) return 'print'; // blank line just goes to the addressed line, which is what we do with print
 		var ret;
 		command = command.replace(idRE, function (match, c){
-			ret = c.toLowerCase();
+			ret = c;
 			return '';
 		});
 		if (!ret) throw {message: "No command string"};
@@ -560,12 +581,14 @@ var commands = bililiteRange.ex.commands = {
 
 	shiftwidth: function (parameter, variant){
 		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = state.options.shiftwidth;
+			this.exMessage = this.exState().shiftwidth;
 		}else{
 			var shiftwidth = parseInt(parameter);
 			if (isNaN(shiftwidth) || shiftwidth <= 0) throw {message: 'Invalid value for shiftwidth: '+parameter};
-			this.exState().shiftwidth = shiftwidth;
-			this.element().style.tabSize = shiftwidth; // for browsers that support this.
+			this.exState().shiftwidth =
+				this.element().style.tabSize =
+				this.element().style.OTabSize =
+				this.element().style.MozTabSize = shiftwidth; // for browsers that support this.
 		}
 	},
 
