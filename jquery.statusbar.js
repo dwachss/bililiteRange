@@ -34,7 +34,6 @@ $.fn.statusbar = function(opts){
 		}
 		
 		options.result.done(function(data) {
-			console.log(data);
 			if (data.message) message(data.message, 'statusbar-success');
 		}).fail(function(data){
 			if (data.message) message(data.message, 'statusbar-fail');
