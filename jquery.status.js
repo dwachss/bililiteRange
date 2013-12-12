@@ -33,7 +33,6 @@ var defaults = {
 	hide: function() {return this.fadeOut(5000)},
 	result: undefined,
 	run: $.noop, // function to which to pass the text to resolve result
-	noinput: false,
 	prompt: false,
 	successClass: 'success',
 	failureClass: 'failure',
