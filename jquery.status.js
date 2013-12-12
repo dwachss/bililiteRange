@@ -39,14 +39,19 @@ var defaults = {
 	cancelMessage: 'User Canceled'
 };
 
-$.fn.status = function(opts, message, classname){
-	if (typeof opts == 'string'){
+$.fn.status = function(message, classname, opts){
+	if (typeof message != 'string'){
 		// shift arguments
-		classname = message;
-		message = opts;
-		opts = undefined;
+		opts = message;
+		message = undefined;
+	}else if (typeof classname != 'string'){
+		opts = classname;
+		classname = '';
 	}
-	var opts = $.extend({}, defaults, opts), self = this;
+
+	opts = $.extend({}, defaults, opts)
+	var self = this;
+
 	if (message) return this.each(function(){
 		// just show the message
 		var span = $('<span>').addClass(classname).text(message).hide().appendTo(this);
