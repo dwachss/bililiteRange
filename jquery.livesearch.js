@@ -1,5 +1,5 @@
 // jquery.livesearch.js
-// Version 1.1
+// Version 1.2
 // documentation: http://bililite.com/blog/2013/03/07/new-jquery-plugin-livesearch/
 // depends on jQuery, bililiteRange.s, bililiteRange.util.js
 
