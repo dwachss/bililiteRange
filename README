@@ -21,4 +21,7 @@ http://bililite.com/blog/2013/03/07/new-jquery-plugin-livesearch/
 jquery.sendkeys.js: jQuery plugin to simulate keypresses. Documentation at 
 http://bililite.com/blog/2011/01/23/improved-sendkeys/
 
+prismeditor.js: Uses bililiteRange and the Prism syntax highlighter (prismjs.com) to create a simple syntax-highlighting text editor. Documentation at
+http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
+
 The other files are not mature and are not documented at all.
