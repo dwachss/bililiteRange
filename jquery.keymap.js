@@ -107,6 +107,7 @@ if ( !Array.prototype.forEach ) {
 				(/%/.test(match) ? '%' : '')
 		}
 	};
+	// TODO: inlcude the DOM3 key codes: https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#h3_code-value-tables
 	var aliases =[];
 	for (alias in aliasgenerator){
 		// mark whole words
