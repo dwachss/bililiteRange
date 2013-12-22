@@ -28,10 +28,10 @@
 Prism.editor = function(editor){
 	var rng = bililiteRange(editor);
 	function highlight(){
+		rng.bounds('selection');
 		// handle what Lea Verou calls "Dirty fix to #2"--seems to be Chrome issue with missing newlines
 		// from https://github.com/LeaVerou/dabblet/issues/2
 		if (!/\n$/.test(editor.textContent)) editor.textContent += '\n';
-		rng.bounds('selection');
 		Prism.highlightElement(editor);
 		rng.select();
 	}
