@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 1.6
+// Version: 1.7
 // Copyright (c) 2010 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -96,18 +96,21 @@ Range.prototype = {
 	},
 	text: function(text, select){
 		if (arguments.length){
-			var bounds = this.bounds();
+			var bounds = this.bounds(), el = this._el;
 			this._nativeSetText(text, this._nativeRange(bounds));
-			try { // signal the text change (IE < 9 doesn't support this, so we live with it)
-				// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
-				this._el.dispatchEvent(new CustomEvent('input', {detail: {text: text, bounds: bounds}}));
-			}catch(e){ /* ignore */ }
+			// we need this to be asynchronous so that the changes in the text and the selection happen before any other code sees it
+			setTimeout(function(){
+				try { // signal the text change (IE < 9 doesn't support this, so we live with it)
+					// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
+					el.dispatchEvent(new CustomEvent('input', {detail: {text: text, bounds: bounds}}));
+				}catch(e){ /* ignore */ }
+			},0);
 			if (select == 'start'){
-				this.bounds ([this._bounds[0], this._bounds[0]]);
+				this.bounds ([bounds[0], bounds[0]]);
 			}else if (select == 'end'){
-				this.bounds ([this._bounds[0]+text.length, this._bounds[0]+text.length]);
+				this.bounds ([bounds[0]+text.length, bounds[0]+text.length]);
 			}else if (select == 'all'){
-				this.bounds ([this._bounds[0], this._bounds[0]+text.length]);
+				this.bounds ([bounds[0], bounds[0]+text.length]);
 			}
 			return this; // allow for chaining
 		}else{
