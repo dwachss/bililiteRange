@@ -1,7 +1,7 @@
 // Quick syntax-highlighting editor that uses Prism
 // usage: Prism.editor(pre-element). the <pre> should have the appropriate class=language-* for Prism.
 // depends on bililiteRange
-// Version: 0.9
+// Version: 1.0
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
