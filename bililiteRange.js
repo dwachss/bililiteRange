@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 1.7
+// Version: 1.6
 // Copyright (c) 2010 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -96,14 +96,12 @@ Range.prototype = {
 	},
 	text: function(text, select){
 		if (arguments.length){
-			this._nativeSetText(text, this._nativeRange(this.bounds()));
-			// to simulate a real event, we need to run this asynchronously. 
-			var self = this;
-			setTimeout(function(){
-				try { // signal the text change (IE < 9 doesn't support this, so we live with it)
-					self._el.dispatchEvent(new CustomEvent('input', {detail: {text: text, bounds: self.bounds()}}));
-				}catch(e){ /* ignore */ }
-			}, 0);
+			var bounds = this.bounds();
+			this._nativeSetText(text, this._nativeRange(bounds));
+			try { // signal the text change (IE < 9 doesn't support this, so we live with it)
+				// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
+				this._el.dispatchEvent(new CustomEvent('input', {detail: {text: text, bounds: bounds}}));
+			}catch(e){ /* ignore */ }
 			if (select == 'start'){
 				this.bounds ([this._bounds[0], this._bounds[0]]);
 			}else if (select == 'end'){
