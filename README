@@ -8,7 +8,10 @@ The other files are assorted javascript libraries that use bililiteRange:
 bililiteRange.util.js: Adds useful functions for searching and keeping the ranges up-to-date with  changes in the underlying text. Documentation at 
 http://bililite.com/blog/2013/02/08/bililiterange-plugins/
 
-jquery.jsvk.js: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to use Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/). Documentation at 
+bililiteRange.undo.js: Adds an undo/redo stack to editable elements. Documentation at
+http://bililite.com/blog/2013/12/25/bililiterange-undo/
+
+jquery.jsvk.js: A jQuery plugin to use Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/). Documentation at 
 http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/
 
 jquery.keymap.js: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to turn keyup codes into understandable characters. Documentation at
