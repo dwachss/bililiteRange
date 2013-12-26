@@ -1,7 +1,7 @@
 // Quick syntax-highlighting editor that uses Prism
 // usage: Prism.editor(pre-element). the <pre> should have the appropriate class=language-* for Prism.
 // depends on bililiteRange
-// Version: 1.0
+// Version: 1.1
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -26,6 +26,18 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 Prism.editor = function(editor){
+	if (editor.tagName.toLowerCase() == 'textarea'){
+		// turn the editor into an editable <pre>, since that is what Prism works on
+		var replacement = document.createElement('pre');
+		replacement.setAttribute ('contenteditable', true);
+		[].forEach.call(editor.attributes, function(attr){
+			replacement.setAttribute(attr.name, attr.value);
+		});
+		replacement.textContent = editor.value;
+		editor.parentNode.replaceChild(replacement, editor);
+		editor = replacement;
+	}
+
 	var rng = bililiteRange(editor);
 	function highlight(){
 		rng.bounds('selection');
@@ -51,5 +63,7 @@ Prism.editor = function(editor){
 			rng.bounds('selection').text('\n','end').select();
 			evt.preventDefault();
 		}
-	})
+	});
+	
+	return editor;
 };
