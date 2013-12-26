@@ -11,7 +11,8 @@ http://bililite.com/blog/2013/02/08/bililiterange-plugins/
 bililiteRange.undo.js: Adds an undo/redo stack to editable elements. Documentation at
 http://bililite.com/blog/2013/12/25/bililiterange-undo/
 
-jquery.jsvk.js: A jQuery plugin to use Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/). Documentation at 
+jquery.jsvk.js: A jQuery plugin to use Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/). Depends on
+bililiteRange for character insertion. Documentation at 
 http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/
 
 jquery.keymap.js: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to turn keyup codes into understandable characters. Documentation at

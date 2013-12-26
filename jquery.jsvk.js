@@ -54,17 +54,38 @@
 		script.src = dir+'/vk_loader.js';
 		document.body.appendChild(script);
 		onVKready(function(){
-			// monkey patch VK's selection manipulation to trigger input events
-			var insertAtCursor = DocumentSelection.insertAtCursor;
-			DocumentSelection.insertAtCursor = function(el){
-				$(el).trigger('input');
-				return insertAtCursor.apply(this, arguments);
+			// patch VK's selection routines to use bililiteRange. This allows for manipulation of contenteditable elements
+			// and triggers input events
+			DocumentSelection.insertAtCursor = function(el, text){
+				bililiteRange(el).bounds('selection').text(text, 'end').select();
 			}
-			var deleteAtCursor = DocumentSelection.deleteAtCursor;
-			DocumentSelection.deleteAtCursor = function(el){
-				$(el).trigger('input');
-				return deleteAtCursor.apply(this, arguments);
+			DocumentSelection.deleteAtCursor = function(el, after){
+				var rng = bililiteRange(el).bounds('selection');
+				var b = rng.bounds();
+				if (b[0] == b[1] && after) ++b[1]; // delete key
+				if (b[0] == b[1] && !after) --b[0]; // backspace key
+				rng.bounds(b).text('', 'end').select();
 			}
+			DocumentSelection.deleteSelection = function(el){
+				bililiteRange(el).bounds('selection').text('', 'end').select();
+			}
+			DocumentSelection.getSelection = function(el){
+				return bililiteRange(el).bounds('selection').text();
+			}
+			DocumentSelection.getStart = function(el){
+				return bililiteRange(el).bounds('selection').bounds()[0];
+			}
+			DocumentSelection.setRange = function(el, start, end, offset){
+				var rng = bililiteRange(el).bounds('selection');
+				if (offset){
+					var b = rng.bounds()[0];
+					start += b;
+					end += b;
+				}
+				rng.bounds([start, end]).select();
+			}
+			// TODO: DocumentSelection.getSelectionOffset, which currently only works for textareas. Should be straightforward given
+			// bililiteRange.scrollIntoView, but is only necessary for positioning IME's, which I never use. 
 		});
 	}
 	
