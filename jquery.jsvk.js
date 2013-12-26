@@ -1,6 +1,6 @@
 // jsvk.js: jQuery plugin wrapper for Ilya Lebedev's
 // JavaScript VirtualKeyboard(http://www.allanguages.info/)
-// version 1.1
+// version 1.2
 
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
