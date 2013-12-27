@@ -92,6 +92,15 @@ Range.prototype = {
 	},
 	select: function(){
 		this._nativeSelect(this._nativeRange(this.bounds()));
+		// we need this to be asynchronous so that the changes in the text and the selection happen before any other code sees it
+		var el = this._el;
+		setTimeout(function(){
+			try { // signal the text change (IE < 9 doesn't support this, so we live with it)
+				// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
+				el.dispatchEvent(new CustomEvent('select'));
+				console.log('sending select');
+			}catch(e){ /* ignore */ console.error(e) }
+		},0);
 		return this; // allow for chaining
 	},
 	text: function(text, select){

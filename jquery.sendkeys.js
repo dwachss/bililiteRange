@@ -35,19 +35,22 @@ $.fn.sendkeys = function (x, opts){
 		if (!rng){
 			rng = bililiteRange(this).bounds('selection');
 			$.data(this, 'sendkeys.selection', rng);
-			$(this).bind('mouseup.sendkeys', function(){
+			$(this).on('mouseup.sendkeys select.sendkeys', function(){
 				// we have to update the saved range. The routines here update the bounds with each press, but actual keypresses and mouseclicks do not
-				$.data(this, 'sendkeys.selection').bounds('selection');
-			}).bind('keyup.sendkeys', function(evt){
+				console.log ('select', rng === $.data (this, 'sendkeys.selection'));
+				rng.bounds('selection');
+			}).on('keyup.sendkeys', function(evt){
 				// restore the selection if we got here with a tab (a click should select what was clicked on)
 				if (evt.which == 9){
 					// there's a flash of selection when we restore the focus, but I don't know how to avoid that.
-					$.data(this, 'sendkeys.selection').select();
+					console.log (rng === $.data (this, 'sendkeys.selection'));
+					rng.select();
 				}else{
-					$.data(this, 'sendkeys.selection').bounds('selection');
+					rng.bounds('selection');
 				}	
 			});
 		}
+		rng.select(); // restore the selection
 		this.focus();
 		if (typeof x === 'undefined') return; // no string, so we just set up the event handlers
 		$.data(this, 'sendkeys.originalText', rng.text());
