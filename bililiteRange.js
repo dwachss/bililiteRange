@@ -92,26 +92,17 @@ Range.prototype = {
 	},
 	select: function(){
 		this._nativeSelect(this._nativeRange(this.bounds()));
-		// we need this to be asynchronous so that the changes in the text and the selection happen before any other code sees it
-		var el = this._el;
-		setTimeout(function(){
-			try { // signal the text change (IE < 9 doesn't support this, so we live with it)
-				// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
-				el.dispatchEvent(new CustomEvent('select'));
-			}catch(e){ /* ignore */ }
-		},0);
+		this._el.dispatchEvent(new CustomEvent('select'));
 		return this; // allow for chaining
 	},
 	text: function(text, select){
 		if (arguments.length){
 			var bounds = this.bounds(), el = this._el;
 			this._nativeSetText(text, this._nativeRange(bounds));
-			// we need this to be asynchronous so that the changes in the text and the selection happen before any other code sees it
+			// signal the text change. we need this to be asynchronous so that the changes in the text and the selection happen before any other code sees it
 			setTimeout(function(){
-				try { // signal the text change (IE < 9 doesn't support this, so we live with it)
-					// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
-					el.dispatchEvent(new CustomEvent('input', {detail: {text: text, bounds: bounds}}));
-				}catch(e){ /* ignore */ }
+				// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
+				el.dispatchEvent(new CustomEvent('input', {detail: {text: text, bounds: bounds}}));
 			},0);
 			if (select == 'start'){
 				this.bounds ([bounds[0], bounds[0]]);
@@ -437,3 +428,48 @@ NothingRange.prototype._nativeWrap = function() {throw "Wrapping not implemented
 
 
 })();
+
+// IE event polyfill from https://gist.github.com/jonathantneal/3748027
+!window.addEventListener && (function (WindowPrototype, DocumentPrototype, ElementPrototype, addEventListener, removeEventListener, dispatchEvent, registry) {
+	WindowPrototype[addEventListener] = DocumentPrototype[addEventListener] = ElementPrototype[addEventListener] = function (type, listener) {
+		var target = this;
+ 
+		registry.unshift([target, type, listener, function (event) {
+			event.currentTarget = target;
+			event.preventDefault = function () { event.returnValue = false };
+			event.stopPropagation = function () { event.cancelBubble = true };
+			event.target = event.srcElement || target;
+ 
+			listener.call(target, event);
+		}]);
+ 
+		this.attachEvent("on" + type, registry[0][3]);
+	};
+ 
+	WindowPrototype[removeEventListener] = DocumentPrototype[removeEventListener] = ElementPrototype[removeEventListener] = function (type, listener) {
+		for (var index = 0, register; register = registry[index]; ++index) {
+			if (register[0] == this && register[1] == type && register[2] == listener) {
+				return this.detachEvent("on" + type, registry.splice(index, 1)[0][3]);
+			}
+		}
+	};
+ 
+	WindowPrototype[dispatchEvent] = DocumentPrototype[dispatchEvent] = ElementPrototype[dispatchEvent] = function (eventObject) {
+		return this.fireEvent("on" + eventObject.type, eventObject);
+	};
+})(Window.prototype, HTMLDocument.prototype, Element.prototype, "addEventListener", "removeEventListener", "dispatchEvent", []);
+// CustomEvent polyfill from https://github.com/jonathantneal/EventListener/blob/master/EventListener.js
+!window.CustomEvent && window.CustomEvent = function (type, opts) {
+	var event = document.createEventObject(), key;
+	event.type = type;
+	for (key in opts){
+		if (key == 'cancelable'){
+			event.returnValue = !opts.cancelable;
+		} else if (key == 'bubbles'){
+			event.cancelBubble = !opts.bubbles;
+		} else if (key == 'detail'){
+			event.detail = ops.detail;
+		}
+  }
+	return event;
+};
