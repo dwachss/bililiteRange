@@ -37,13 +37,11 @@ $.fn.sendkeys = function (x, opts){
 			$.data(this, 'sendkeys.selection', rng);
 			$(this).on('mouseup.sendkeys select.sendkeys', function(){
 				// we have to update the saved range. The routines here update the bounds with each press, but actual keypresses and mouseclicks do not
-				console.log ('select', rng === $.data (this, 'sendkeys.selection'));
 				rng.bounds('selection');
 			}).on('keyup.sendkeys', function(evt){
 				// restore the selection if we got here with a tab (a click should select what was clicked on)
 				if (evt.which == 9){
 					// there's a flash of selection when we restore the focus, but I don't know how to avoid that.
-					console.log (rng === $.data (this, 'sendkeys.selection'));
 					rng.select();
 				}else{
 					rng.bounds('selection');

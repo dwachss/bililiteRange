@@ -98,8 +98,7 @@ Range.prototype = {
 			try { // signal the text change (IE < 9 doesn't support this, so we live with it)
 				// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
 				el.dispatchEvent(new CustomEvent('select'));
-				console.log('sending select');
-			}catch(e){ /* ignore */ console.error(e) }
+			}catch(e){ /* ignore */ }
 		},0);
 		return this; // allow for chaining
 	},
