@@ -149,7 +149,10 @@ Range.prototype = {
 	},
 	all: function(text){
 		if (arguments.length){
-			return this.bounds('all').text(text);
+			this.dispatch ({type: 'beforeinput', data: text});
+			this._el[this._textProp] = text;
+			this.dispatch ({type: 'input', data: text});
+			return this;
 		}else{
 			return this._el[this._textProp].replace(/\r/g, ''); // need to correct for IE's CrLf weirdness;
 		}
