@@ -34,11 +34,10 @@ Prism.editor = function(editor, threshold){
 		[].forEach.call(editor.attributes, function(attr){
 			replacement.setAttribute(attr.name, attr.value);
 		});
-		replacement.textContent = editor.value;
+		bililiteRange(replacement).all(editor.value);
 		editor.parentNode.replaceChild(replacement, editor);
 		editor = replacement;
 	}
-
 	// for large texts, it can be too slow to run the highlighter on every input event. 
 	// use the code from http://unscriptable.com/2009/03/20/debouncing-javascript-methods/
 	// to limit it to once every threshold milliseconds

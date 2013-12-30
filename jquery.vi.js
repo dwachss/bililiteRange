@@ -6,21 +6,31 @@
 (function($){
 
 $.fn.vi = function(statusbar){
-	return this.each(function(){
+	return this.sendkeys(). // initialize the selection tracking that sendkeys uses
+	each(function(){
 		bililiteRange(this).exState().vimode = 'INSERT'; // unlike real vi, start in insert mode since that is more "natural" for a GUI
 		$(this).trigger('vimode', 'INSERT');
 		$.data(this, 'vi.statusbar', statusbar);
 		addviCommands (this, vimodeCommands, '', 'vi~');
 		addviCommands (this, insertmodeCommands, '!', 'insert~');
 	}).on('vimode', function(evt, data){
-		state.vimode = data;
+		bililiteRange(this).exState().vimode = data;
+	}).on('blur focusout', function(evt){
+		console.log(
+			evt.type,
+			bililiteRange(evt.target).bounds('selection').bounds(),
+			$.data(evt.target, 'sendkeys.selection').bounds()
+		);
 	});
 }
 
 function executeCommand (rng, command){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
-		return rng.bounds('selection').ex(command || text).select().scrollIntoView().exMessage;
+		console.log('before ex', document.activeElement);
+		rng.bounds('selection').ex(command || text).select().scrollIntoView();
+		console.log('after ex', document.activeElement);
+		return rng.exMessage;
 	};
 }
 
@@ -36,7 +46,7 @@ $.extend (bililiteRange.ex.commands, {
 		$(rng.element()).on('keydown', {keys: keys}, function() {
 			var mode = state.vimode;
 			if (variant == (mode != 'INSERT')) return; // variant == true means run in insert mode
-			$($.data(this, 'vi.statusbar')).statusbar({run: executeCommand(rng, command)});
+			$($.data(this, 'vi.statusbar')).status({run: executeCommand(rng, command)});
 			return false;
 		});
 	},
@@ -57,11 +67,12 @@ $.extend (bililiteRange.ex.commands, {
 var vimodeCommands = {
 	':' : function (){
 		var statusbar = $.data(this.element(), 'vi.statusbar');
-		$(statusbar).statusbar({
+		$(statusbar).status({
 			prompt: ':',
 			run: executeCommand(this),
-			result: $.Deferred().always(function() {this.element().focus()}), // make sure we return focus to the text!
-		});
+			returnPromise: true
+		}) // make sure we return focus to the text! It would be nice to have a finally method
+		['catch']( function() {this.element().focus()});
 	},
 	'{esc}' : "'.vi", // note that vi commands should use the magic '. marker to indicate not to change the selection
 	a: "'.select endbounds | '.vi INSERT",

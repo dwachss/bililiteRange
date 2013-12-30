@@ -225,8 +225,10 @@ IERange.prototype._nativeSelect = function (rng){
 };
 IERange.prototype._nativeSelection = function (){
 	// returns [start, end] for the selection constrained to be in element
+	// this fails for an empty selection! selection.createRange() does not create a text selection, so I can't compare it.
 	var rng = this._nativeRange(); // range of the element to constrain to
 	var len = this.length();
+	this._el.focus(); // needed to allow focusing on insertion points (empty selections) in text areas
 	var sel = this._doc.selection.createRange();
 	try{
 		return [
