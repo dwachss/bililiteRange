@@ -49,6 +49,15 @@ bililiteRange = function(el, debug){
 	ret._win = 'defaultView' in ret._doc ? ret._doc.defaultView : ret._doc.parentWindow;
 	ret._textProp = textProp(el);
 	ret._bounds = [0, ret.length()];
+	if (!('oninput' in el)){
+		// give IE8 a chance
+		var inputhack = function() {ret.dispatch({type: 'input'}) };
+		ret.listen('keyup', inputhack);
+		ret.listen('cut', inputhack);
+		ret.listen('paste', inputhack);
+		ret.listen('drop', inputhack);
+		el.oninput = 'patched';
+	}
 	return ret;
 }
 
@@ -156,9 +165,14 @@ Range.prototype = {
 			try {
 				el.dispatchEvent ? el.dispatchEvent(event) : el.fireEvent("on" + opts.type, document.createEventObject());
 				}catch(e){
-					var listeners = el['listen'+opts.type];
-					if (listeners) for (var i = 0; i < listeners.length; ++i){
-						listeners[i].call(el, event);
+					// IE8 will not let me fire custom events at all. Call them directly
+					if (jQuery) {
+						jQuery(el).trigger(event);
+					}else{
+						var listeners = el['listen'+opts.type];
+						if (listeners) for (var i = 0; i < listeners.length; ++i){
+							listeners[i].call(el, event);
+						}
 					}
 				}
 		}, 0);
@@ -168,21 +182,26 @@ Range.prototype = {
 		var el = this._el;
 		if (el.addEventListener){
 			el.addEventListener(type, func);
+		}else if (jQuery){
+			jQuery(el).on(type, func);
 		}else{
 			el.attachEvent("on" + type, func);
-			// stupid IE can't even handle custom events created with createEventObject, so we have to make our own
+			// IE8 can't even handle custom events created with createEventObject  (though it permits attachEvent), so we have to make our own
 			var listeners = el['listen'+type] = el['listen'+type] || [];
 			listeners.push(func);
 		}
 		return this;
 	},
 	dontlisten: function (type, func){
-		if (this._el.removeEventListener){
-			this._el.removeEventListener(type, func);
+		var el = this._el;
+		if (el.removeEventListener){
+			el.removeEventListener(type, func);
+		}else if (jQuery){
+			jQuery(el).off(type, func);
 		}else try{
-			this._el.detachEvent("on" + type, func);
+			el.detachEvent("on" + type, func);
 		}catch(e){
-			var listeners = this._el['listen'+type];
+			var listeners = el['listen'+type];
 			if (listeners) for (var i = 0; i < listeners.length; ++i){
 				if (listeners[i] === func) listeners[i] = function(){}; // replace with a noop
 			}
