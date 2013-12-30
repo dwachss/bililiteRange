@@ -1,7 +1,7 @@
 // Text range utilities
 // documentation: http://bililite.com/blog/2013/02/08/bililiterange-plugins/
 // depends on bililiteRange.js (http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/)
-// Version: 1.0
+// Version: 1.1
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -28,20 +28,6 @@
 if (bililiteRange) (function(){
 var oldbounds = bililiteRange.fn.bounds;
 bililiteRange.extend({
-
-	clone: function(){
-		return bililiteRange(this._el).bounds(this.bounds());
-	},
-
-	all: function(text){
-		if (arguments.length){
-			return this.bounds('all').text(text);
-		}else{
-			return this._el[this._textProp].replace(/\r/g, ''); // need to correct for IE's CrLf weirdness;
-		}
-	},
-	
-	element: function() { return this._el },
 	
 	find: function(re, nowrap, backwards){
 		// little hack: can put the "nowrap" as a flag on the RegExp itself, analagous to ignoreCase and multiline; overrides the parameter
@@ -119,67 +105,62 @@ bililiteRange.extend({
 	},
 	
 	live: function(on){
-		try { // IE < 9 doesn't handle addEventListener, so fail silently
-			var self = this;
-			if (arguments.length == 0 || on){
-				this._oldtext = self.all(); // resync the text if it should be necessary
-				if (this._inputHandler) return this; // don't double-bind
-				this._inputHandler = function(ev){
-					// first find the change.
-					var start, oldend, newend;
-					var newtext = self.all();
-					if (newtext == self._oldtext) return; // no change
-					if (!ev.detail || !ev.detail.bounds || !ev.detail.text){
-						// estimate bounds
-						var oldlen = self._oldtext.length;
-						var	newlen = newtext.length;
-						for (i = 0; i < newlen && i < oldlen; ++i){
-							if (newtext.charAt(i) != self._oldtext.charAt(i)) break;
-						}
-						start = i;
-						for (i = 0; i < newlen && i < oldlen; ++i){
-							var newpos = newlen-i-1, oldpos = oldlen-i-1;
-							if (newpos < start || oldpos < start) break;
-							if (newtext.charAt(newpos) != self._oldtext.charAt(oldpos)) break;
-						}
-						oldend = oldlen-i;
-						newend = newlen-i;
-						ev.detail = { // save the data for any other ranges that might need it
-							bounds: [start, oldend],
-							text: newtext.slice(start, newend)
-						};
-					}else{
-						// use the information we got
-						start = ev.detail.bounds[0];
-						oldend = ev.detail.bounds[1];
-						newend = ev.detail.bounds[0]+ev.detail.text.length;
+		var self = this;
+		if (arguments.length == 0 || on){
+			this._oldtext = self.all(); // resync the text if it should be necessary
+			if (this._inputHandler) return this; // don't double-bind
+			this._inputHandler = function(ev){
+				// first find the change.
+				var start, oldend, newend;
+				var newtext = self.all();
+				if (newtext == self._oldtext) return; // no change
+				if (!ev.bounds){
+					// "real" input events don't tell us the bounds, just the text. Estimate bounds
+					var oldlen = self._oldtext.length;
+					var	newlen = newtext.length;
+					for (i = 0; i < newlen && i < oldlen; ++i){
+						if (newtext.charAt(i) != self._oldtext.charAt(i)) break;
 					}
-					self._oldtext = newtext;
-					// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
-					if (self._bounds[0] <= start){
-						// no change
-					}else if (self._bounds[0] > oldend){
-						self._bounds[0] += newend - oldend;
-					}else{
-						self._bounds[0] = newend;
+					start = i;
+					for (i = 0; i < newlen && i < oldlen; ++i){
+						var newpos = newlen-i-1, oldpos = oldlen-i-1;
+						if (newpos < start || oldpos < start) break;
+						if (newtext.charAt(newpos) != self._oldtext.charAt(oldpos)) break;
 					}
-					if (self._bounds[1] < start){
-						// no change
-					}else if (self._bounds[1] >= oldend){
-						self._bounds[1] += newend - oldend;
-					}else{
-						self._bounds[1] = start;
-					}
-				};
-				self._el.addEventListener('input', self._inputHandler);
-			}else{
-				self._el.removeEventListener('input', self._inputHandler);
-				delete self._inputHandler;
-			}
-		}catch(e){
-			// silently ignore the problem
+					oldend = oldlen-i;
+					newend = newlen-i;
+					// save the data for any other ranges that might need it. Note that 
+					ev.data = newtext.slice(start, newend);
+					ev.bounds = [start, oldend];
+				}else{
+					// use the information we got
+					start = ev.bounds[0];
+					oldend = ev.bounds[1];
+					newend = ev.bounds[0]+ev.data.length;
+				}
+				self._oldtext = newtext;
+				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
+				if (self._bounds[0] <= start){
+					// no change
+				}else if (self._bounds[0] > oldend){
+					self._bounds[0] += newend - oldend;
+				}else{
+					self._bounds[0] = newend;
+				}
+				if (self._bounds[1] < start){
+					// no change
+				}else if (self._bounds[1] >= oldend){
+					self._bounds[1] += newend - oldend;
+				}else{
+					self._bounds[1] = start;
+				}
+			};
+			self.listen('input', self._inputHandler);
+		}else{
+			self.dontlisten('input', self._inputHandler);
+			delete self._inputHandler;
 		}
-		return this;
+	return this;
 	},
 	
 	findprimitive: function(re, bounds){

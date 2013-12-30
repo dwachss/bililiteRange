@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 1.8
+// Version: 2.0
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -92,18 +92,16 @@ Range.prototype = {
 	},
 	select: function(){
 		this._nativeSelect(this._nativeRange(this.bounds()));
-		this._el.dispatchEvent(new CustomEvent('select'));
+		this.dispatch({type: 'select'});
 		return this; // allow for chaining
 	},
 	text: function(text, select){
 		if (arguments.length){
 			var bounds = this.bounds(), el = this._el;
+			// signal the input per DOM 3 input events, http://www.w3.org/TR/DOM-Level-3-Events/#h4_events-inputevents
+			// we add another field, bounds, which are the bounds of the original text before being changed.
+			this.dispatch({type: 'beforeinput', data: text, bounds: bounds});
 			this._nativeSetText(text, this._nativeRange(bounds));
-			// signal the text change. we need this to be asynchronous so that the changes in the text and the selection happen before any other code sees it
-			setTimeout(function(){
-				// note that we include in the detail the *original* bounds that are being replaced and the text that replaced it
-				el.dispatchEvent(new CustomEvent('input', {detail: {text: text, bounds: bounds}}));
-			},0);
 			if (select == 'start'){
 				this.bounds ([bounds[0], bounds[0]]);
 			}else if (select == 'end'){
@@ -111,6 +109,7 @@ Range.prototype = {
 			}else if (select == 'all'){
 				this.bounds ([bounds[0], bounds[0]+text.length]);
 			}
+			this.dispatch({type: 'input', data: text, bounds: bounds});
 			return this; // allow for chaining
 		}else{
 			return this._nativeGetText(this._nativeRange(this.bounds()));
@@ -127,6 +126,67 @@ Range.prototype = {
 	},
 	wrap: function (n){
 		this._nativeWrap(n, this._nativeRange(this.bounds()));
+		return this;
+	},
+	selection: function(text){
+		if (arguments.length){
+			return this.bounds('selection').text(text, 'end').select();
+		}else{
+			return this.bounds('selection').text();
+		}
+	},
+	clone: function(){
+		return bililiteRange(this._el).bounds(this.bounds());
+	},
+	all: function(text){
+		if (arguments.length){
+			return this.bounds('all').text(text);
+		}else{
+			return this._el[this._textProp].replace(/\r/g, ''); // need to correct for IE's CrLf weirdness;
+		}
+	},
+	element: function() { return this._el },
+	// includes a quickie polyfill for IE's createEventObject that isn't perfect but works for me
+	dispatch: function(opts){
+		var event = window.CustomEvent ? new CustomEvent(opts.type) : this._doc.createEventObject();
+		for (var key in opts) event[key] = opts[key];
+		// dispatch event asynchronously (in the sense of on the next turn of the event loop; still should be fired in order of dispatch
+		var el = this._el;
+		setTimeout(function(){
+			try {
+				el.dispatchEvent ? el.dispatchEvent(event) : el.fireEvent("on" + opts.type, document.createEventObject());
+				}catch(e){
+					var listeners = el['listen'+opts.type];
+					if (listeners) for (var i = 0; i < listeners.length; ++i){
+						listeners[i].call(el, event);
+					}
+				}
+		}, 0);
+		return this;
+	},
+	listen: function (type, func){
+		var el = this._el;
+		if (el.addEventListener){
+			el.addEventListener(type, func);
+		}else{
+			el.attachEvent("on" + type, func);
+			// stupid IE can't even handle custom events created with createEventObject, so we have to make our own
+			var listeners = el['listen'+type] = el['listen'+type] || [];
+			listeners.push(func);
+		}
+		return this;
+	},
+	dontlisten: function (type, func){
+		if (this._el.removeEventListener){
+			this._el.removeEventListener(type, func);
+		}else try{
+			this._el.detachEvent("on" + type, func);
+		}catch(e){
+			var listeners = this._el['listen'+type];
+			if (listeners) for (var i = 0; i < listeners.length; ++i){
+				if (listeners[i] === func) listeners[i] = function(){}; // replace with a noop
+			}
+		}
 		return this;
 	}
 };
@@ -167,7 +227,6 @@ IERange.prototype._nativeSelection = function (){
 	// returns [start, end] for the selection constrained to be in element
 	var rng = this._nativeRange(); // range of the element to constrain to
 	var len = this.length();
-	if (this._doc.selection.type != 'Text') return [len, len]; // append to the end
 	var sel = this._doc.selection.createRange();
 	try{
 		return [
@@ -275,7 +334,7 @@ InputRange.prototype._nativeScrollIntoView = function(rng){
 	div.scrollIntoViewIfNeeded ? div.scrollIntoViewIfNeeded() : div.scrollIntoView();
 	div.parentNode.removeChild(div);
 }
-InputRange.prototype._nativeWrap = function() {throw "Cannot wrap in a text element"};
+InputRange.prototype._nativeWrap = function() {throw new Error("Cannot wrap in a text element")};
 
 function W3CRange(){}
 W3CRange.prototype = new Range();
@@ -424,52 +483,6 @@ NothingRange.prototype._nativeEOL = function(){
 NothingRange.prototype._nativeScrollIntoView = function(){
 	this._el.scrollIntoView();
 };
-NothingRange.prototype._nativeWrap = function() {throw "Wrapping not implemented"};
-
+NothingRange.prototype._nativeWrap = function() {throw new Error("Wrapping not implemented")};
 
 })();
-
-// IE event polyfill from https://gist.github.com/jonathantneal/3748027
-!window.addEventListener && (function (WindowPrototype, DocumentPrototype, ElementPrototype, addEventListener, removeEventListener, dispatchEvent, registry) {
-	WindowPrototype[addEventListener] = DocumentPrototype[addEventListener] = ElementPrototype[addEventListener] = function (type, listener) {
-		var target = this;
- 
-		registry.unshift([target, type, listener, function (event) {
-			event.currentTarget = target;
-			event.preventDefault = function () { event.returnValue = false };
-			event.stopPropagation = function () { event.cancelBubble = true };
-			event.target = event.srcElement || target;
- 
-			listener.call(target, event);
-		}]);
- 
-		this.attachEvent("on" + type, registry[0][3]);
-	};
- 
-	WindowPrototype[removeEventListener] = DocumentPrototype[removeEventListener] = ElementPrototype[removeEventListener] = function (type, listener) {
-		for (var index = 0, register; register = registry[index]; ++index) {
-			if (register[0] == this && register[1] == type && register[2] == listener) {
-				return this.detachEvent("on" + type, registry.splice(index, 1)[0][3]);
-			}
-		}
-	};
- 
-	WindowPrototype[dispatchEvent] = DocumentPrototype[dispatchEvent] = ElementPrototype[dispatchEvent] = function (eventObject) {
-		return this.fireEvent("on" + eventObject.type, eventObject);
-	};
-})(Window.prototype, HTMLDocument.prototype, Element.prototype, "addEventListener", "removeEventListener", "dispatchEvent", []);
-// CustomEvent polyfill from https://github.com/jonathantneal/EventListener/blob/master/EventListener.js
-!window.CustomEvent && window.CustomEvent = function (type, opts) {
-	var event = document.createEventObject(), key;
-	event.type = type;
-	for (key in opts){
-		if (key == 'cancelable'){
-			event.returnValue = !opts.cancelable;
-		} else if (key == 'bubbles'){
-			event.cancelBubble = !opts.bubbles;
-		} else if (key == 'detail'){
-			event.detail = ops.detail;
-		}
-  }
-	return event;
-};
