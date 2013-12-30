@@ -247,10 +247,10 @@ IERange.prototype._nativeSelect = function (rng){
 };
 IERange.prototype._nativeSelection = function (){
 	// returns [start, end] for the selection constrained to be in element
-	// this fails for an empty selection! selection.createRange() does not create a text selection, so I can't compare it.
+	// this fails for an empty selection! selection.createRange() if in a text area does not create a text selection, so I can't compare it.
 	var rng = this._nativeRange(); // range of the element to constrain to
 	var len = this.length();
-	this._el.focus(); // needed to allow focusing on insertion points (empty selections) in text areas
+	// this._el.focus(); This solves the problem of text areas not having a real selection , but sucks the focus from everything else, so I can't use it
 	var sel = this._doc.selection.createRange();
 	try{
 		return [
@@ -269,10 +269,10 @@ IERange.prototype._nativeSetText = function (text, rng){
 	rng.text = text;
 };
 IERange.prototype._nativeEOL = function(){
-	if (typeof this._el.value != 'undefined'){
+	if ('value' in this._el){
 		this.text('\n'); // for input and textarea, insert it straight
 	}else{
-		this._nativeRange(this.bounds()).pasteHTML('<br/>');
+		this._nativeRange(this.bounds()).pasteHTML('\n<br/>');
 	}
 };
 IERange.prototype._nativeScrollIntoView = function(rng){
