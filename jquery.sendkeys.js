@@ -36,7 +36,7 @@ $.fn.sendkeys = function (x, opts){
 			rng = bililiteRange(this).bounds('selection');
 			$.data(this, 'sendkeys.selection', rng);
 			$(this).on('mouseup.sendkeys select.sendkeys', function(){
-				// we have to update the saved range. The routines here update the bounds with each press, but actual keypresses and mouseclicks do not
+				// we have to update the saved range. The routines here update the bounds with each change, but actual keypresses and mouseclicks do not
 				rng.bounds('selection');
 			}).on('keyup.sendkeys', function(evt){
 				// restore the selection if we got here with a tab (a click should select what was clicked on)
@@ -50,9 +50,10 @@ $.fn.sendkeys = function (x, opts){
 		}
 		rng.select(); // restore the selection
 		this.focus();
-		if (typeof x === 'undefined') return; // no string, so we just set up the event handlers
+		if (typeof x == 'undefined') return; // no string, so we just set up the event handlers
+		$(this).trigger({type: 'beforesendkeys', which: x});
 		$.data(this, 'sendkeys.originalText', rng.text());
-		x.replace(/\n/g, '{enter}'). // turn line feeds into explicit break insertions
+		x.replace(/([^{])\n/g, '$1{enter}'). // turn line feeds into explicit break insertions, but not if escaped
 		  replace(/{[^}]*}|[^{]+/g, function(s){
 				(localkeys[s] || $.fn.sendkeys.defaults[s] || $.fn.sendkeys.defaults.simplechar)(rng, s);
 				rng.select();
@@ -66,19 +67,17 @@ $.fn.sendkeys = function (x, opts){
 $.fn.sendkeys.defaults = {
 	simplechar: function (rng, s){
 		// deal with unknown {key}s
-		if (/^{.*}$/.test(s)) s = s.slice(1,-1);
-		rng.text(s, 'end');
+		if (/^{[^}]*}$/.test(s)) s = s.slice(1,-1);
 		for (var i =0; i < s.length; ++i){
 			var x = s.charCodeAt(i);
-			// a bit of cheating: rng._el is the element associated with rng.
-			$(rng._el).trigger({type: 'keypress', keyCode: x, which: x, charCode: x});
+			$(rng.element()).trigger({type: 'keypress', keyCode: x, which: x, charCode: x});
 		}
+		rng.text(s, 'end');
 	},
 	'{enter}': function (rng){
-		rng.insertEOL();
-		rng.select();
 		var x = '\n'.charCodeAt(0);
 		$(rng._el).trigger({type: 'keypress', keyCode: x, which: x, charCode: x});
+		rng.insertEOL();
 	},
 	'{backspace}': function (rng){
 		var b = rng.bounds();
@@ -104,11 +103,17 @@ $.fn.sendkeys.defaults = {
 		rng.bounds('all');
 	},
 	'{selection}': function (rng){
-		$.fn.sendkeys.defaults.simplechar(rng, $.data(rng._el, 'sendkeys.originalText'));
+		// insert the characters without the sendkeys processing
+		var s = $.data(rng.element(), 'sendkeys.originalText');
+		for (var i =0; i < s.length; ++i){
+			var x = s.charCodeAt(i);
+			$(rng.element()).trigger({type: 'keypress', keyCode: x, which: x, charCode: x});
+		}
+		rng.selection(s);
 	},
 	'{mark}' : function (rng){
 		var bounds = rng.bounds();
-		$(rng._el).one('sendkeys', function(){
+		$(rng.element()).one('sendkeys', function(){
 			// set up the event listener to change the selection after the sendkeys is done
 			rng.bounds(bounds).select();
 		});
