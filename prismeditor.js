@@ -34,7 +34,7 @@ Prism.editor = function(editor, threshold){
 		[].forEach.call(editor.attributes, function(attr){
 			replacement.setAttribute(attr.name, attr.value);
 		});
-		bililiteRange(replacement).all(editor.value);
+		replacement.textContent = editor.value;
 		editor.parentNode.replaceChild(replacement, editor);
 		editor = replacement;
 	}

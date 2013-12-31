@@ -87,10 +87,6 @@ bililiteRange.fn.ex = function (commandstring){
 	// set the next-to-last mark
 	state.marks["'"] = state.marks["''"];
 	state.marks["''"] = this.clone().live();
-	// remember the current text to allow undoing
-	var oldtext = this.all();
-	oldtext.bounds = this.bounds();
-	var oldundolength = state.undos.length;
 	// actually do the command
 	commandstring = commandstring.replace(/^:+/,''); // ignore initial colons that were likely accidentally typed.
 	splitCommands(commandstring, '|').forEach(function(command){
@@ -98,16 +94,11 @@ bililiteRange.fn.ex = function (commandstring){
 		interpretAddresses(this, parsed.addresses, state);
 		parsed.command.call(this, parsed.parameter, parsed.variant);
 	}, this);	
-	// only remember text changes if it actually changed (since that is all we can undo) and if we haven't done some other undo manipulation
-	if (oldtext != this.all() && oldundolength == state.undos.length){
-		state.undos.push(oldtext);
-	}
 	return this; // allow for chaining
 };
 
 var exStates = []; // to avoid memory leaks, 
 bililiteRange.fn.exState = function(options){
-	// This creates memory leaks! marks contains bililiteRanges which contain DOM elements, so attaching it to the element is bad
 	var state = exStates[this.element().exState];
 	if (!state){
 		state = exStates[this.element().exState = exStates.length] = {
@@ -116,8 +107,6 @@ bililiteRange.fn.exState = function(options){
 			multiline: true,
 			shiftwidth: 8,
 			marks: {},
-			undos: [],
-			redos: []
 		};
 	}
 	// simple copy, not recursive
@@ -190,7 +179,6 @@ var addressRE = new RegExp('^\\s*' + // allow whitespace at the beginning
 		'[.\\$%]', // single character addresses
 		'\\d+', // line numbers
 		"'['a-z]", // marks
-		"'\.", // special vi-mode address; means don't select the whole line. For internal use only.
 		bslash("\\&?[/?]"), // special regexps: \/, \&\, \?, \&?
 		// forward (/ delimited) regexps, a slash followed by some (escaped character or a non slash) ended with a slash, possibly preceded with a question mark
 		'\\??'+bslash('/(?:\\.|[^/])*/['+REflags+']*')
@@ -547,9 +535,7 @@ var commands = bililiteRange.ex.commands = {
 
 	redo: function (parameter, variant){
 		// restores the text only, not any other aspects of state
-		var text = this.exState().redos.pop();
-		if (text === undefined) return;
-		this.all(text).bounds(text.bounds);
+		this.undo(-1);
 	},
 
 	s: 'substitute',
@@ -613,12 +599,7 @@ var commands = bililiteRange.ex.commands = {
 
 	undo: function (parameter, variant){
 		// restores the text only, not any other aspects of state
-		var text = this.all();
-		text.bounds = this.bounds();
-		var state = this.exState();
-		state.redos.push(text);
-		text = state.undos.pop();
-		this.all(text).bounds(text.bounds);
+		this.undo();
 	},
 
 	v: 'notglobal',

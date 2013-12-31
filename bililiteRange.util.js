@@ -114,7 +114,7 @@ bililiteRange.extend({
 				var start, oldend, newend;
 				var newtext = self.all();
 				if (newtext == self._oldtext) return; // no change
-				if (!ev.bounds){
+				if (typeof ev.bounds == 'undefined' || typeof ev.data == 'undefined'){
 					// "real" input events don't tell us the bounds, just the text. Estimate bounds
 					var oldlen = self._oldtext.length;
 					var	newlen = newtext.length;

@@ -15,12 +15,6 @@ $.fn.vi = function(statusbar){
 		addviCommands (this, insertmodeCommands, '!', 'insert~');
 	}).on('vimode', function(evt, data){
 		bililiteRange(this).exState().vimode = data;
-	}).on('blur focusout', function(evt){
-		console.log(
-			evt.type,
-			bililiteRange(evt.target).bounds('selection').bounds(),
-			$.data(evt.target, 'sendkeys.selection').bounds()
-		);
 	});
 }
 
