@@ -158,9 +158,12 @@ Range.prototype = {
 		}
 	},
 	element: function() { return this._el },
-	// includes a quickie polyfill for IE's createEventObject that isn't perfect but works for me
+	// includes a quickie polyfill for CustomEvent for IE that isn't perfect but works for me
+	// IE10 allows custom events but not "new CustomEvent"; have to do it the old-fashioned way
 	dispatch: function(opts){
-		var event = window.CustomEvent ? new CustomEvent(opts.type) : this._doc.createEventObject();
+		opts = opts || {};
+		var event = document.createEvent ? document.createEvent('CustomEvent') : this._doc.createEventObject();
+		event.initCustomEvent && event.initCustomEvent(opts.type, !!opts.bubbles, !!opts.cancelable, opts.detail);
 		for (var key in opts) event[key] = opts[key];
 		// dispatch event asynchronously (in the sense of on the next turn of the event loop; still should be fired in order of dispatch
 		var el = this._el;
