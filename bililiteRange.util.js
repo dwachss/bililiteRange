@@ -115,7 +115,10 @@ bililiteRange.extend({
 				var newtext = self.all();
 				if (newtext == self._oldtext) return; // no change
 				if (typeof ev.bounds == 'undefined' || typeof ev.data == 'undefined'){
-					// "real" input events don't tell us the bounds, just the text. Estimate bounds
+					// "real" input events don't tell us the bounds, just the text, and jQuery uses the data field for its own purposes, erasing it.
+					// Either way, we have to start from scratch.
+					// Estimate the bounds by looking for changes, assuming it's always a continuous text
+					// This is wrong for drag and drop, which only fires one input event for both removal and insertion
 					var oldlen = self._oldtext.length;
 					var	newlen = newtext.length;
 					for (i = 0; i < newlen && i < oldlen; ++i){
@@ -129,7 +132,7 @@ bililiteRange.extend({
 					}
 					oldend = oldlen-i;
 					newend = newlen-i;
-					// save the data for any other ranges that might need it. Note that 
+					// save the data for any other ranges that might need it. 
 					ev.data = newtext.slice(start, newend);
 					ev.bounds = [start, oldend];
 				}else{

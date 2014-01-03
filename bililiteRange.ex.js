@@ -81,18 +81,21 @@ newline: function(line, select){
 /*********************** the actual ex plugin *********************************/
 bililiteRange.ex = {}; // namespace for exporting utility functions
 
-bililiteRange.fn.ex = function (commandstring){
+bililiteRange.fn.ex = function (commandstring, defaultaddress){
 	this.exMessage = '';
 	var state = this.exState();
+	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
+	defaultaddress = defaultaddress || '.';
 	// set the next-to-last mark
 	state.marks["'"] = state.marks["''"];
 	state.marks["''"] = this.clone().live();
 	// actually do the command
 	commandstring = commandstring.replace(/^:+/,''); // ignore initial colons that were likely accidentally typed.
 	splitCommands(commandstring, '|').forEach(function(command){
-		var parsed = parseCommand(command);
+		var parsed = parseCommand(command, defaultaddress);
 		interpretAddresses(this, parsed.addresses, state);
 		parsed.command.call(this, parsed.parameter, parsed.variant);
+		this.dispatch({type: 'excommand', command: command, range: this});
 	}, this);	
 	return this; // allow for chaining
 };
@@ -211,7 +214,7 @@ bililiteRange.ex.toID = function (s){
 	});
 }
 
-function parseCommand(command){
+function parseCommand(command, defaultaddress){
 	return {
 		addresses: parseAddresses(),
 		command: commandCompletion(parseCommandWord()),
@@ -220,7 +223,7 @@ function parseCommand(command){
 	};
 	
 	function parseAddresses(){
-		var addresses = ['.']; // default address
+		var addresses = [defaultaddress];
 		// basic addresses
 		command = command.replace(addressRE, function(match, c){
 			addresses = [c];
@@ -275,7 +278,8 @@ bililiteRange.ex.string = string; // export it
 /*********************** turn an array of address descriptions into an actual range *********************************/
 var lastRE = /(?:)/; // blank RE's refer to this
 function interpretAddresses (rng, addresses){
-	if (addresses[0] == "'.") return; // special internal marker for vi, to not change the selection.
+	// 'bounds' is only used as the default to mean "don't change the range"
+	if (addresses.length == 1 && addresses[0] == "bounds") return;
 	var state = rng.exState();
 	var lines = [];
 	var currLine = rng.line();

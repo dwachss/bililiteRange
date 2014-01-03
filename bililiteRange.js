@@ -164,6 +164,7 @@ Range.prototype = {
 		opts = opts || {};
 		var event = document.createEvent ? document.createEvent('CustomEvent') : this._doc.createEventObject();
 		event.initCustomEvent && event.initCustomEvent(opts.type, !!opts.bubbles, !!opts.cancelable, opts.detail);
+
 		for (var key in opts) event[key] = opts[key];
 		// dispatch event asynchronously (in the sense of on the next turn of the event loop; still should be fired in order of dispatch
 		var el = this._el;

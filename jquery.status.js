@@ -51,7 +51,7 @@ $.fn.status = function(message, classname, opts){
 
 	opts = $.extend({}, defaults, opts)
 	var self = this;
-	function show($el) {opts.show.call($el)};
+	function show($el) {opts.show.call($el);};
 	function hide($el) {opts.hide.call($el); $el.promise().done(function() {$el.remove()})};
 
 	if (message) return this.each(function(){
@@ -97,7 +97,7 @@ $.fn.status = function(message, classname, opts){
 		}).on('keypress', function (evt){
 			if (evt.which == 13) evt.preventDefault(); // don't pass the return to enclosing forms
 		});
-		$('input',input)[0].focus(); // focus the input box so 		
+		$('input',input)[0].focus(); // focus the input box so input can start		
 	});
 	
 	result.then(function(message) {

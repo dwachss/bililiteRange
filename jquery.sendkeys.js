@@ -48,6 +48,11 @@ $.fn.sendkeys = function (x, opts){
 				}	
 			});
 		}
+		if ($.isArray(x)){
+			// passing just an array in means reset the saved selection
+			rng.bounds(x);
+			return;
+		}
 		rng.select(); // restore the selection
 		this.focus();
 		if (typeof x == 'undefined') return; // no string, so we just set up the event handlers
@@ -61,7 +66,6 @@ $.fn.sendkeys = function (x, opts){
 		$(this).trigger({type: 'sendkeys', which: x});
 	});
 }; // sendkeys
-
 
 // add the functions publicly so they can be overridden
 $.fn.sendkeys.defaults = {
