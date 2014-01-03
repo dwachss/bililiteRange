@@ -16,6 +16,7 @@ $.fn.vi = function(statusbar){
 	}).on('excommand', function (evt){
 		if (evt.originalEvent) evt = evt.originalEvent; // jQuery creates a new event and doesn't copy all the fields
 		$(this).sendkeys(evt.range.bounds()); // set the saved selection to the new bounds without actually focussing
+		if (document.activeElement == this) evt.range.select(); // if we have returned to our element, use it
 	}).on('vimode', function(evt, data){
 		bililiteRange(this).exState().vimode = data;
 	});

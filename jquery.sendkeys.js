@@ -31,32 +31,9 @@ $.fn.sendkeys = function (x, opts){
 	return this.each( function(){
 		var localkeys = $.extend({}, opts, $(this).data('sendkeys')); // allow for element-specific key functions
 		// most elements to not keep track of their selection when they lose focus, so we have to do it for them
-		var rng = $.data (this, 'sendkeys.selection');
-		if (!rng){
-			rng = bililiteRange(this).bounds('selection');
-			$.data(this, 'sendkeys.selection', rng);
-			$(this).on('mouseup.sendkeys select.sendkeys', function(){
-				// we have to update the saved range. The routines here update the bounds with each change, but actual keypresses and mouseclicks do not
-				rng.bounds('selection');
-			}).on('keyup.sendkeys', function(evt){
-				// restore the selection if we got here with a tab (a click should select what was clicked on)
-				if (evt.which == 9){
-					// there's a flash of selection when we restore the focus, but I don't know how to avoid that.
-					rng.select();
-				}else{
-					rng.bounds('selection');
-				}	
-			});
-		}
-		if ($.isArray(x)){
-			// passing just an array in means reset the saved selection
-			rng.bounds(x);
-			return;
-		}
-		rng.select(); // restore the selection
-		this.focus();
-		if (typeof x == 'undefined') return; // no string, so we just set up the event handlers
+		var rng = $(this).selectionTracker();
 		$(this).trigger({type: 'beforesendkeys', which: x});
+		this.focus();
 		$.data(this, 'sendkeys.originalText', rng.text());
 		x.replace(/([^{])\n/g, '$1{enter}'). // turn line feeds into explicit break insertions, but not if escaped
 		  replace(/{[^}]*}|[^{]+/g, function(s){
@@ -123,5 +100,40 @@ $.fn.sendkeys.defaults = {
 		});
 	}
 };
+
+// Most ranges do not keep track of what was selected when they lose focus. 
+// We have to do that for them
+$.fn.selectionTracker = function(bounds){
+	var rng = this.data('selectionTracker');
+	if (!rng){
+		rng = bililiteRange(this[0]).bounds('selection');
+		this.data('selectionTracker', rng);
+		$(this).on('mouseup.selectionTracker select.selectionTracker', function(){
+			// we have to update the saved range. 
+			rng.bounds('selection');
+		}).on('keyup.selectionTracker', function(evt){
+			// restore the selection if we got here with a tab (a click should select what was clicked on)
+			if (evt.which == 9){
+				// there's a flash of selection when we restore the focus, but I don't know how to avoid that.
+				rng.select();
+			}else{
+				rng.bounds('selection');
+			}	
+		});
+	}
+	if (arguments.length > 0) rng.bounds(bounds); // change the saved selection without actually selecting
+	if (document.activeElement == this[0]) rng.select(); // explicitly select it if already active
+	return rng;
+}
+
+// monkey patch focus to actually focus the element, on the saved range
+var focus = $.fn.focus;
+$.fn.focus = function(){
+	if (this.length > 0){
+		this[0].focus();
+		this.selectionTracker();
+	}
+	focus.apply(this, arguments);
+}
 
 })(jQuery)
