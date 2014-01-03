@@ -82,6 +82,7 @@ newline: function(line, select){
 bililiteRange.ex = {}; // namespace for exporting utility functions
 
 bililiteRange.fn.ex = function (commandstring, defaultaddress){
+	console.log('ex ',commandstring, this.bounds());
 	this.exMessage = '';
 	var state = this.exState();
 	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
@@ -97,6 +98,7 @@ bililiteRange.fn.ex = function (commandstring, defaultaddress){
 		parsed.command.call(this, parsed.parameter, parsed.variant);
 		this.dispatch({type: 'excommand', command: command, range: this});
 	}, this);	
+	console.log('after ex ', this.bounds());
 	return this; // allow for chaining
 };
 

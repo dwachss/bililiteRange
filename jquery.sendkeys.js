@@ -108,7 +108,7 @@ $.fn.selectionTracker = function(bounds){
 	if (!rng){
 		rng = bililiteRange(this[0]).bounds('selection');
 		this.data('selectionTracker', rng);
-		$(this).on('mouseup.selectionTracker select.selectionTracker', function(){
+		$(this).on('mouseup.selectionTracker', function(evt){
 			// we have to update the saved range. 
 			rng.bounds('selection');
 		}).on('keyup.selectionTracker', function(evt){
@@ -122,8 +122,29 @@ $.fn.selectionTracker = function(bounds){
 		});
 	}
 	if (arguments.length > 0) rng.bounds(bounds); // change the saved selection without actually selecting
+	console.log(rng.bounds());
 	if (document.activeElement == this[0]) rng.select(); // explicitly select it if already active
 	return rng;
+}
+
+// monkey patch bililiteRange to reflect the saved range
+var select = bililiteRange.fn.select;
+bililiteRange.fn.select = function(){
+	var $el = $(this.element());
+	if ($el.data('selectionTracker')) $el.selectionTracker(this.bounds());
+	return select.apply(this, arguments);
+};
+var bounds = bililiteRange.fn.bounds;
+bililiteRange.fn.bounds = function(bounds){
+	var $el = $(this.element());
+	if (
+		$el.data('selectionTracker') && // if we are tracking the selection
+		document.activeElement != $el[0] && // and the real selection isn't here
+		bounds == 'selection' // and we want the selection anyway
+	){
+		return this.bounds($el.selectionTracker().bounds()); // use the saved selection
+	}
+	return bounds.apply(this, arguments);
 }
 
 // monkey patch focus to actually focus the element, on the saved range

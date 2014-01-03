@@ -6,17 +6,16 @@
 (function($){
 
 $.fn.vi = function(statusbar){
-	return this.sendkeys(). // initialize the selection tracking that sendkeys uses
-	each(function(){
+	return this.each(function(){
 		bililiteRange(this).exState().vimode = 'INSERT'; // unlike real vi, start in insert mode since that is more "natural" for a GUI
-		$(this).trigger('vimode', 'INSERT');
-		$.data(this, 'vi.statusbar', statusbar);
+		$(this).data('vi.statusbar', statusbar).
+		  trigger('vimode', 'INSERT').
+			selectionTracker();
 		addviCommands (this, vimodeCommands, '', 'vi~');
 		addviCommands (this, insertmodeCommands, '!', 'insert~');
 	}).on('excommand', function (evt){
 		if (evt.originalEvent) evt = evt.originalEvent; // jQuery creates a new event and doesn't copy all the fields
-		$(this).sendkeys(evt.range.bounds()); // set the saved selection to the new bounds without actually focussing
-		if (document.activeElement == this) evt.range.select(); // if we have returned to our element, use it
+		$(this).selectionTracker(evt.range.bounds()); // set the saved selection to the new bounds
 	}).on('vimode', function(evt, data){
 		bililiteRange(this).exState().vimode = data;
 	});
@@ -25,16 +24,11 @@ $.fn.vi = function(statusbar){
 function executeCommand (rng, command){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
-		rng.bounds('selection').ex(command || text, 'bounds').scrollIntoView();
+		rng.selectionTracker().ex(command || text, 'bounds').scrollIntoView();
+		console.log('after executeCommand', rng.bounds());
 		return rng.exMessage;
 	};
 }
-
-// sendkeys keeps track of the selection when elements lose focus, and restores it when called.
-// This takes advantage of that by setting up sendkeys then allowing sendkeys('{focus}') to do nothing but select the remembered selection
-// The selection tracking was initialized in $.fn.vi above
-$.fn.sendkeys.defaults['{focus}'] = $.noop;
-
 
 $.extend (bililiteRange.ex.commands, {
   console: function (parameter, variant){
@@ -79,8 +73,8 @@ var vimodeCommands = {
 			run: executeCommand(this),
 			returnPromise: true
 		}).then( // make sure we return focus to the text! It would be nice to have a finally method
-			function(e) {$(el).sendkeys('{focus}')},
-			function(e) {$(el).sendkeys('{focus}')}
+			function(e) {$(el).focus()},
+			function(e) {$(el).focus()}
 		);
 	},
 	'{esc}' : "vi",
@@ -95,7 +89,7 @@ insertmodeCommands = {
 }
 
 function addviCommands(el, commands, variant, prefix){
-	var rng = bililiteRange(el).bounds('selection'); // keep the selection unchanged
+	var rng = $(el).selectionTracker();
 	for (var key in commands){
 		if ($.isFunction (commands[key])){
 			var id = prefix + bililiteRange.ex.toID(key);
