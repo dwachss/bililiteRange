@@ -24,8 +24,7 @@ $.fn.vi = function(statusbar){
 function executeCommand (rng, command){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
-		rng.selectionTracker().ex(command || text, 'bounds').scrollIntoView();
-		console.log('after executeCommand', rng.bounds());
+		rng.bounds('selection').ex(command || text, 'bounds').scrollIntoView();
 		return rng.exMessage;
 	};
 }
