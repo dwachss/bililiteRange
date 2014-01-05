@@ -54,7 +54,6 @@ $.fn.sendkeys.defaults = {
 			var x = s.charCodeAt(i);
 			$(rng.element()).trigger({type: 'keypress', keyCode: x, which: x, charCode: x});
 		}
-		console.log('about to insert', s, rng.bounds());
 		rng.text(s, 'end');
 	},
 	'{enter}': function (rng){
