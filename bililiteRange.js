@@ -49,6 +49,50 @@ bililiteRange = function(el, debug){
 	ret._win = 'defaultView' in ret._doc ? ret._doc.defaultView : ret._doc.parentWindow;
 	ret._textProp = textProp(el);
 	ret._bounds = [0, ret.length()];
+	//  There's no way to detect whether a focus event happened as a result of a click (which should change the selection)
+	// or as a result of a keyboard event (a tab in) or a script  action (el.focus()). So we track it globally, which is a hack, and is likely to fail
+	// in edge cases (right-clicks, drag-n-drop), and is vulnerable to a lower-down handler preventing bubbling.
+	// I just don't know a better way.
+	// I'll hack my event-listening code below, rather than create an entire new bilililiteRange, potentially before the DOM has loaded
+	if (!('bililiteRangeMouseDown' in ret._doc)){
+		var _doc = {_el: ret._doc};
+		ret._doc.bililiteRangeMouseDown = false;
+		bililiteRange.fn.listen.call(_doc, 'mousedown', function() {
+			ret._doc.bililiteRangeMouseDown = true;
+		});
+		bililiteRange.fn.listen.call(_doc, 'mouseup', function() {
+			ret._doc.bililiteRangeMouseDown = false;
+		});
+	}
+	// note that bililiteRangeSelection is an array, which means that copying it only copies the address, which points to the original.
+	// make sure that we never let it (always do return [bililiteRangeSelection[0], bililiteRangeSelection[1]]), which means never returning
+	// this._bounds directly
+	if (!('bililiteRangeSelection' in el)){
+		// start tracking the selection
+		function trackSelection(evt){
+			if (evt && evt.which == 9){
+				// do tabs my way, by restoring the selection
+				// there's a flash of the browser's selection, but I don't see a way of avoiding that
+				ret._nativeSelect(ret._nativeRange(el.bililiteRangeSelection));
+			}else{
+				el.bililiteRangeSelection = ret._nativeSelection();
+			}
+		}
+		trackSelection();
+		// only IE does this right and allows us to grap the selection before blurring
+		if ('onbeforedeactivate' in el){
+			ret.listen('beforedeactivate', trackSelection);
+		}else{
+			// with standards-based browsers, have to listen for every user interaction
+			ret.listen('mouseup', trackSelection).listen('keyup', trackSelection);
+		}
+		ret.listen('focus', function(){
+			// restore the correct selection when the element comes into focus (mouse clicks change the position of the selection)
+			if (!ret._doc.bililiteRangeMouseDown){
+				ret._nativeSelect(ret._nativeRange(el.bililiteRangeSelection));
+			}
+		});
+	}
 	if (!('oninput' in el)){
 		// give IE8 a chance
 		var inputhack = function() {ret.dispatch({type: 'input'}) };
@@ -85,8 +129,12 @@ Range.prototype = {
 		}else if (s === 'end'){
 			this._bounds = [this.length(), this.length()];
 		}else if (s === 'selection'){
-			this.bounds ('all'); // first select the whole thing for constraining
-			this._bounds = this._nativeSelection();
+			if (this._el == document.activeElement){
+				this.bounds ('all'); // first select the whole thing for constraining
+				this._bounds = this._nativeSelection();
+			}else{
+				this._bounds = this._el.bililiteRangeSelection;
+			}
 		}else if (s){
 			this._bounds = s; // don't do error checking now; things may change at a moment's notice
 		}else{
@@ -100,7 +148,11 @@ Range.prototype = {
 		return this; // allow for chaining
 	},
 	select: function(){
-		this._nativeSelect(this._nativeRange(this.bounds()));
+		var b = this._el.bililiteRangeSelection = this.bounds();
+		if (this._el == document.activeElement){
+			// only actually select if this element is active!
+			this._nativeSelect(this._nativeRange(b));
+		}
 		this.dispatch({type: 'select'});
 		return this; // allow for chaining
 	},
@@ -251,10 +303,8 @@ IERange.prototype._nativeSelect = function (rng){
 };
 IERange.prototype._nativeSelection = function (){
 	// returns [start, end] for the selection constrained to be in element
-	// this fails for an empty selection! selection.createRange() if in a text area does not create a text selection, so I can't compare it.
 	var rng = this._nativeRange(); // range of the element to constrain to
 	var len = this.length();
-	// this._el.focus(); This solves the problem of text areas not having a real selection , but sucks the focus from everything else, so I can't use it
 	var sel = this._doc.selection.createRange();
 	try{
 		return [
@@ -262,6 +312,7 @@ IERange.prototype._nativeSelection = function (){
 			ieend (sel, rng)
 		];
 	}catch (e){
+		// TODO: determine if this is still necessary, since we only call _nativeSelection if _el is active
 		// IE gets upset sometimes about comparing text to input elements, but the selections cannot overlap, so make a best guess
 		return (sel.parentElement().sourceIndex < this._el.sourceIndex) ? [0,0] : [len, len];
 	}

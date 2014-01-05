@@ -1,7 +1,7 @@
 // insert characters in a textarea or text input field
 // special characters are enclosed in {}; use {{} for the { character itself
 // documentation: http://bililite.com/blog/2008/08/20/the-fnsendkeys-plugin/
-// Version: 2.2
+// Version: 2.3
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -30,8 +30,9 @@
 $.fn.sendkeys = function (x, opts){
 	return this.each( function(){
 		var localkeys = $.extend({}, opts, $(this).data('sendkeys')); // allow for element-specific key functions
-		// most elements to not keep track of their selection when they lose focus, so we have to do it for them
-		var rng = $(this).selectionTracker();
+		var rng = $.data(this, 'sendkeys.range') || bililiteRange(this);
+		$.data(this, 'sendkeys.range', rng);
+		rng.bounds('selection');
 		$(this).trigger({type: 'beforesendkeys', which: x});
 		this.focus();
 		$.data(this, 'sendkeys.originalText', rng.text());
@@ -53,6 +54,7 @@ $.fn.sendkeys.defaults = {
 			var x = s.charCodeAt(i);
 			$(rng.element()).trigger({type: 'keypress', keyCode: x, which: x, charCode: x});
 		}
+		console.log('about to insert', s, rng.bounds());
 		rng.text(s, 'end');
 	},
 	'{enter}': function (rng){
@@ -100,65 +102,5 @@ $.fn.sendkeys.defaults = {
 		});
 	}
 };
-
-// Most ranges do not keep track of what was selected when they lose focus. 
-// We have to do that for them
-$.fn.selectionTracker = function(bounds){
-	var rng = this.data('selectionTracker');
-	if (!rng){
-		rng = bililiteRange(this[0]).bounds('selection');
-		this.data('selectionTracker', rng);
-		$(this).on('mouseup.selectionTracker', function(evt){
-			// we have to update the saved range. 
-			rng.bounds('selection');
-		}).on('keyup.selectionTracker', function(evt){
-			// restore the selection if we got here with a tab (a click should select what was clicked on)
-			if (evt.which == 9){
-				// there's a flash of selection when we restore the focus, but I don't know how to avoid that.
-				rng.select();
-			}else{
-				rng.bounds('selection');
-			}	
-		});
-	}
-	if (arguments.length > 0) rng.bounds(bounds); // change the saved selection without actually selecting
-	if (document.activeElement == this[0]) rng.select(); // explicitly select it if already active
-	return rng;
-}
-
-// monkey patch bililiteRange to reflect the saved range
-var oldselect = bililiteRange.fn.select;
-bililiteRange.fn.select = function(){
-	var $el = $(this.element());
-	if (
-		$el.data('selectionTracker') && 
-		document.activeElement != $el[0]
-	){
-		$el.selectionTracker(this.bounds());
-	}
-	return oldselect.apply(this, arguments);
-};
-var oldbounds = bililiteRange.fn.bounds;
-bililiteRange.fn.bounds = function(bounds){
-	var $el = $(this.element());
-	if (
-		$el.data('selectionTracker') && // if we are tracking the selection
-		document.activeElement != $el[0] && // and the real selection isn't here
-		bounds == 'selection' // and we want the selection anyway
-	){
-		bounds = $el.selectionTracker().bounds(); // use the saved selection
-	}
-	return oldbounds.call(this, bounds);
-}
-
-// monkey patch focus to actually focus the element, on the saved range
-var focus = $.fn.focus;
-$.fn.focus = function(){
-	if (this.length > 0){
-		this[0].focus();
-		this.selectionTracker();
-	}
-	focus.apply(this, arguments);
-}
 
 })(jQuery)
