@@ -93,7 +93,7 @@ function addviCommands(el, commands, variant, prefix){
 			bililiteRange.ex.commands[id] = commands[key];
 			commands[key] = id;
 		}
-		rng.ex('map'+variant+' '+key+' '+JSON.stringify(commands[key]), 'bounds');
+		rng.bounds('selection').ex('map'+variant+' '+key+' '+JSON.stringify(commands[key]), 'bounds');
 	}
 }
 
