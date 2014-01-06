@@ -33,8 +33,12 @@ if (bililiteRange) (function(){
 bililiteRange.fn.undo = function(n){
 	if (arguments.length == 0) n = 1; // default
 	var state = getundostate(this);
-	if (n > 0)  for (var i = 0; i < n; ++i) restore (state, 'undo', this);
-	else if (n < 0) for (i = 0; i > n; --i) restore (state, 'redo', this)
+	if (n > 0){
+		for (var i = 0; i < n; ++i) restore (state, 'undo', this);
+	}else if (n < 0){
+		for (i = 0; i > n; --i) restore (state, 'redo', this);
+	}
+	return this;
 };
 
 function getundostate(rng){

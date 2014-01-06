@@ -8,14 +8,12 @@
 $.fn.vi = function(statusbar){
 	return this.each(function(){
 		bililiteRange(this).exState().vimode = 'INSERT'; // unlike real vi, start in insert mode since that is more "natural" for a GUI
-		$(this).data('vi.statusbar', statusbar).
-		  trigger('vimode', 'INSERT').
-			selectionTracker();
+		$(this).data('vi.statusbar', statusbar).trigger('vimode', 'INSERT');
 		addviCommands (this, vimodeCommands, '', 'vi~');
 		addviCommands (this, insertmodeCommands, '!', 'insert~');
 	}).on('excommand', function (evt){
 		if (evt.originalEvent) evt = evt.originalEvent; // jQuery creates a new event and doesn't copy all the fields
-		$(this).selectionTracker(evt.range.bounds()); // set the saved selection to the new bounds
+		evt.range.select(); // set the saved selection to the new bounds
 	}).on('vimode', function(evt, data){
 		bililiteRange(this).exState().vimode = data;
 	});
@@ -88,7 +86,7 @@ insertmodeCommands = {
 }
 
 function addviCommands(el, commands, variant, prefix){
-	var rng = $(el).selectionTracker();
+	var rng = bililiteRange(el);
 	for (var key in commands){
 		if ($.isFunction (commands[key])){
 			var id = prefix + bililiteRange.ex.toID(key);
