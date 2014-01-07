@@ -97,4 +97,16 @@ function addviCommands(el, commands, variant, prefix){
 	}
 }
 
+function addNumbers(rng){
+	"0123456789".split('').forEach(function(key, i){
+		$(rng.element()).on('keydown', {keys: key}, function (){
+			// TODO: just make this one function!
+			var state = rng.exState();
+			if (state.vimode == 'INSERT') return;
+			state.count = (state.count || 0) * 10 + 1; 
+		});
+	});
+}
+
+
 })(jQuery);
