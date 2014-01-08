@@ -34,13 +34,6 @@
 (function(undefined){
 
 /*********************** shims: it's be nice to IE8 day *********************************/
-if ( !Array.prototype.forEach ) {
-  Array.prototype.forEach = function(fn, scope) {
-    for(var i = 0, len = this.length; i < len; ++i) {
-      fn.call(scope, this[i], i, this);
-    }
-  }
-}
 if(!String.prototype.trim) {
   String.prototype.trim = function () {
     return this.replace(/^\s+|\s+$/g,'');
@@ -95,8 +88,8 @@ bililiteRange.fn.ex = function (commandstring, defaultaddress){
 		var parsed = parseCommand(command, defaultaddress);
 		interpretAddresses(this, parsed.addresses, state);
 		parsed.command.call(this, parsed.parameter, parsed.variant);
-		this.dispatch({type: 'excommand', command: command, range: this});
 	}, this);	
+	this.dispatch({type: 'excommand', command: commandstring, range: this});
 	return this; // allow for chaining
 };
 
@@ -504,8 +497,9 @@ var commands = bililiteRange.ex.commands = {
 		}
 		if (lines[0] == lines[1]) ++lines[1]; // join at least 2 lines
 		var re = variant ? /\n/g : /\s*\n\s*/g;
+		var replacement = variant ? '' : ' '; // just one space. Doesn't do what the ex manual says about not inserting a space before a ')'
 		this.lines(lines[0],lines[1]);
-		this.text(this.text().replace(re, ' '), 'start');
+		this.text(this.text().replace(re, replacement), 'start');
 	},
 
 	k: 'mark',

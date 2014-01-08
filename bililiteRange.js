@@ -459,11 +459,22 @@ W3CRange.prototype._nativeEOL = function(){
 	rng.collapse (false);
 };
 W3CRange.prototype._nativeScrollIntoView = function(rng){
-	// can't scroll to a range; have to scroll to an element instead
-	var span = this._doc.createElement('span');
-	rng.insertNode(span);
-	span.scrollIntoViewIfNeeded ? span.scrollIntoViewIfNeeded() : span.scrollIntoView();
-	span.parentNode.removeChild(span);
+	var el = this._el;
+	el.scrollIntoViewIfNeeded ? el.scrollIntoViewIfNeeded() : el.scrollIntoView();
+	// insert zero-width space so the range actually has some text
+	if (rng.toString() == ''){
+		var textnode = this._doc.createTextNode('%');
+		rng.insertNode (textnode);
+	}
+	var rect = rng.getBoundingClientRect();
+	// scroll within the element if needed
+	if (el.scrollTop > rect.top || el.scrollTop+el.clientHeight < rect.top){
+		el.scrollTop = rect.top;
+	}
+	if (el.scrollLeft > rect.left || el.scrollLeft+el.clientWidth < rect.left){
+		el.scrollLeft = rect.left;
+	}
+	if (textnode) textnode.parentNode.removeChild(textnode);
 }
 W3CRange.prototype._nativeWrap = function(n, rng) {
 	rng.surroundContents(n);
