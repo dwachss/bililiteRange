@@ -1,6 +1,6 @@
 // create a "status bar" to display messages and accept line input
 
-// version 1.1
+// version 1.2
 // Documentation at http://bililite.com/blog/2013/12/11/new-jquery-plugin-statusbar/
 
 // Copyright (c) 2013 Daniel Wachsstock
@@ -36,7 +36,8 @@ var defaults = {
 	prompt: false,
 	successClass: 'success',
 	failureClass: 'failure',
-	cancelMessage: 'User Canceled'
+	cancelMessage: 'User Canceled',
+	append: 'appendTo'
 };
 
 $.fn.status = function(message, classname, opts){
@@ -55,8 +56,8 @@ $.fn.status = function(message, classname, opts){
 	function hide($el) {opts.hide.call($el); $el.promise().done(function() {$el.remove()})};
 
 	if (message) return this.each(function(){
-		// just show the message
-		var span = $('<span>').addClass(classname).text(message).hide().appendTo(this);
+		// just show the message, newest message first
+		var span = $('<span>').addClass(classname).text(message).hide().prependTo(this);
 		show(span);
 		hide(span);
 	});
@@ -71,8 +72,11 @@ $.fn.status = function(message, classname, opts){
 		// insert a <label>Prompt <input /></label>
 		var oldtext = $('label input', self).val(); // use the old text if it exists
 		$('label', self).remove(); // remove any old elements
-		var input = $('<label>').hide().text(opts.prompt).prependTo(self);
-		$('<input>').appendTo(input).val(oldtext);
+		// appending at the end makes full-length input elements possible, as in http://stackoverflow.com/questions/773517/style-input-element-to-fill-remaining-width-of-its-container
+		var input = $('<label>').hide().appendTo(self); 
+		$('<strong>').text(opts.prompt).appendTo(input);
+		// hate to have a nonsemantic wrapper, but we need it to do the full-length trick
+		$('<input>').val(oldtext).wrap('<span>').parent().appendTo(input);
 		show(input);
 
 		var history = self.data('statusbar.history') || []; // a stack of past commands
