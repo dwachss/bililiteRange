@@ -466,13 +466,15 @@ W3CRange.prototype._nativeScrollIntoView = function(rng){
 		var textnode = this._doc.createTextNode('%');
 		rng.insertNode (textnode);
 	}
-	var rect = rng.getBoundingClientRect();
+	 // with some experimentation, this gives the position of the range relative to the element
+	var top = rng.getBoundingClientRect().top - el.offsetTop
+	var left = rng.getBoundingClientRect().left - el.offsetLeft
 	// scroll within the element if needed
-	if (el.scrollTop > rect.top || el.scrollTop+el.clientHeight < rect.top){
-		el.scrollTop = rect.top;
+	if (el.scrollTop > top || el.scrollTop+el.clientHeight < top){
+		el.scrollTop += top;
 	}
-	if (el.scrollLeft > rect.left || el.scrollLeft+el.clientWidth < rect.left){
-		el.scrollLeft = rect.left;
+	if (el.scrollLeft > left || el.scrollLeft+el.clientWidth < left){
+		el.scrollLeft += left;
 	}
 	if (textnode) textnode.parentNode.removeChild(textnode);
 }

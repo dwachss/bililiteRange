@@ -75,7 +75,7 @@ $.fn.status = function(message, classname, opts){
 		var input = $('<label>').hide().appendTo(self);
 		var text = typeof opts.initialText == 'string' ? opts.initialText : '';
 		// hate to have a nonsemantic wrapper, but we need it to do the full-length trick
-		$('<input>').val(opts.initialText).wrap('<span>').parent().appendTo(input);
+		$('<input>').val(text).wrap('<span>').parent().appendTo(input);
 		if (opts.initialText === true && 'placeholder' in $('input', input)[0]){
 			$('input', input).attr('placeholder', opts.prompt);
 		}else{
