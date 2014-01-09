@@ -1,6 +1,6 @@
 // create a "status bar" to display messages and accept line input
 
-// version 1.2
+// version 1.3
 // Documentation at http://bililite.com/blog/2013/12/11/new-jquery-plugin-statusbar/
 
 // Copyright (c) 2013 Daniel Wachsstock
@@ -34,6 +34,7 @@ var defaults = {
 	returnPromise: false,
 	run: $.noop, // function to which to pass the text to resolve result
 	prompt: false,
+	initialText: false,
 	successClass: 'success',
 	failureClass: 'failure',
 	cancelMessage: 'User Canceled'
@@ -69,13 +70,17 @@ $.fn.status = function(message, classname, opts){
 		}
 
 		// insert a <label>Prompt <input /></label>
-		var oldtext = $('label input', self).val(); // use the old text if it exists
 		$('label', self).remove(); // remove any old elements
 		// appending at the end makes full-length input elements possible, as in http://stackoverflow.com/questions/773517/style-input-element-to-fill-remaining-width-of-its-container
-		var input = $('<label>').hide().appendTo(self); 
-		$('<strong>').text(opts.prompt).appendTo(input);
+		var input = $('<label>').hide().appendTo(self);
+		var text = typeof opts.initialText == 'string' ? opts.initialText : '';
 		// hate to have a nonsemantic wrapper, but we need it to do the full-length trick
-		$('<input>').val(oldtext).wrap('<span>').parent().appendTo(input);
+		$('<input>').val(opts.initialText).wrap('<span>').parent().appendTo(input);
+		if (opts.initialText === true && 'placeholder' in $('input', input)[0]){
+			$('input', input).attr('placeholder', opts.prompt);
+		}else{
+			$('<strong>').text(opts.prompt).prependTo(input);
+		}
 		show(input);
 
 		var history = self.data('statusbar.history') || []; // a stack of past commands
