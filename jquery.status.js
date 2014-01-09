@@ -36,8 +36,7 @@ var defaults = {
 	prompt: false,
 	successClass: 'success',
 	failureClass: 'failure',
-	cancelMessage: 'User Canceled',
-	append: 'appendTo'
+	cancelMessage: 'User Canceled'
 };
 
 $.fn.status = function(message, classname, opts){
