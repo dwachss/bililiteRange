@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 2.0
+// Version: 2.1
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -181,8 +181,19 @@ Range.prototype = {
 		this._bounds = [this._bounds[0]+1, this._bounds[0]+1]; // move past the EOL marker
 		return this;
 	},
-	scrollIntoView: function(){
-		this._nativeScrollIntoView(this._nativeRange(this.bounds()));
+	top: function(){
+		return this._nativeTop(this._nativeRange(this.bounds()));
+	},
+	scrollIntoView: function(scroller){
+		var top = this.top();
+		// scroll into position if necessary
+		if (this._el.scrollTop > top || this._el.scrollTop+this._el.clientHeight < top){
+			if (scroller){
+				scroller.call(this._el, top);
+			}else{
+				this._el.scrollTop = top;
+			}
+		}
 		return this;
 	},
 	wrap: function (n){
@@ -225,7 +236,7 @@ Range.prototype = {
 				el.dispatchEvent ? el.dispatchEvent(event) : el.fireEvent("on" + opts.type, document.createEventObject());
 				}catch(e){
 					// IE8 will not let me fire custom events at all. Call them directly
-					if (jQuery) {
+					if (window.jQuery) {
 						jQuery(el).trigger(event);
 					}else{
 						var listeners = el['listen'+opts.type];
@@ -241,7 +252,7 @@ Range.prototype = {
 		var el = this._el;
 		if (el.addEventListener){
 			el.addEventListener(type, func);
-		}else if (jQuery){
+		}else if (window.jQuery){
 			jQuery(el).on(type, func);
 		}else{
 			el.attachEvent("on" + type, func);
@@ -255,7 +266,7 @@ Range.prototype = {
 		var el = this._el;
 		if (el.removeEventListener){
 			el.removeEventListener(type, func);
-		}else if (jQuery){
+		}else if (window.jQuery){
 			jQuery(el).off(type, func);
 		}else try{
 			el.detachEvent("on" + type, func);
@@ -330,8 +341,9 @@ IERange.prototype._nativeEOL = function(){
 		this._nativeRange(this.bounds()).pasteHTML('\n<br/>');
 	}
 };
-IERange.prototype._nativeScrollIntoView = function(rng){
-	rng.scrollIntoView();
+IERange.prototype._nativeTop = function(rng){
+	// silly IE bug that requires us to double scrollTop!
+	return rng.boundingTop - this._el.offsetTop + 2*this._el.scrollTop;
 }
 IERange.prototype._nativeWrap = function(n, rng) {
 	// hacky to use string manipulation but I don't see another way to do it.
@@ -382,7 +394,7 @@ InputRange.prototype._nativeSetText = function(text, rng){
 InputRange.prototype._nativeEOL = function(){
 	this.text('\n');
 };
-InputRange.prototype._nativeScrollIntoView = function(rng){
+InputRange.prototype._nativeTop = function(rng){
 	// I can't remember where I found this clever hack to find the location of text in a text area
 	var clone = this._el.cloneNode(true);
 	clone.style.visibility = 'hidden';
@@ -393,25 +405,9 @@ InputRange.prototype._nativeScrollIntoView = function(rng){
 	var top = clone.scrollHeight;
 	// this gives the bottom of the text, so we have to subtract the height of a single line
 	clone.value = 'X';
-	top -= 2*clone.scrollHeight; // show at least a line above
+	top -= clone.scrollHeight;
 	clone.parentNode.removeChild(clone);
-	// scroll into position if necessary
-	if (this._el.scrollTop > top || this._el.scrollTop+this._el.clientHeight < top){
-		this._el.scrollTop = top;
-	}
-	// now scroll the element into view; get its position as in jQuery.offset
-	var rect = this._el.getBoundingClientRect();
-	rect.top += this._win.pageYOffset - this._doc.documentElement.clientTop;
-	rect.left += this._win.pageXOffset - this._doc.documentElement.clientLeft;
-	// create an element to scroll to (can't just use the clone above, since scrollIntoView wants a visible element)
-	var div = this._doc.createElement('div');
-	div.style.position = 'absolute';
-	div.style.top = (rect.top+top-this._el.scrollTop)+'px'; // adjust for how far in the range is; it may not have scrolled all the way to the top
-	div.style.left = rect.left+'px';
-	div.innerHTML = '&nbsp;';
-	this._doc.body.appendChild(div);
-	div.scrollIntoViewIfNeeded ? div.scrollIntoViewIfNeeded() : div.scrollIntoView();
-	div.parentNode.removeChild(div);
+	return top;
 }
 InputRange.prototype._nativeWrap = function() {throw new Error("Cannot wrap in a text element")};
 
@@ -458,25 +454,15 @@ W3CRange.prototype._nativeEOL = function(){
 	rng.insertNode (this._doc.createTextNode('\n'));
 	rng.collapse (false);
 };
-W3CRange.prototype._nativeScrollIntoView = function(rng){
-	var el = this._el;
-	el.scrollIntoViewIfNeeded ? el.scrollIntoViewIfNeeded() : el.scrollIntoView();
-	// insert zero-width space so the range actually has some text
+W3CRange.prototype._nativeTop = function(rng){
 	if (rng.toString() == ''){
 		var textnode = this._doc.createTextNode('%');
 		rng.insertNode (textnode);
 	}
 	 // with some experimentation, this gives the position of the range relative to the element
-	var top = rng.getBoundingClientRect().top - el.offsetTop
-	var left = rng.getBoundingClientRect().left - el.offsetLeft
-	// scroll within the element if needed
-	if (el.scrollTop > top || el.scrollTop+el.clientHeight < top){
-		el.scrollTop += top;
-	}
-	if (el.scrollLeft > left || el.scrollLeft+el.clientWidth < left){
-		el.scrollLeft += left;
-	}
+	var top = rng.getBoundingClientRect().top - this._el.offsetTop + this._el.scrollTop;
 	if (textnode) textnode.parentNode.removeChild(textnode);
+	return top;
 }
 W3CRange.prototype._nativeWrap = function(n, rng) {
 	rng.surroundContents(n);
@@ -572,8 +558,8 @@ NothingRange.prototype._nativeSetText = function (text, rng){
 NothingRange.prototype._nativeEOL = function(){
 	this.text('\n');
 };
-NothingRange.prototype._nativeScrollIntoView = function(){
-	this._el.scrollIntoView();
+NothingRange.prototype._nativeTop = function(){
+	return 0;
 };
 NothingRange.prototype._nativeWrap = function() {throw new Error("Wrapping not implemented")};
 
