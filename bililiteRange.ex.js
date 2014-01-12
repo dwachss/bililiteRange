@@ -542,8 +542,8 @@ var commands = bililiteRange.ex.commands = {
 		if (!parameter || parameter == 'all'){
 			// only display the stringifiable options
 			var options = {}, state = this.exState();
-			for (option in state) if (!(state[option] instanceof Object)) options[option] = state[options];
-			rng.exMessage = JSON.stringify(options);
+			for (option in state) if (!(state[option] instanceof Object)) options[option] = state[option];
+			this.exMessage = JSON.stringify(options);
 		}else{
 			splitCommands(parameter, ' ').forEach(function(command){
 				var match = /(no)?(\w+)(\?|=(\S+)|)/.exec(command);
@@ -565,7 +565,7 @@ var commands = bililiteRange.ex.commands = {
 
 	shiftwidth: function (parameter, variant){
 		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = this.exState().shiftwidth;
+			this.exMessage = '['+this.exState().shiftwidth+']';
 		}else{
 			var shiftwidth = parseInt(parameter);
 			if (isNaN(shiftwidth) || shiftwidth <= 0) throw {message: 'Invalid value for shiftwidth: '+parameter};
