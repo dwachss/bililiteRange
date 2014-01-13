@@ -53,6 +53,7 @@ function getundostate(rng){
 function undostate (rng){
 	// inefficiently just stores the whole text rather than trying to figure out a diff
 	this.text = rng.all();
+	console.log('saving state ', this.text);
 	var laststate = rng._el.bililiteRangeUndos;
 	if (laststate && this.text == laststate.text) return; // is this too inefficient, to compare each time?
 	this.bounds = rng.bounds('selection').bounds(); 

@@ -236,7 +236,7 @@ Range.prototype = {
 		setTimeout(function(){
 			try {
 				el.dispatchEvent ? el.dispatchEvent(event) : el.fireEvent("on" + opts.type, document.createEventObject());
-				}catch(e){
+			}catch(e){
 					// IE8 will not let me fire custom events at all. Call them directly
 					if (window.jQuery) {
 						jQuery(el).trigger(event);
@@ -457,12 +457,16 @@ W3CRange.prototype._nativeEOL = function(){
 	rng.collapse (false);
 };
 W3CRange.prototype._nativeTop = function(rng){
+	if (this.length == 0) return 0; // no text, no scrolling
 	if (rng.toString() == ''){
 		var textnode = this._doc.createTextNode('%');
 		rng.insertNode (textnode);
 	}
 	 // with some experimentation, this gives the position of the range relative to the element
-	var top = rng.getBoundingClientRect().top - this._el.offsetTop + this._el.scrollTop;
+	var startrng = this._nativeRange([0,1]);
+	console.log(startrng.getBoundingClientRect().top);
+	console.log(this._el.offsetTop, this._el.clientTop, rng.getBoundingClientRect().top);
+	var top = rng.getBoundingClientRect().top - startrng.getBoundingClientRect().top;
 	if (textnode) textnode.parentNode.removeChild(textnode);
 	return top;
 }
