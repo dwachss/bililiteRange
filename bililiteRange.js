@@ -88,6 +88,8 @@ bililiteRange = function(el, debug){
 		}
 		ret.listen('focus', function(){
 			// restore the correct selection when the element comes into focus (mouse clicks change the position of the selection)
+			// Note that Firefox will not fire the focus event until the window/tab is active even if el.focus() is called
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=566671
 			if (!ret._doc.bililiteRangeMouseDown){
 				ret._nativeSelect(ret._nativeRange(el.bililiteRangeSelection));
 			}
