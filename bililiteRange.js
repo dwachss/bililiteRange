@@ -457,11 +457,11 @@ W3CRange.prototype._nativeEOL = function(){
 	rng.collapse (false);
 };
 W3CRange.prototype._nativeTop = function(rng){
+	if (this.length == 0) return 0; // no text, no scrolling
 	if (rng.toString() == ''){
-		var textnode = this._doc.createTextNode('%');
+		var textnode = this._doc.createTextNode('X');
 		rng.insertNode (textnode);
 	}
-	 // with some experimentation, this gives the position of the range relative to the element
 	var startrng = this._nativeRange([0,1]);
 	var top = rng.getBoundingClientRect().top - startrng.getBoundingClientRect().top;
 	if (textnode) textnode.parentNode.removeChild(textnode);
