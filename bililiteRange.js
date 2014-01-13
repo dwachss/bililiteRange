@@ -236,7 +236,7 @@ Range.prototype = {
 		setTimeout(function(){
 			try {
 				el.dispatchEvent ? el.dispatchEvent(event) : el.fireEvent("on" + opts.type, document.createEventObject());
-			}catch(e){
+				}catch(e){
 					// IE8 will not let me fire custom events at all. Call them directly
 					if (window.jQuery) {
 						jQuery(el).trigger(event);
@@ -344,8 +344,8 @@ IERange.prototype._nativeEOL = function(){
 	}
 };
 IERange.prototype._nativeTop = function(rng){
-	// silly IE bug that requires us to double scrollTop!
-	return rng.boundingTop - this._el.offsetTop + 2*this._el.scrollTop;
+	var startrng = this._nativeRange([0,0]);
+	return rng.boundingTop - startrng.boundingTop;
 }
 IERange.prototype._nativeWrap = function(n, rng) {
 	// hacky to use string manipulation but I don't see another way to do it.
@@ -457,7 +457,6 @@ W3CRange.prototype._nativeEOL = function(){
 	rng.collapse (false);
 };
 W3CRange.prototype._nativeTop = function(rng){
-	if (this.length == 0) return 0; // no text, no scrolling
 	if (rng.toString() == ''){
 		var textnode = this._doc.createTextNode('%');
 		rng.insertNode (textnode);
