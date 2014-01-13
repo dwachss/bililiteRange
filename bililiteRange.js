@@ -464,8 +464,6 @@ W3CRange.prototype._nativeTop = function(rng){
 	}
 	 // with some experimentation, this gives the position of the range relative to the element
 	var startrng = this._nativeRange([0,1]);
-	console.log(startrng.getBoundingClientRect().top);
-	console.log(this._el.offsetTop, this._el.clientTop, rng.getBoundingClientRect().top);
 	var top = rng.getBoundingClientRect().top - startrng.getBoundingClientRect().top;
 	if (textnode) textnode.parentNode.removeChild(textnode);
 	return top;
