@@ -1,7 +1,7 @@
 // implements a simple undo stack for bililiteRange
 
-// version 1.1
-// Documentation pending
+// version 1.2
+// Documentation at http://bililite.com/blog/2013/12/25/bililiterange-undo/
 
 // depends on bililiteRange.js
 
