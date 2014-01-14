@@ -67,7 +67,7 @@ function undostate (rng){
 
 function restore (state, dir, rng){
 	// dir is 'undo' or 'redo';
-	rng.dispatch(dir); // signal it
+	rng.dispatch({type: dir}); // signal it
 	state = state[dir];
 	state.lastevent = dir; // mark the undo/redo so we don't add the change in text to the undo stack
 	rng._el.bililiteRangeUndos = state;
