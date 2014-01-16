@@ -83,7 +83,7 @@ Savemonitor.prototype = {
 	},
 	
 	dirty: function (){
-		this.setter('dirty');
+		this.setter('dirty')();
 	},
 	
 	on: function(){
