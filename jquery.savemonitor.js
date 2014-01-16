@@ -1,5 +1,5 @@
 // Abstracts the idea of a "dirty" (changed but not saved) and "clean" (saved) file
-// documentation: pending
+// documentation: http://bililite.com/blog/2014/01/16/new-jquery-plugin-savemonitor/
 // Version 1.0
 //  depends: jQuery, Promise
 
