@@ -87,11 +87,11 @@ Savemonitor.prototype = {
 	},
 	
 	on: function(){
-		$.fn.on.apply(($this), arguments);
+		$.fn.on.apply($(this), arguments);
 	}, 
 	
 	off: function(){
-		$.fn.off.apply(($this), arguments);
+		$.fn.off.apply($(this), arguments);
 	}
 };
 
