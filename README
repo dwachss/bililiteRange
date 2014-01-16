@@ -22,8 +22,14 @@ http://bililite.com/blog/2013/03/20/hotkeys-with-keymap/
 jquery.livesearch.js: jQuery plugin to do "live" searching for a regular expression; highlights  the text found and scrolls to it as you type. Documentation at
 http://bililite.com/blog/2013/03/07/new-jquery-plugin-livesearch/
 
+jquery.savemonitor.js: jQuery plugin to track when an element changes and when it is saved. Documentation at
+http://bililite.com/blog/2014/01/16/new-jquery-plugin-savemonitor/
+
 jquery.sendkeys.js: jQuery plugin to simulate keypresses. Documentation at 
 http://bililite.com/blog/2011/01/23/improved-sendkeys/
+
+jquery.status.js: jQuery plugin to display messages and get user input. Documentation at
+http://bililite.com/blog/2013/12/12/new-jquery-plugin-status/
 
 prismeditor.js: Uses bililiteRange and the Prism syntax highlighter (prismjs.com) to create a simple syntax-highlighting text editor. Documentation at
 http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
