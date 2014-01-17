@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Editor Unit Testing</title>
+  <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-1.13.0.css">
+</head>
+<body>
+<div id="qunit"></div>
+<div id="qunit-fixture"></div>
+<p>The testing fails in large part in IE8; definitely in the "wontfix" category.
+The focus/blur code in FF requires the tab to be active 
+(not the console), see 
+<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=566671">bugzilla.mozilla.org/show_bug.cgi?id=566671</a>.</p>
+<script src="http://code.jquery.com/jquery-1.10.2.min.js" ></script>
+<script src="http://code.jquery.com/qunit/qunit-1.13.0.js"></script>
+<script src="http://bililite.com/inc/promise-0.1.0.min.js" ></script>
+<script src="../bililiteRange.js"></script>
+<script src="../bililiteRange.util.js"></script>
+<script src="../bililiteRange.undo.js"></script>
+<script src="../jquery.sendkeys.js"></script>
+<script>
+var elements = ['div', 'textarea', 'input'];
+var text = 'one\ntwo\n\tthree';
+var oneline = text.replace(/\n/g, '');
+var $fixture = $( "#qunit-fixture" );
+function multitest (message, fn, async){
+	elements.forEach(function(name, i){
+		window[async ? 'asyncTest' : 'test'](message+' on '+name, function(){
+			var $el = $('<'+name+'>').css({
+				overflow: 'auto',
+				whiteSpace: 'pre',
+				height: '40px',
+				width: '200px',
+			}).attr('contenteditable', '');
+			$fixture.append($el);
+			var el = $el[0];
+			var rng = bililiteRange(el);
+			fn (rng, el, name == 'input' ? oneline : text, i);
+		});
+	});
+}
+function async (fn){
+	// a lot of my routines depend on catching the input events, which are asynchronous. Force the testing to be so, as well
+	return function(){
+		var self = this, args = arguments;
+		setTimeout( function() { fn.apply(self, args) }, 0);
+	}
+}
+</script>
+<script src="bililiteRange.qunit.js"></script>
+<script src="bililiteRange.util.qunit.js"></script>
+<script src="bililiteRange.undo.qunit.js"></script>
+<script src="jquery.sendkeys.qunit.js"></script>
+
+</body>
+</html>
