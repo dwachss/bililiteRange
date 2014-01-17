@@ -33,7 +33,7 @@ var states = 'clean failed dirty pending ';
 $.savemonitor = function(indicator){
 	$indicator = $(indicator);
 	var savemonitor = new Savemonitor();
-	$(savemonitor).on(states, function(event){
+	savemonitor.on(states, function(event){
 		$indicator.removeClass(states).addClass(event.type);
 	});
 	savemonitor.trigger();
