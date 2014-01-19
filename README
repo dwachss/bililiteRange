@@ -5,6 +5,9 @@ The basic function is in bililiteRange.js, with the documentation at http://bili
 
 The other files are assorted javascript libraries that use bililiteRange:
 
+bililiteRange.fancytext.js: Uses bililiteRange to allow using the Prism syntax highlighter (prismjs.com) to create a simple syntax-highlighting text editor. Documentation at
+http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
+
 bililiteRange.util.js: Adds useful functions for searching and keeping the ranges up-to-date with  changes in the underlying text. Documentation at 
 http://bililite.com/blog/2013/02/08/bililiterange-plugins/
 
@@ -30,8 +33,5 @@ http://bililite.com/blog/2011/01/23/improved-sendkeys/
 
 jquery.status.js: jQuery plugin to display messages and get user input. Documentation at
 http://bililite.com/blog/2013/12/12/new-jquery-plugin-status/
-
-prismeditor.js: Uses bililiteRange and the Prism syntax highlighter (prismjs.com) to create a simple syntax-highlighting text editor. Documentation at
-http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
 
 The other files are not mature and are not documented at all.
