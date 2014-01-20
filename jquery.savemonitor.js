@@ -50,6 +50,9 @@ $.fn.savemonitor = function(indicator){
 	return savemonitor;
 };
 
+// export the list
+$.savemonitor.states = states;
+
 function Savemonitor(){
 	var self = this;
 	var state = 'clean'; // make this private!
