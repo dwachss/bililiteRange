@@ -80,8 +80,11 @@ bililiteRange.fn.ex = function (commandstring, defaultaddress){
 	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
 	defaultaddress = defaultaddress || '.';
 	// set the next-to-last mark
-	state.marks["'"] = state.marks["''"];
-	state.marks["''"] = this.clone().live();
+	var b = this.bounds(), lastb = state.marks["''"].bounds();
+	if (b[0] != lastb[0] || b[1] != lastb[1]){
+		state.marks["'"].bounds(lastb);
+		state.marks["''"].bounds(b);
+	}
 	// actually do the command
 	commandstring = commandstring.replace(/^:+/,''); // ignore initial colons that were likely accidentally typed.
 	splitCommands(commandstring, '|').forEach(function(command){
@@ -97,17 +100,62 @@ var exStates = []; // to avoid memory leaks,
 bililiteRange.fn.exState = function(options){
 	var state = exStates[this.element().exState];
 	if (!state){
-		state = exStates[this.element().exState = exStates.length] = {
-			// defaults
-			wrapscan: true,
-			multiline: true,
-			shiftwidth: 8,
-			marks: {},
-		};
+		state = exStates[this.element().exState = exStates.length] = new ExState(this);
 	}
 	// simple copy, not recursive
 	if (options) for (option in options) state[option] = options[option];
 	return state; 
+}
+
+function ExState(rng){
+	// defaults
+	this.autoindent = false;
+	this.shiftwidth = 8;
+	this.multiline = true;
+	this.wrapscan = true;
+	
+	this.marks = {
+		"'": rng.clone().live(), // this will record the last position in the text
+		"''": rng.clone().live() // this records the current position; just so it can be copied into ' above
+	}
+	this.privatize('marks');
+	this.privates = {rng: rng}; // for data that uses getters/setters
+	this.privatize('privates');
+}
+ExState.prototype = {
+	privatize: function (option){
+		try{
+			Object.defineProperty(this, option, {
+			  enumerable: false,
+				configurable: true,
+				writeable: true
+			});
+		}catch(e){
+			console.error(e);
+			// IE 8 won't let me define properties on regular objects, so the state will not be monitored. Live with it
+		}
+	},
+	monitor: function(option, enumerable){
+		// set option to signal on all changes
+		if (!(option in this.privates)){
+			var self = this, privates = this.privates, rng = privates.rng;
+			privates[option] = this[option];
+			try {
+				Object.defineProperty(this, option, {
+					get: function() {return privates[option] },
+					set: function(val){
+						privates[option] = val;
+						rng.dispatch ({type: 'exstate', detail: {option: option, value: val}});
+					},
+					enumerable: !!enumerable,
+					configurable: true
+				});
+			}catch(e){
+				console.error(e);
+				// IE 8 won't let me define properties on regular objects, so the state will not be monitored. Live with it
+			}
+		}
+	}
 }
 
 var buffers = bililiteRange.ex.buffers = []; // the delete buffer is a stack, with 0 the most recent (use shift rather than pop)
@@ -172,6 +220,7 @@ var REflags = 'igmwIMW'; // valid flags for regular expressions (I and M mean no
 function bslash(s) {return s.replace('\\', '\\\\')} // need to double-escape backslashes
 var addressRE = new RegExp('^\\s*' + // allow whitespace at the beginning
 	'('+[
+		'%%', // my extension to mean "current range"
 		'[.\\$%]', // single character addresses
 		'\\d+', // line numbers
 		"'['a-z]", // marks
@@ -198,6 +247,7 @@ bililiteRange.ex.toID = function (s){
 	return s.replace(/./g, function (c){
 		if (idRE.test(c)) return c;
 		return {
+			'-': '~',
 			'%': 'alt~',
 			'^': 'ctl~',
 			'+': 'shift~',
@@ -271,8 +321,8 @@ bililiteRange.ex.string = string; // export it
 /*********************** turn an array of address descriptions into an actual range *********************************/
 var lastRE = /(?:)/; // blank RE's refer to this
 function interpretAddresses (rng, addresses){
-	// 'bounds' is only used as the default to mean "don't change the range"
-	if (addresses.length == 1 && addresses[0] == "bounds") return;
+	// %% is the current range. If it is used by itself, don't change the range (or use line-based addressing)
+	if (addresses.length == 1 && addresses[0] == "%%") return;
 	var state = rng.exState();
 	var lines = [];
 	var currLine = rng.line();
@@ -283,11 +333,11 @@ function interpretAddresses (rng, addresses){
 			return '';
 		});
 		if (s.charAt(0) == '/'){
-			var re = createRE(s, rng.exState().ignorecase);
+			var re = createRE(s, state.ignorecase);
 			lines.push(rng.bounds('EOL').find(re, !state.wrapscan).bounds('EOL').line()+offset);
 		}else if (s.charAt(0) == '?'){
 			// since having ? as a delimiter wreaks havoc with Javascript RE's, use ?/....../
-			re = createRE(s.slice(1), rng.exState().ignorecase);
+			re = createRE(s.slice(1), state.ignorecase);
 			lines.push(rng.bounds('BOL').findBack(re, !state.wrapscan).bounds('EOL').line()+offset);
 		}else if (s.charAt(0) == "'"){
 			var mark = state.marks[s.slice(1)];
@@ -300,6 +350,8 @@ function interpretAddresses (rng, addresses){
 			lines.push(rng.line(parseInt(s)).find(/.*/).bounds('endbounds').line()+offset); // make sure we go to the end of the line
 		}else if (s == '.'){
 			lines.push(currLine+offset);
+		}else if (s == '%%'){
+			lines.push.apply(lines, rng.lines());
 		}else if (s == '$'){
 			lines.push (rng.bounds('all').bounds('endbounds').line()+offset);
 		}else if (s == '%'){
@@ -541,9 +593,7 @@ var commands = bililiteRange.ex.commands = {
 	set: function (parameter, variant){
 		if (!parameter || parameter == 'all'){
 			// only display the stringifiable options
-			var options = {}, state = this.exState();
-			for (option in state) if (!(state[option] instanceof Object)) options[option] = state[option];
-			this.exMessage = JSON.stringify(options);
+			this.exMessage = JSON.stringify(this.exState());
 		}else{
 			splitCommands(parameter, ' ').forEach(function(command){
 				var match = /(no)?(\w+)(\?|=(\S+)|)/.exec(command);
@@ -589,6 +639,17 @@ var commands = bililiteRange.ex.commands = {
 
 	tabstop: 'shiftwidth',
 
+	toggle: function (parameter, variant){
+		var rng = this, state = this.exState();
+		splitCommands(parameter, ' ').forEach(function(command){
+			// only makes sense for boolean options, but this does not check.
+			command = commandCompletion(command);
+			command.call(rng, '?', variant);
+			command.call(rng, rng.exMessage == 'on' ? 'off' : 'on', variant);
+			rng.exMessage = ''; // don't echo anything unless it's actually wanted.
+		});
+	},
+	
 	transcribe: 'copy',
 
 	ts: 'shiftwidth',

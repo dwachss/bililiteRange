@@ -5,26 +5,6 @@
 
 (function($){
 
-$.fn.vi = function(statusbar){
-	return this.each(function(){
-		bililiteRange(this).exState().vimode = 'INSERT'; // unlike real vi, start in insert mode since that is more "natural" for a GUI
-		$(this).data('vi.statusbar', statusbar).trigger('vimode', 'INSERT');
-		addviCommands (this, vimodeCommands, '', 'vi~');
-		addviCommands (this, insertmodeCommands, '!', 'insert~');
-		addNumbers(this);
-	}).on('excommand', function (evt){
-		if (evt.originalEvent) evt = evt.originalEvent; // jQuery creates a new event and doesn't copy all the fields
-		var state = evt.range.exState();
-		if (state.count){
-			--state.count;
-			if (state.count) evt.range.ex(evt.command, 'bounds');
-		}
-		evt.range.select(); // set the saved selection to the new bounds
-	}).on('vimode', function(evt, data){
-		bililiteRange(this).exState().vimode = data;
-	});
-}
-
 function executeCommand (rng, command, defaultAddress){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
@@ -32,6 +12,91 @@ function executeCommand (rng, command, defaultAddress){
 		return rng.exMessage;
 	};
 }
+
+$.fn.exmap = function(opts, defaults){
+	var self = this;
+	if ($.isArray(opts)){
+		opts.forEach(function(opt) {self.exmap(opt, defaults)});
+		return self;
+	}
+	opts = $.extend({}, opts, defaults);
+	if (!opts.name && typeof opts.command == 'string') opts.name = opts.command;
+	if (!opts.name && opts.monitor) opts.name = opts.monitor;
+	if (!opts.name && opts.keys) opts.name = opts.prefix+opts.keys;
+	if (!opts.name) opts.name = opts.prefix+Math.random().toString(); // need something!
+	if (!opts.command && opts.monitor) opts.command = 'toggle '+JSON.stringify(opts.monitor);
+	if (!opts.command) opts.command = 'sendkeys '+JSON.stringify(opts.name);
+	if ($.isFunction(opts.command)){
+		var commandName = bililiteRange.ex.toID(opts.name);
+		bililiteRange.ex.commands[commandName] = opts.command;
+		opts.command = commandName;
+	}
+	function run(){
+		var ret; // if any targeted element is in the right state,  prevent default.
+		self.each(function(){
+			var rng = bililiteRange(this), mode = rng.exState().vimode;
+			if (opts.mode && opts.mode != mode) return;
+			$($.data(this, 'vi.statusbar')).status({
+				run: executeCommand(rng, opts.command, '%%')
+			});
+			ret = false;
+		});
+		return ret;
+	}
+	if (opts.buttonContainer){
+		var button = $('button[name='+JSON.stringify(opts.name)+']', opts.buttonContainer);
+		if (button.length == 0) button = $('<button>').appendTo(opts.buttonContainer);
+		button.attr({
+			name: opts.name,
+			'class': opts.name.replace(/~/g, '-'),
+			title: opts.title
+		}).click(run);
+	}
+	if (opts.keys){
+		self.on('keydown', {keys: opts.keys}, function(){
+			if (button){
+			  // simulate a click
+				button.addClass('highlight')
+				setTimeout(function(){ button.removeClass('highlight') }, 400);
+			}
+			return run(opts.variant);
+		});
+	}
+	if (opts.monitor) {
+		self.each(function(){
+			bililiteRange(this).exState().monitor(opts.monitor);
+		});
+		if (!opts.monitoringFunction) opts.monitoringFunction = function(option, value){
+			// assume we're looking at a binary option
+			this.removeClass('on off').addClass(value ? 'on' : 'off');
+		}
+		self.on('exstate', function(evt){
+			if (evt.originalEvent) evt = evt.originalEvent; // jQuery being helpful!
+			if (evt.detail.option != opts.monitor) return;
+			opts.monitoringFunction.call(button, evt.detail.option, evt.detail.value);			
+		})
+	}
+	return this;
+};
+
+$.fn.vi = function(statusbar){
+	return this.each(function(){
+		bililiteRange(this).exState().vimode = 'INSERT'; // unlike real vi, start in insert mode since that is more "natural" for a GUI
+		$(this).data('vi.statusbar', statusbar);
+		addviCommands (this, vimodeCommands, false, 'vi~');
+		addviCommands (this, insertmodeCommands, true, 'insert~');
+		addNumbers(this);
+	}).on('excommand', function (evt){
+		if (evt.originalEvent) evt = evt.originalEvent; // jQuery creates a new event and doesn't copy all the fields
+		var state = evt.range.exState();
+		if (state.count){
+			--state.count;
+			if (state.count) evt.range.ex(evt.command, '%%');
+		}
+		evt.range.select(); // set the saved selection to the new bounds
+	});
+}
+
 
 $.extend (bililiteRange.ex.commands, {
   console: function (parameter, variant){
@@ -45,12 +110,11 @@ $.extend (bililiteRange.ex.commands, {
 		if (!match) throw {message: 'Bad syntax in map: '+parameter};
 		var keys = match[1].trim();
 		var command = bililiteRange.ex.string(match[2]);
-		$(rng.element()).on('keydown', {keys: keys}, function() {
-			var mode = state.vimode;
-			if (variant == (mode != 'INSERT')) return; // variant == true means run in insert mode
-			$(this).trigger('exkeypress', [command, keys]);
-			$($.data(this, 'vi.statusbar')).status({run: executeCommand(rng, command, 'bounds')});
-			return false;
+		// TODO: remove any old key handlers
+		$(rng.element()).exmap({
+			keys: keys,
+			command: command,
+			mode: variant ? 'INSERT' : 'VISUAL'
 		});
 	},
 	select: function (parameter, variant){
@@ -61,9 +125,7 @@ $.extend (bililiteRange.ex.commands, {
 		this.bounds('selection');
 	},
 	vi: function (parameter, variant){
-		parameter = parameter || 'VISUAL';
-		this.exState().vimode = parameter;
-		$(this.element()).trigger('vimode', parameter);
+		this.exState().vimode = parameter || 'VISUAL';
 	}
 });
 
@@ -92,14 +154,13 @@ insertmodeCommands = {
 }
 
 function addviCommands(el, commands, variant, prefix){
-	var rng = bililiteRange(el);
 	for (var key in commands){
-		if ($.isFunction (commands[key])){
-			var id = prefix + bililiteRange.ex.toID(key);
-			bililiteRange.ex.commands[id] = commands[key];
-			commands[key] = id;
-		}
-		rng.bounds('selection').ex('map'+variant+' '+key+' '+JSON.stringify(commands[key]), 'bounds');
+		$(el).exmap({
+			keys: key,
+			command: commands[key],
+			mode: variant ? 'INSERT' : 'VISUAL',
+			prefix: prefix
+		});
 	}
 }
 
