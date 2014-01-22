@@ -97,7 +97,7 @@ if ( !Array.prototype.forEach ) {
 		'num/': 'divide',
 		
 		// make sure the special keys by themselves are marked
-		'^[+%^]$': '{$&}',
+		'^[+%^{]$': '{$&}',
 		
 		'^\\+(\\w)$': function (match, p1) {return p1.toUpperCase()}, // uppercase shifted letters
 		'[+^%]\\w$': function(match) {return match.toUpperCase()}, // control-letters are uppercase
@@ -203,37 +203,60 @@ if ( !Array.prototype.forEach ) {
 	["keydown","keyup"].forEach(function(type){			
 		$.event.special[type] = $.event.special[type] || {};
 		$.event.special[type].add = function(handleObj){
-			if (!handleObj.data || typeof handleObj.data.keys != 'string') return;
-			var keys = ' '+$.keymap.normalizeList(handleObj.data.keys); // the space makes the comparison easier later
+			if (!handleObj.data) return;
+			var keys = handleObj.data.keys;
 			// Use the keys as a sort of namespace for the event. This is a hack for removing the handler later.
 			handleObj.namespace = handleObj.namespace.split('.').
 				concat(hotkeysnamespace(keys)).sort().join('.'); // add the new namespace in alphabetical order
+			if (typeof keys == 'string'){
+				// escape RegExp from https://developer.mozilla.org/en/docs/Web/JavaScript/Guide/Regular_Expressions
+				keys = keyregexp(
+					$.keymap.normalizeList(keys).replace(/[.*+?^=!:${}()|\[\]\/\\]/g, "\\$&")
+				);
+			}else if (keys instanceof RegExp){
+				keys = keyregexp(keys.source, keys.ignoreCase);
+			}else{
+				return;
+			}
 			var origHandler = handleObj.handler;
 			var currSequence = '';
 			handleObj.handler = function (event){
 				var self = $(this);
-				var key = ' '+$.keymap(event);
+				var key = $.keymap(event);
 				if (!key) return; // avoid problems with control keys
-				currSequence += key;
-				if (currSequence == keys) {
-					self.trigger('keymapcomplete', [currSequence]);
-					currSequence = ''; // restart
-					return origHandler.apply(this, arguments);
-				}
+				currSequence += ' ' + key;
 				// find the portion of the current sequence that could be a prefix of the sought keys
 				while (currSequence){
-					if (keys.indexOf(currSequence) == 0){
-						self.trigger('keymapprefix', [currSequence]);
-						return !!handleObj.data.allowDefault;
+					var length = currSequence.split(' ').length-1;
+					if (keys[length-1].test(currSequence)){
+						if (length == keys.length){
+							// matched the whole thing
+							event.hotkeys = currSequence;
+							self.trigger('keymapcomplete', [currSequence]);
+							currSequence = ''; // restart
+							return origHandler.apply(this, arguments);
+						}else{								
+							self.trigger('keymapprefix', [currSequence]);
+							return !!handleObj.data.allowDefault;
+						}
 					}
 					currSequence = currSequence.replace(/ \S+/, ''); // strip the first key
 				}
 			};
 		};
 	});
+	
+	function keyregexp(source, ignorecase){
+		// return an array of regexps to match key sequences in source
+		var accum = '';
+		return $.map(source.split(' '), function(key) {
+			accum += ' '+key;
+			return new RegExp('^'+accum+'$', ignorecase ? 'i' : ''); // ^...$ to match the entire key
+		});
+	}
 
 	function addnamespace (types, keys){
-		var ns = '.'+hotkeysnamespace(' '+$.keymap.normalizeList(keys)); // note that we added a space in add, above
+		var ns = '.'+hotkeysnamespace($.keymap.normalizeList(keys));
 		return types.replace (/(\S)(\s)|$/g, '$1'+ns+'$2');;
 	}
 	// monkey patch remove so we can do $(elem).off('keydown', {keys: '^A'}) (basically fake the off('keydown', handler) syntax into accepting an object instead
