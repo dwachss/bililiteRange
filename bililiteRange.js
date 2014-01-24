@@ -602,7 +602,7 @@ if (jQuery){
 	jQuery.event.special.input =
 	jQuery.event.special.beforeinput = {
 		handle: function (event){
-			if (!event.data) event.data = event.originalEvent.data; // here's where we really copy it
+			if (!event.data && event.originalEvent) event.data = event.originalEvent.data; // here's where we really copy it
 			return event.handleObj.handler.apply(this, arguments);
 		}
 	}
