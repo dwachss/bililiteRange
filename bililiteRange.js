@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 2.1
+// Version: 2.2
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -229,7 +229,6 @@ Range.prototype = {
 		opts = opts || {};
 		var event = document.createEvent ? document.createEvent('CustomEvent') : this._doc.createEventObject();
 		event.initCustomEvent && event.initCustomEvent(opts.type, !!opts.bubbles, !!opts.cancelable, opts.detail);
-
 		for (var key in opts) event[key] = opts[key];
 		// dispatch event asynchronously (in the sense of on the next turn of the event loop; still should be fired in order of dispatch
 		var el = this._el;
@@ -239,7 +238,7 @@ Range.prototype = {
 				}catch(e){
 					// IE8 will not let me fire custom events at all. Call them directly
 					if (window.jQuery) {
-						jQuery(el).trigger(event);
+						jQuery(el).trigger(new jQuery.Event(event));
 					}else{
 						var listeners = el['listen'+opts.type];
 						if (listeners) for (var i = 0; i < listeners.length; ++i){
@@ -590,4 +589,21 @@ if (!Array.prototype.forEach)
         fun.call(thisArg, t[i], i, t);
     }
   };
+}
+
+// jQuery doesn't copy everything from "real" events, and uses the "data" field for its own purposes, so we correct it:
+if (jQuery){
+	// note that if some other library tries to fix these events as well, this will fail.
+	// see http://learn.jquery.com/events/event-extensions/
+	jQuery.event.fixHooks.input =
+	jQuery.event.fixHooks.beforeinput = {
+		props: ['data', 'bounds'] // the "data" is just for show; it gets overwritten in jQuery.event.dispatch
+	};
+	jQuery.event.special.input =
+	jQuery.event.special.beforeinput = {
+		handle: function (event){
+			if (!event.data) event.data = event.originalEvent.data; // here's where we really copy it
+			return event.handleObj.handler.apply(this, arguments);
+		}
+	}
 }

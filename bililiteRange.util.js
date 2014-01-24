@@ -1,7 +1,7 @@
 // Text range utilities
 // documentation: http://bililite.com/blog/2013/02/08/bililiterange-plugins/
 // depends on bililiteRange.js (http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/)
-// Version: 1.1
+// Version: 1.2
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -114,33 +114,16 @@ bililiteRange.extend({
 				var start, oldend, newend;
 				var newtext = self.all();
 				if (newtext == self._oldtext) return; // no change
-				if (typeof ev.bounds == 'undefined' || typeof ev.data == 'undefined'){
-					// "real" input events don't tell us the bounds, just the text, and jQuery uses the data field for its own purposes, erasing it.
-					// Either way, we have to start from scratch.
-					// Estimate the bounds by looking for changes, assuming it's always a continuous text
-					// This is wrong for drag and drop, which only fires one input event for both removal and insertion
-					var oldlen = self._oldtext.length;
-					var	newlen = newtext.length;
-					for (i = 0; i < newlen && i < oldlen; ++i){
-						if (newtext.charAt(i) != self._oldtext.charAt(i)) break;
-					}
-					start = i;
-					for (i = 0; i < newlen && i < oldlen; ++i){
-						var newpos = newlen-i-1, oldpos = oldlen-i-1;
-						if (newpos < start || oldpos < start) break;
-						if (newtext.charAt(newpos) != self._oldtext.charAt(oldpos)) break;
-					}
-					oldend = oldlen-i;
-					newend = newlen-i;
-					// save the data for any other ranges that might need it. 
-					ev.data = newtext.slice(start, newend);
-					ev.bounds = [start, oldend];
-				}else{
-					// use the information we got
-					start = ev.bounds[0];
-					oldend = ev.bounds[1];
-					newend = ev.bounds[0]+ev.data.length;
+				if (!ev.bounds){
+					// "real" input events don't tell us the bounds (and until they really support DOM 3 events, not even the text.
+					// we have to start from scratch.
+					var change = diff (self._oldtext, newtext);
+					ev.bounds = change.bounds; // save it for future events
+					ev.data = change.data;
 				}
+				start = ev.bounds[0];
+				oldend = ev.bounds[1];
+				newend = ev.bounds[0]+ev.data.length;
 				self._oldtext = newtext;
 				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
 				if (self._bounds[0] <= start){
@@ -199,5 +182,25 @@ function matchIs(match, bounds){
 	// I think this is the way that Word does it
 	return match && match.index == bounds[0] && match[0].length == bounds[1]-bounds[0];
 }
+
+function diff (oldtext, newtext){
+	// Try to find the changed text , assuming it was a continuous change
+	// This is wrong for drag and drop, which only fires one input event for both removal and insertion
+	var oldlen = oldtext.length;
+	var	newlen = newtext.length;
+	for (i = 0; i < newlen && i < oldlen; ++i){
+		if (newtext.charAt(i) != oldtext.charAt(i)) break;
+	}
+	start = i;
+	for (i = 0; i < newlen && i < oldlen; ++i){
+		var newpos = newlen-i-1, oldpos = oldlen-i-1;
+		if (newpos < start || oldpos < start) break;
+		if (newtext.charAt(newpos) != oldtext.charAt(oldpos)) break;
+	}
+	oldend = oldlen-i;
+	newend = newlen-i;
+	return {bounds: [start, oldend], data: newtext.slice(start, newend)}
+};
+bililiteRange.diff = diff; // expose
 
 })();

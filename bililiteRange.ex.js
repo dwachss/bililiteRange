@@ -128,10 +128,9 @@ ExState.prototype = {
 			Object.defineProperty(this, option, {
 			  enumerable: false,
 				configurable: true,
-				writeable: true
+				writable: true
 			});
 		}catch(e){
-			console.error(e);
 			// IE 8 won't let me define properties on regular objects, so the state will not be monitored. Live with it
 		}
 	},
@@ -158,7 +157,7 @@ ExState.prototype = {
 	}
 }
 
-var buffers = bililiteRange.ex.buffers = []; // the delete buffer is a stack, with 0 the most recent (use shift rather than pop)
+var registers = bililiteRange.ex.registers = []; // the delete register is a stack, with 0 the most recent (use shift rather than pop)
 
 /*********************** command completion *********************************/
 
@@ -413,24 +412,24 @@ function interpretOffset(s){
 	return ret;
 }
 
-/*********************** the buffers *********************************/
+/*********************** the registers *********************************/
 
-function pushBuffer(text, buffer){
-	if (buffer){
-		if (/^[A-Z]/.test(buffer)){
+function pushRegister(text, register){
+	if (register){
+		if (/^[A-Z]/.test(register)){
 			// uppercase means append
-			buffers[buffer.toLowerCase()] += text;
+			registers[register.toLowerCase()] += text;
 		}else{
-			buffers[buffer] = text;
+			registers[register] = text;
 		}
 	}else{
-		// unnamed buffer is the delete stack
-		buffers.unshift(text);
+		// unnamed register is the delete stack
+		registers.unshift(text);
 	}		
 }
 
-function popBuffer (buffer){
-	return buffer ? buffers[buffer.toLowerCase()] : buffers.shift();
+function popRegister (register){
+	return register ? registers[register.toLowerCase()] : registers.shift();
 }
 
 /*********************** autoindenting *********************************/
@@ -477,7 +476,7 @@ var commands = bililiteRange.ex.commands = {
 
 	change: function (parameter, variant){
 		if (!variant != !this.exState().autoindent) parameter = autoindent(parameter, this);
-		pushBuffer (this.text());
+		pushRegister (this.text());
 		this.newline(parameter, 'end');
 	},
 
@@ -497,7 +496,7 @@ var commands = bililiteRange.ex.commands = {
 			var lines = this.lines();
 			this.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
 		}
-		pushBuffer(this.text(), match[1]);
+		pushRegister(this.text(), match[1]);
 		// need to delete the newline as well.
 		this.bounds([this.bounds()[0], this.bounds()[1]+1]);
 		this.text('', 'end');
@@ -580,7 +579,7 @@ var commands = bililiteRange.ex.commands = {
 
 	put: function (parameter, variant){
 		// this seems to be the correct definition, but should this respect autoindent?
-		commands.append.call (this, popBuffer(parameter), variant);
+		commands.append.call (this, popRegister(parameter), variant);
 	},
 
 	redo: function (parameter, variant){
@@ -675,7 +674,7 @@ var commands = bililiteRange.ex.commands = {
 			var lines = this.lines();
 			this.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
 		}
-		pushBuffer(this.text(), match[1]);
+		pushRegister(this.text(), match[1]);
 	},
 
 	'=': function (){

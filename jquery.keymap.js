@@ -1,5 +1,5 @@
 // mapping for standard US keyboards. Replace the $.keymap.normal, $.keymap.shift, $.keymap.ctrl and $.keymap.alt arrays as needed
-// Version: 2.1
+// Version: 2.3
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -200,7 +200,8 @@ if ( !Array.prototype.forEach ) {
 		return nss[keys] || (nss[keys] = 'hotkeys'+ (++nsIndex));
 	}
 	
-	["keydown","keyup"].forEach(function(type){			
+	["keydown","keyup"].forEach(function(type){
+		$.event.fixHooks[type] = { props: ['hotkeys'] };
 		$.event.special[type] = $.event.special[type] || {};
 		$.event.special[type].add = function(handleObj){
 			if (!handleObj.data) return;
@@ -229,14 +230,15 @@ if ( !Array.prototype.forEach ) {
 				while (currSequence){
 					var length = currSequence.split(' ').length-1;
 					if (keys[length-1].test(currSequence)){
+						var actualkeys = currSequence.slice(1); // remove the initial space
 						if (length == keys.length){
 							// matched the whole thing
-							event.hotkeys = currSequence;
-							self.trigger('keymapcomplete', [currSequence]);
+							event.hotkeys = actualkeys;
+							self.trigger('keymapcomplete', [actualkeys]);
 							currSequence = ''; // restart
 							return origHandler.apply(this, arguments);
 						}else{								
-							self.trigger('keymapprefix', [currSequence]);
+							self.trigger('keymapprefix', [actualkeys]);
 							return !!handleObj.data.allowDefault;
 						}
 					}
