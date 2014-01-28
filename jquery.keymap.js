@@ -201,7 +201,7 @@ if ( !Array.prototype.forEach ) {
 	}
 	
 	["keydown","keyup"].forEach(function(type){
-		$.event.fixHooks[type] = { props: ['hotkeys'] };
+		$.event.fixHooks[type] = { props: "char charCode key keyCode hotkeys".split(" ") };
 		$.event.special[type] = $.event.special[type] || {};
 		$.event.special[type].add = function(handleObj){
 			if (!handleObj.data) return;
