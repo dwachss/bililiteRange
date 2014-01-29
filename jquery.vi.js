@@ -5,7 +5,59 @@
 
 (function($){
 
-$.event.fixHooks.exstate = { props:['detail'] }; // make sure it's copied over
+$.viClass = $.viClass || 'vi';
+$.fn.vi = function(status, toolbar){
+	var self = this;
+	$(toolbar).click (function(evt){
+		$(evt.target).trigger('vi-click', [self]);
+		return false;
+	});
+	this.each(function(){ bililiteRange(this).undo(0) }); // initialize the undo handler (ex does this but we haven't called ex yet)
+	return this.addClass($.viClass).data('vi.status', $(status));
+}
+
+
+// create special events that let us check for vi-specific elements and modes
+
+$.event.fixHooks['exstate'] = { props:['detail'] }; // make sure it's copied over
+$.event.fixHooks['vi-exstate'] = { props:['detail'] };
+$.event.special['vi-exstate'] = {
+	delegateType: 'exstate',
+	bindType: 'exstate',
+	handle: function(evt){
+		if (!$(evt.target).hasClass($.viClass)) return;
+		var desiredoption = evt.data && evt.data.option;
+		if (desiredoption && evt.detail.option != desiredoption) return;
+		evt.rng = bililiteRange(evt.target);
+		return evt.handleObj.handler.apply(this, arguments);
+	}
+}
+
+$.event.special['vi-keydown'] = {
+	delegateType: 'keydown',
+	bindType: 'keydown',
+	handle: function(evt){
+		if (!$(evt.target).hasClass($.viClass)) return;
+		var mode = bililiteRange(evt.target).exState().vimode;
+		var desiredmode = evt.data && evt.data.mode;
+		if (desiredmode && mode != desiredmode) return;
+		evt.rng = bililiteRange(evt.target);
+		return evt.handleObj.handler.apply(this, arguments);
+	}
+};
+
+$.event.special['vi-click'] = {
+	handle: function(evt, target){
+		var self = this, args = arguments;
+		target.each(function(){
+			evt.rng = bililiteRange(this);
+			var mode = evt.rng.exState().vimode;
+			var desiredmode = evt.data && evt.data.mode;
+			if (desiredmode && mode != desiredmode) return;
+			return evt.handleObj.handler.apply(self, args);
+		});
+	}
+};
 
 function executeCommand (rng, command, defaultAddress){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
@@ -17,7 +69,8 @@ function executeCommand (rng, command, defaultAddress){
 	};
 }
 
-$.fn.exmap = function(opts, defaults){
+var body = $('body');
+$.exmap = function(opts, defaults){
 	if ($.isArray(opts)){
 		var self = this;
 		opts.forEach(function(opt) {self.exmap(opt, defaults)});
@@ -27,19 +80,17 @@ $.fn.exmap = function(opts, defaults){
 	if (!opts.name && typeof opts.command == 'string') opts.name = opts.command;
 	if (!opts.name && opts.monitor) opts.name = opts.monitor;
 	if (!opts.name && opts.keys) opts.name = opts.keys;
-	if (!opts.name) opts.name = opts.prefix+Math.random().toString(); // need something!
-	if (!opts.command && opts.monitor) opts.command = 'toggle '+JSON.stringify(opts.monitor);
+	if (!opts.name) opts.name = Math.random().toString(); // need something!
+	if (!opts.command && opts.monitor) opts.command = opts.monitor+" toggle";
 	if (!opts.command) opts.command = 'sendkeys '+JSON.stringify(opts.name);
 	if ($.isFunction(opts.command)){
 		var commandName = bililiteRange.ex.toID(opts.name);
 		bililiteRange.ex.commands[commandName] = opts.command;
-		opts.command = commandName;
+		opts.command = opts.monitor ? opts.monitor+" toggle" : commandName;
 	}
 	function run(event){
-		var rng = bililiteRange(event.target), mode = rng.exState().vimode;
-		if (opts.mode && opts.mode != mode) return;
-		$($.data(event.target, 'vi.statusbar')).status({
-			run: executeCommand(rng, opts.command, '%%')
+		$($.data(event.rng.element(), 'vi.status')).status({
+			run: executeCommand(event.rng, opts.command, '%%')
 		});
 		event.preventDefault();
 	}
@@ -50,10 +101,10 @@ $.fn.exmap = function(opts, defaults){
 			name: opts.name,
 			'class': opts.name.replace(/~/g,'-'),
 			title: opts.title
-		}).click(run);
+		}).on('vi-click', {mode: opts.mode}, run);;
 	}
 	if (opts.keys){
-		this.on('keydown', {keys: opts.keys}, function(event){
+		body.on('vi-keydown', {keys: opts.keys, mode: opts.mode}, function(event){
 			if (button){
 			  // simulate a click
 				button.addClass('highlight')
@@ -63,152 +114,205 @@ $.fn.exmap = function(opts, defaults){
 		});
 	}
 	if (opts.monitor) {
-		this.each(function(){
-			bililiteRange(this).exState().monitor(opts.monitor);
-		});
+		bililiteRange.ex.monitor(opts.monitor);
 		if (!opts.monitoringFunction) opts.monitoringFunction = function(option, value){
 			// assume we're looking at a binary option
 			this.removeClass('on off').addClass(value ? 'on' : 'off');
 		}
-		this.on('exstate', function(evt){
-			if (evt.detail.option != opts.monitor) return;
+		body.on('vi-exstate', {option: opts.monitor}, function(evt){
 			opts.monitoringFunction.call(button, evt.detail.option, evt.detail.value);			
 		})
 	}
-	return this;
 };
 
-$.fn.vi = function(statusbar){
-	return this.each(function(){
-		bililiteRange(this).exState().vimode = 'INSERT'; // unlike real vi, start in insert mode since that is more "natural" for a GUI
-		$(this).data('vi.statusbar', statusbar);
-		vicommands(this);
-	});
-}
+/*------------ Set up default options ------------ */
+// unlike real vi, start in insert mode since that is more "natural" for a GUI
+bililiteRange.ex.createOption('vimode', 'INSERT');
+bililiteRange.ex.privatize('vimode');
 
-function vicommands(el){
-	var state = bililiteRange(el).exState();
+// RE's for searching
+bililiteRange.ex.createOption('word', "^|$|\\W+|\\w+");
+bililiteRange.ex.createOption('bigword', "^|$|\\s+|\\S+");
 
-	state.privatize('count'); // a number preceding vi commands
-	state.privatize('oldtext'); // for repeated insertions, this is the original text to compare to
-	state.privatize('repeatcount'); // this is the number of times to repeat insertions
-	state.count = 0;
-	$(el).on('keydown', {keys: /\d/}, function (evt){
-		if (state.vimode != 'VISUAL') return;
-		if (state.count == 0 && evt.hotkeys == '0') return; // has a different meaning
-		state.count = state.count * 10 + parseInt(evt.hotkeys);
-		evt.preventDefault();
-		evt.stopImmediatePropagation();
-	});
-	
-	state.privatize('register'); // a register letter (with "a) preceding vi commands
-	state.register = undefined;
-	$(el).on('keydown', {keys: /" [A-Za-z]/}, function (evt){
-		if (state.vimode != 'VISUAL') return;
-		state.register = evt.hotkeys.charAt(2);
-		evt.preventDefault();
-		evt.stopImmediatePropagation();
-	});
+// a series of digits means a number of times to repeat a command
+// 'count' is that number; some commands use that directly but text-entry commands can only repeat after the text is entered.
+// so the count is saved in 'repeatcount' (since 'count' is reset after every command), and the present text is saved.
+// When we return to visual mode, we see how that text has changed and insert the new text (at whereever the insertion point is!) 
+// 'repeatcount'-1 times ( since it's already been inserted once)
+bililiteRange.ex.createOption('count', 0);
+bililiteRange.ex.privatize('count'); // a number preceding vi commands
+bililiteRange.ex.privatize('oldtext'); // for repeated insertions, this is the original text to compare to
+bililiteRange.ex.privatize('repeatcount'); // this is the number of times to repeat insertions
+body.on('vi-keydown', {keys: /\d/, mode: 'VISUAL'}, function (evt){
+	var state = bililiteRange(evt.target).exState();
+	if (state.count == 0 && evt.hotkeys == '0') return; // 0 has a different meaning if not part of a number
+	state.count = state.count * 10 + parseInt(evt.hotkeys);
+	evt.preventDefault();
+	evt.stopImmediatePropagation();
+});
 
-	$(el).exmap([
-	{
-		name: 'console',
-		command: function (parameter, variant){
-			console.log(executeCommand(this)(parameter));
-		}
-	},{
-		name: 'map',
-		command: function (parameter, variant){
-			// The last word (either in a string or not containing spaces) is the replacement; the rest of
-			// the string at the beginning are the mapped key(s)
-			var match = /^(.+?)([^"\s]+|"(?:[^"]|\\")+")$/.exec(parameter);
-			if (!match) throw {message: 'Bad syntax in map: '+parameter};
-			var keys = match[1].trim();
-			var command = bililiteRange.ex.string(match[2]);
-			// TODO: remove any old key handlers
-			$(el).exmap({
-				keys: keys,
-				command: command,
-				mode: variant ? 'INSERT' : 'VISUAL'
-			});
-		}
-	},{
-		name: 'repeat',
-		command: function (parameter, variant){
-			for (var i = state.count || 1; i > 0; --i){
-				var result = executeCommand(this)(parameter);
-			}
-			return result;
-		}
-	},{
-		name: 'select',
-		command: function (parameter, variant){
-			this.bounds(parameter).select();
-		}
-	},{
-		name: 'sendkeys',
-		command: function (parameter, variant){
-			$(el).sendkeys(parameter);
-			this.bounds('selection');
-		}
-	},{
-		name: 'vi',
-		keys: '{esc}',
-		command: function (parameter, variant){
-			parameter = parameter || 'VISUAL';
-			// an insertion with a count just repeat the insertion when we return to visual mode
-			if (parameter == 'INSERT'){
-				state.repeatcount = Math.max(state.count - 1, 0); // -1 since we've done one insertion already
-				state.oldtext = this.all();
-			}else if (parameter == 'VISUAL' && state.repeatcount){
-				var text = bililiteRange.diff(state.oldtext, this.all()).data;
-				for (var i = state.repeatcount, ret = ''; i > 0; --i) ret += text;
-				this.bounds('endbounds').text(ret, 'end');
-				state.repeatcount = 0;
-			}
-			state.vimode = parameter;
-		}
-	},{
-		keys: ':',
-		mode: 'VISUAL',
-		command: function (){
-			var statusbar = $.data(el, 'vi.statusbar');
-			$(statusbar).status({
-				prompt: ':',
-				run: executeCommand(this),
-				returnPromise: true
-			}).then( // make sure we return focus to the text! It would be nice to have a finally method
-				function(e) {$(el).focus()},
-				function(e) {$(el).focus()}
-			);
-		}
-	},{
-		keys: 'a',
-		mode: 'VISUAL',
-		command : "select endbounds | vi INSERT"
-	},{
-		keys: 'h',
-		mode: 'VISUAL',
-		command: "repeat sendkeys {leftarrow}"
-	},{
-		keys: 'i',
-		mode: 'VISUAL',
-		command: "select startbounds | vi INSERT"
-	},{
-		keys: 'l',
-		mode: 'VISUAL',
-		command: "repeat sendkeys {rightarrow}"
-	},{
-		keys: 'o',
-		mode: 'VISUAL',
-		command: ".a | vi INSERT"
-	},{
-		keys: '0',
-		mode: 'VISUAL',
-		command: "select BOL" // if part of a number, should have been handled above
+// a double quote followed by a letter means store the result of the next command (if it removes text) into that register
+bililiteRange.ex.privatize('register');
+body.on('vi-keydown', {keys: /" [A-Za-z]/, mode: 'VISUAL'}, function (evt){
+	state.register = evt.hotkeys.charAt(2);
+	evt.preventDefault();
+	evt.stopImmediatePropagation();
+});
+
+/*------------ Set up generic commands ------------ */
+$.exmap([
+{
+	name: 'bigword',
+	command: bililiteRange.ex.stringOption('bigword')
+},{
+	name: 'console',
+	command: function (parameter, variant){
+		console.log(executeCommand(this)(parameter));
 	}
-	]);
+},{
+	name: 'map',
+	command: function (parameter, variant){
+		// The last word (either in a string or not containing spaces) is the replacement; the rest of
+		// the string at the beginning are the mapped key(s)
+		var match = /^(.+?)([^"\s]+|"(?:[^"]|\\")+")$/.exec(parameter);
+		if (!match) throw {message: 'Bad syntax in map: '+parameter};
+		var keys = match[1].trim();
+		var command = bililiteRange.ex.string(match[2]);
+		// TODO: remove any old key handlers
+		$.exmap({
+			keys: keys,
+			command: command,
+			mode: variant ? 'INSERT' : 'VISUAL'
+		});
+	}
+},{
+	name: 'repeat',
+	command: function (parameter, variant){
+		var state = this.exState();
+		for (var i = state.count || 1; i > 0; --i){
+			var result = executeCommand(this)(parameter);
+		}
+		return result;
+	}
+},{
+	name: 'select',
+	command: function (parameter, variant){
+		this.bounds(parameter).select();
+	}
+},{
+	name: 'sendkeys',
+	command: function (parameter, variant){
+		$(this.element()).sendkeys(parameter);
+		this.bounds('selection');
+	}
+},{
+	name: 'vi',
+	keys: '{esc}',
+	command: function (parameter, variant){
+		var state = this.exState();
+		parameter = parameter || 'VISUAL';
+		// an insertion with a count means repeat the insertion when we return to visual mode
+		if (parameter == 'INSERT'){
+			state.repeatcount = Math.max(state.count - 1, 0); // -1 since we've done one insertion already
+			state.oldtext = this.all();
+		}else if (parameter == 'VISUAL' && state.repeatcount){
+			var text = bililiteRange.diff(state.oldtext, this.all()).data;
+			for (var i = state.repeatcount, ret = ''; i > 0; --i) ret += text;
+			this.bounds('endbounds').text(ret, 'end');
+			state.repeatcount = 0;
+		}
+		state.vimode = parameter;
+	}
+},{
+	name: 'word',
+	command: bililiteRange.ex.stringOption('word')
+},{
+	keys: '^z', // not really part of vi, but too ingrained in my fingers
+	command: 'undo'
+},{
+	keys: '^y',
+	command: 'redo'
 }
+]);
 
+/*------------ Set up VISUAL mode commands ------------ */
+$.exmap([
+{
+	keys: ':',
+	command: function (){
+		var el = this.element();
+		$.data(el, 'vi.status').status({
+			prompt: ':',
+			run: executeCommand(this),
+			returnPromise: true
+		}).then( // make sure we return focus to the text! It would be nice to have a finally method
+			function(e) {el.focus()},
+			function(e) {el.focus()}
+		);
+	}
+},{
+	keys: 'a',
+	command : "select endbounds | vi INSERT"
+},{
+	keys: 'b', // end of previous word
+	command: function(){
+		var state = this.exState();
+		for (var i = state.count || 1; i > 0; --i){
+			this.findBack(new RegExp(state.word), true);
+		}
+		this.bounds('endbounds');
+	}
+},{
+	keys: 'B', // end of previous bigword
+	command: function(){
+		var state = this.exState();
+		for (var i = state.count || 1; i > 0; --i){
+			this.findBack(new RegExp(state.bigword), true);
+		}
+		this.bounds('endbounds');
+	}
+},{
+	keys: 'e', // end of next word
+	command: function(){
+		var state = this.exState();
+		for (var i = state.count || 1; i > 0; --i){
+			this.find(new RegExp(state.word), true);
+		}
+		this.bounds('endbounds');
+	}
+},{
+	keys: 'E', // end of next bigword
+	command: function(){
+		var state = this.exState();
+		for (var i = state.count || 1; i > 0; --i){
+			this.find(new RegExp(state.bigword), true);
+		}
+		this.bounds('endbounds');
+	}
+},{
+	keys: 'h',
+	command: "repeat sendkeys {leftarrow}"
+},{
+	keys: 'i',
+	command: "select startbounds | vi INSERT"
+},{
+	keys: 'l',
+	command: "repeat sendkeys {rightarrow}"
+},{
+	keys: 'o',
+	command: ".a | vi INSERT"
+},{
+	keys: '0',
+	command: "select BOL" // if part of a number, should have been handled above
+},{
+	keys: '$',
+	command: 'select EOL'
+},{
+	keys: '^',
+	command: function(){
+		this.bounds('BOL').find(/\S/).bounds('startbounds');
+	}
+}
+], {mode: 'VISUAL'});
 
 })(jQuery);

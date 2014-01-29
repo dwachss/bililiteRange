@@ -76,6 +76,7 @@ bililiteRange.ex = {}; // namespace for exporting utility functions
 
 bililiteRange.fn.ex = function (commandstring, defaultaddress){
 	this.exMessage = '';
+	this.undo(0); // initialize
 	var state = this.exState();
 	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
 	defaultaddress = defaultaddress || '.';
@@ -97,13 +98,11 @@ bililiteRange.fn.ex = function (commandstring, defaultaddress){
 };
 
 var exStates = []; // to avoid memory leaks, 
-bililiteRange.fn.exState = function(options){
+bililiteRange.fn.exState = function(){
 	var state = exStates[this.element().exState];
 	if (!state){
 		state = exStates[this.element().exState = exStates.length] = new ExState(this);
 	}
-	// simple copy, not recursive
-	if (options) for (option in options) state[option] = options[option];
 	return state; 
 }
 
@@ -113,49 +112,69 @@ function ExState(rng){
 	this.shiftwidth = 8;
 	this.multiline = true;
 	this.wrapscan = true;
-	
+
+	try{
+		Object.defineProperty(this, 'privates', {
+			enumerable: false,
+			configurable: true,
+			writable: true
+		});
+	}catch(e){}
+	this.privates = {};
+	this.rng = rng;
 	this.marks = {
 		"'": rng.clone().live(), // this will record the last position in the text
 		"''": rng.clone().live() // this records the current position; just so it can be copied into ' above
 	}
-	this.privatize('marks');
-	this.privates = {rng: rng}; // for data that uses getters/setters
-	this.privatize('privates');
 }
-ExState.prototype = {
-	privatize: function (option){
-		try{
-			Object.defineProperty(this, option, {
-			  enumerable: false,
-				configurable: true,
-				writable: true
-			});
-		}catch(e){
-			// IE 8 won't let me define properties on regular objects, so the state will not be monitored. Live with it
-		}
-	},
-	monitor: function(option, enumerable){
-		// set option to signal on all changes
-		if (!(option in this.privates)){
-			var self = this, privates = this.privates, rng = privates.rng;
-			privates[option] = this[option];
-			try {
-				Object.defineProperty(this, option, {
-					get: function() {return privates[option] },
-					set: function(val){
-						privates[option] = val;
-						rng.dispatch ({type: 'exstate', detail: {option: option, value: val}});
-					},
-					enumerable: !!enumerable,
-					configurable: true
-				});
-			}catch(e){
-				console.error(e);
-				// IE 8 won't let me define properties on regular objects, so the state will not be monitored. Live with it
+ExState.prototype = { privates: {} };
+
+privatize ('rng');
+privatize ('marks');
+function createOption (option, value){
+	ExState.prototype[option] = value;
+}
+function privatize(option, isPrivate){
+	if (!(option in ExState.prototype.privates)){
+		// not been defined before
+		ExState.prototype.privates[option] = ExState.prototype[option]; // save the default
+	}
+	try{
+		Object.defineProperty(ExState.prototype, option, {
+			enumerable: false,
+			configurable: true,
+			get: function() {
+				return option in this.privates ?
+					this.privates[option] :
+					ExState.prototype.privates[option];
+			},
+			set: function(val){
+				this.privates[option] = val;
+			},
+		});
+	}catch(e){
+		// IE 8 won't let me define properties on regular objects, so the state will not be monitored. Live with it
+		console.error(e);
+	}
+};
+function monitor (option){
+	// set option to signal on all changes
+	if (!(option in ExState.prototype)) privatize(option);
+	try {
+		Object.defineProperty(ExState.prototype, option, {
+			set: function(val){
+				this.privates[option] = val;
+				this.privates.rng.dispatch ({type: 'exstate', bubbles: true, detail: {option: option, value: val}});
 			}
-		}
+		});
+	}catch(e){
+		console.error(e);
+		// IE 8 won't let me define properties on regular objects, so the state will not be monitored. Live with it
 	}
 }
+bililiteRange.ex.createOption = createOption;
+bililiteRange.ex.privatize = privatize;
+bililiteRange.ex.monitor = monitor;
 
 var registers = bililiteRange.ex.registers = []; // the delete register is a stack, with 0 the most recent (use shift rather than pop)
 
@@ -399,6 +418,7 @@ function createRE(s, ignorecase){
 	lastRE.flags = flags;
 	return ret;
 }
+bililiteRange.ex.createRE = createRE;
 
 function interpretOffset(s){
 	var re = /([-+]\d*)|\d+/g, ret = 0, match;
@@ -443,7 +463,7 @@ function autoindent (text, rng){
 }
 /*********************** the actual editing commands *********************************/
 
-// exported utility function
+// exported utility functions
 function booleanOption (option){
 	return function (parameter, variant){
 		var state = this.exState();
@@ -451,12 +471,25 @@ function booleanOption (option){
 			this.exMessage = state[option] ? 'on' : 'off';
 		}else if (parameter == 'off' || parameter == 'no' || parameter == 'false'){
 			state[option] = variant;
+		}else if (parameter == 'toggle'){
+			state[option] = !state[option];
 		}else{
 			state[option] = !variant; // variant == false means take it straight and set the option
 		}
 	};
 }
 bililiteRange.ex.booleanOption = booleanOption;
+
+function stringOption (name){
+	return function (parameter, variant){
+		if (parameter == '?' || parameter === true || !parameter){
+			this.exMessage = JSON.stringify(this.exState()[name]);
+		}else{
+			this.exState()[name] = parameter;
+		}
+	}
+}
+bililiteRange.ex.stringOption = stringOption;
 
 // a command is a function (parameter {String}, variant{Boolean}). 'this' is the bililiteRange; or a string that marks a synonym
 var commands = bililiteRange.ex.commands = {
@@ -594,6 +627,7 @@ var commands = bililiteRange.ex.commands = {
 			// only display the stringifiable options
 			this.exMessage = JSON.stringify(this.exState());
 		}else{
+			var self = this;
 			splitCommands(parameter, ' ').forEach(function(command){
 				var match = /(no)?(\w+)(\?|=(\S+)|)/.exec(command);
 				if (!match && command.trim()) throw {message: 'Bad syntax in set: '+command};
@@ -607,7 +641,7 @@ var commands = bililiteRange.ex.commands = {
 				}else{
 					value = string(match[4]);
 				}
-				commandCompletion(func).call(this, value, variant); // each option takes care of its own setting
+				commandCompletion(func).call(self, value, variant); // each option takes care of its own setting
 			});
 		}
 	},
@@ -638,17 +672,6 @@ var commands = bililiteRange.ex.commands = {
 
 	tabstop: 'shiftwidth',
 
-	toggle: function (parameter, variant){
-		var rng = this, state = this.exState();
-		splitCommands(parameter, ' ').forEach(function(command){
-			// only makes sense for boolean options, but this does not check.
-			command = commandCompletion(command);
-			command.call(rng, '?', variant);
-			command.call(rng, rng.exMessage == 'on' ? 'off' : 'on', variant);
-			rng.exMessage = ''; // don't echo anything unless it's actually wanted.
-		});
-	},
-	
 	transcribe: 'copy',
 
 	ts: 'shiftwidth',
