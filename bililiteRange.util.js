@@ -26,7 +26,34 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 if (bililiteRange) (function(){
-var oldbounds = bililiteRange.fn.bounds;
+
+bililiteRange.bounds.EOL = function(){
+	// set the range to the end of this line
+	// if we start at the end of a line, findBack will go to the next line! Check for that case first
+	this.bounds('startbounds');
+	if (this.findprimitive (/$/mg, this.bounds())) return this.bounds();
+	return this.find(/$/m, true).bounds(); // don't wrap
+};
+bililiteRange.bounds.BOL = function(){
+	// set the range to the beginning of this line
+	// if we start at the beginning of a line, findBack will go to the previous line! Check for that case first
+	this.bounds('startbounds');
+	if (this.findprimitive (/^/mg, this.bounds())) return this.bounds();
+	return this.findBack(/^/m, true).bounds(); // don't wrap
+};
+bililiteRange.bounds.line = function(){
+	this.bounds('BOL');
+	var start = this.bounds()[0];
+	this.bounds('EOL');
+	return [start, this.bounds()[1]];
+};
+bililiteRange.bounds.startbounds = function(){
+	return [this.bounds()[0], this.bounds()[0]];
+};
+bililiteRange.bounds.endbounds = function(){
+	return [this.bounds()[1], this.bounds()[1]];
+};
+
 bililiteRange.extend({
 	
 	find: function(re, nowrap, backwards){
@@ -53,35 +80,7 @@ bililiteRange.extend({
 	},
 
 	findBack: function (re, nowrap) { return this.find(re,nowrap,true) },
-	
-	bounds: function(s){
-		switch(s){
-			case 'EOL' :
-				// set the range to the end of this line
-				// if we start at the beginning of a line, findBack will go to the previous line! Check for that case first
-				this.bounds('startbounds');
-				if (this.findprimitive (/$/mg, this.bounds())) return this;
-				return this.find(/$/m, true); // don't wrap
-			case 'BOL' :
-				// set the range to the beginning of this line
-				// if we start at the beginning of a line, findBack will go to the previous line! Check for that case first
-				this.bounds('startbounds');
-				if (this.findprimitive (/^/mg, this.bounds())) return this;
-				return this.findBack(/^/m, true); // don't wrap
-			case 'line' :
-				this.bounds('BOL');
-				var start = this.bounds()[0];
-				this.bounds('EOL');
-				return this.bounds([start, this.bounds()[1]]);
-			case 'startbounds' :
-				return this.bounds([this.bounds()[0], this.bounds()[0]]);
-			case 'endbounds' :
-				return this.bounds([this.bounds()[1], this.bounds()[1]]);
-			default:
-				return oldbounds.call(this, s);
-		}
-	},
-		
+			
 	line:function(n){
 		// set the bounds to the nth line or
 		// return the line number of the start of the bounds. Note that it is 1-indexed, the way ex writes it!

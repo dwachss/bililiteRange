@@ -124,19 +124,8 @@ Range.prototype = {
 		return this._el[this._textProp].replace(/\r/g, '').length; // need to correct for IE's CrLf weirdness
 	},
 	bounds: function(s){
-		if (s === 'all'){
-			this._bounds = [0, this.length()];
-		}else if (s === 'start'){
-			this._bounds = [0, 0];
-		}else if (s === 'end'){
-			this._bounds = [this.length(), this.length()];
-		}else if (s === 'selection'){
-			if (this._el == document.activeElement){
-				this.bounds ('all'); // first select the whole thing for constraining
-				this._bounds = this._nativeSelection();
-			}else{
-				this._bounds = this._el.bililiteRangeSelection;
-			}
+		if (bililiteRange.bounds[s]){
+			this._bounds = bililiteRange.bounds[s].apply(this);
 		}else if (s){
 			this._bounds = s; // don't do error checking now; things may change at a moment's notice
 		}else{
@@ -285,6 +274,21 @@ Range.prototype = {
 bililiteRange.fn = Range.prototype; // to allow monkey patching
 bililiteRange.extend = function(fns){
 	for (fn in fns) Range.prototype[fn] = fns[fn];
+};
+
+//bounds functions
+bililiteRange.bounds = {
+	all: function() { return [0, this.length()] },
+	start: function () { return [0,0] },
+	end: function () { return [this.length(), this.length()] },
+	selection: function(){
+		if (this._el == document.activeElement){
+			this.bounds ('all'); // first select the whole thing for constraining
+			return this._nativeSelection();
+		}else{
+			return this._el.bililiteRangeSelection;
+		}
+	}
 };
 
 function IERange(){}
