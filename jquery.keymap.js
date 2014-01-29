@@ -221,7 +221,6 @@ if ( !Array.prototype.forEach ) {
 			}else{
 				return;
 			}
-			console.log(keys);
 			var origHandler = handleObj.handler;
 			var currSequence = '';
 			handleObj.handler = function (event){
