@@ -1,5 +1,5 @@
 // mapping for standard US keyboards. Replace the $.keymap.normal, $.keymap.shift, $.keymap.ctrl and $.keymap.alt arrays as needed
-// Version: 2.3
+// Version: 2.4
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -118,6 +118,8 @@ if ( !Array.prototype.forEach ) {
 	}
 	
 	$.keymap.normalize = function(c){
+		// control letters can be written as uppercase(need to be explicitly shifted, if that's what's wanted)
+		c = c.replace(/([^%])([A-Z])\b/, function(match, p1, p2) { return p1+p2.toLowerCase() });
 		// mark uppercase letters
 		c = c.replace(/\b[A-Z]\b/, '+$&');
 		// simple things to keep notation consistent
@@ -219,6 +221,7 @@ if ( !Array.prototype.forEach ) {
 			}else{
 				return;
 			}
+			console.log(keys);
 			var origHandler = handleObj.handler;
 			var currSequence = '';
 			handleObj.handler = function (event){
