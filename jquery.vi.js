@@ -94,8 +94,9 @@ $.exmap = function(opts, defaults){
 		});
 		event.preventDefault();
 	}
+	var button = $(); // make sure it exists
 	if (opts.buttonContainer){
-		var button = $('button[name='+JSON.stringify(opts.name)+']', opts.buttonContainer);
+		button = $('button[name='+JSON.stringify(opts.name)+']', opts.buttonContainer);
 		if (button.length == 0) button = $('<button>').appendTo(opts.buttonContainer);
 		button.attr({
 			name: opts.name,
