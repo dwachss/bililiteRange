@@ -1,7 +1,32 @@
 // moving toward an implementation of vi for jQuery
 // (http://pubs.opengroup.org/onlinepubs/9699919799/utilities/vi.html)
 
-// depends: jquery.js, bililiteRange.js, bililiteRange.util.js, bililiteRange.ex.js, jquery.keymap.js
+// depends:  bililiteRange.ex.js and all its depends,  jquery.keymap.js, jquery.savemonitor.js, jquery.status.js, jquery.livesearch.js
+// documentation: to be created
+// Version 0.9
+
+// Copyright (c) 2014 Daniel Wachsstock
+// MIT license:
+// Permission is hereby granted, free of charge, to any person
+// obtaining a copy of this software and associated documentation
+// files (the "Software"), to deal in the Software without
+// restriction, including without limitation the rights to use,
+// copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following
+// conditions:
+
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+// OTHER DEALINGS IN THE SOFTWARE.
 
 (function($){
 
@@ -12,7 +37,16 @@ $.fn.vi = function(status, toolbar){
 		$(evt.target).trigger('vi-click', [self]);
 		return false;
 	});
-	this.each(function(){ bililiteRange(this).undo(0) }); // initialize the undo handler (ex does this but we haven't called ex yet)
+	this.each(function(){
+		bililiteRange(this).undo(0); // initialize the undo handler (ex does this but we haven't called ex yet)
+		// track saving and writing
+		var state = bililiteRange(this).exState();
+		var monitor = state.monitor = $(this).savemonitor();
+		state['save~state'] = monitor.state();
+		monitor.on($.savemonitor.states, function(evt){
+			state['save~state'] = evt.type;
+		});
+	});
 	return this.addClass($.viClass).data('vi.status', $(status));
 }
 
@@ -102,7 +136,7 @@ $.exmap = function(opts, defaults){
 			name: opts.name,
 			'class': opts.name.replace(/~/g,'-'),
 			title: opts.title
-		}).on('vi-click', {mode: opts.mode}, run);;
+		}).on('vi-click', {mode: opts.mode}, run);
 	}
 	if (opts.keys){
 		body.on('vi-keydown', {keys: opts.keys, mode: opts.mode}, function(event){
@@ -134,6 +168,12 @@ bililiteRange.ex.privatize('vimode');
 // RE's for searching
 bililiteRange.ex.createOption('word', "^|$|\\W+|\\w+");
 bililiteRange.ex.createOption('bigword', "^|$|\\s+|\\S+");
+
+// writing files. Assumes POSTing with {buffer: text-to-be-saved, file: filename}
+// use mockjax to do something else.
+bililiteRange.ex.privatize('monitor');
+bililiteRange.ex.privatize('save~state');
+bililiteRange.ex.monitor('save~state');
 
 // a series of digits means a number of times to repeat a command
 // 'count' is that number; some commands use that directly but text-entry commands can only repeat after the text is entered.
@@ -170,6 +210,12 @@ $.exmap([
 	command: function (parameter, variant){
 		console.log(executeCommand(this)(parameter));
 	}
+},{
+	name: 'directory', // used as the $.post url for saving
+	command: bililiteRange.ex.stringOption('directory')
+},{
+	name: 'file',
+	command: bililiteRange.ex.stringOption('file')
 },{
 	name: 'map',
 	command: function (parameter, variant){
@@ -218,8 +264,7 @@ $.exmap([
 			state.oldtext = this.all();
 		}else if (parameter == 'VISUAL' && state.repeatcount){
 			var text = bililiteRange.diff(state.oldtext, this.all()).data;
-			for (var i = state.repeatcount, ret = ''; i > 0; --i) ret += text;
-			this.bounds('endbounds').text(ret, 'end');
+			this.bounds('endbounds').text(text.repeat(state.repeatcount), 'end');
 			state.repeatcount = 0;
 		}
 		state.vimode = parameter;
@@ -227,6 +272,22 @@ $.exmap([
 },{
 	name: 'word',
 	command: bililiteRange.ex.stringOption('word')
+},{
+	name: 'write',
+	command: function(parameter, variant){
+		var rng = this, state = this.exState(), el = this.element();
+		if (parameter) state.file = parameter;
+		state.monitor.clean($.data(el, 'vi.status').status({
+			run: function() { return $.post(state.directory, {
+				buffer: rng.all(),
+				file: state.file
+			}).then(
+				function() { return 'Saved' },
+				function() { return new Error('Not saved') }
+			)},
+			returnPromise: true
+		}));
+	}
 },{
 	keys: '^z', // not really part of vi, but too ingrained in my fingers
 	command: 'undo'
@@ -313,6 +374,12 @@ $.exmap([
 	command: function(){
 		this.bounds('BOL').find(/\S/).bounds('startbounds');
 	}
+},{
+	keys: '>',
+	command: 'repeat >'
+},{
+	keys: '<',
+	command: 'repeat <'
 }
 ], {mode: 'VISUAL'});
 

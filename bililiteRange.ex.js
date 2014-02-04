@@ -39,7 +39,18 @@ if(!String.prototype.trim) {
     return this.replace(/^\s+|\s+$/g,'');
   };
 }
-
+if (!String.prototype.repeat){
+	// from http://stackoverflow.com/questions/202605/repeat-string-javascript
+	String.prototype.repeat = function(count) {
+			if (count < 1) return '';
+			var result = '', pattern = this.valueOf();
+			while (count > 0) {
+					if (count & 1) result += pattern;
+					count >>= 1, pattern += pattern;
+			}
+			return result;
+	};
+}
 /*********************** utility plugins *********************************/
 bililiteRange.extend ({
 lines: function(i, j){
@@ -458,8 +469,20 @@ function indentation(rng){
 	// returns the whitespace at the start of this line
 	return /^\s*/.exec(rng.clone().bounds('line').text())[0];
 }
+function indent(text, tabs){
+	return text.replace(/(^|\n)/g, '$1'+tabs);
+}
 function autoindent (text, rng){
-	return text.replace(/(^|\n)([ \t]*)/g, '$1$2'+indentation(rng)); // keep existing indentation!
+	return indent(text, indentation(rng));
+}
+function unindentone(str, n){ // n is the number of spaces to consider a single tab
+	n = parseInt(n); if (isNaN(n) || n < 1) n = 4;
+	var re = new RegExp('(^|\n)(\t| {'+n+'})', 'g');
+	return str.replace(re, '$1');
+}
+function unindent (str, repeat, n){
+	for (var i = 0; i < repeat; ++i) str = unindentone(str, n);
+	return str;
 }
 /*********************** the actual editing commands *********************************/
 
@@ -714,6 +737,18 @@ var commands = bililiteRange.ex.commands = {
 		// this is the definition. It seems useless to have two identical shortcuts, so I'll use the latter
 		lastRE = new RegExp (lastRE.rest, 'g');
 		commands.substitute.call (rng, parameter, variant);
+	},
+	
+	'>': function (parameter, variant){
+		parameter = parseInt(parameter);
+		if (isNaN(parameter) || parameter < 0) parameter = 1;
+		this.text(indent(this.text(), '\t'.repeat(parameter)));
+	},
+	
+	'<': function (parameter, variant){
+		parameter = parseInt(parameter);
+		if (isNaN(parameter) || parameter < 0) parameter = 1;
+		this.text(unindent(this.text(), parameter, this.exState().shiftwidth));
 	}
 };
 
