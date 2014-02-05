@@ -282,8 +282,8 @@ $.exmap([
 				buffer: rng.all(),
 				file: state.file
 			}).then(
-				function() { return 'Saved' },
-				function() { return new Error('Not saved') }
+				function() { return state.file+'Saved' },
+				function() { return new Error(state.file+'Not saved') }
 			)},
 			returnPromise: true
 		}));
