@@ -390,10 +390,25 @@ InputRange.prototype._nativeRange = function(bounds) {
 	return bounds || [0, this.length()];
 };
 InputRange.prototype._nativeSelect = function (rng){
-	this._el.setSelectionRange(rng[0], rng[1]);
+	try
+	{
+		this._el.setSelectionRange(rng[0], rng[1]);
+	}
+	catch (ex)
+	{
+		// Chrome 33+ and Firefox 28+ Don't support this for some input elements such as number and email
+	}
 };
 InputRange.prototype._nativeSelection = function(){
-	return [this._el.selectionStart, this._el.selectionEnd];
+	try
+	{
+		return [this._el.selectionStart, this._el.selectionEnd];
+	}
+	catch (ex)
+	{
+		// Chrome 33+ and Firefox 28+ Don't support this for some input elements such as number and email
+		return [0,0];
+	}
 };
 InputRange.prototype._nativeGetText = function(rng){
 	return this._el.value.substring(rng[0], rng[1]);
