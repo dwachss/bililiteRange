@@ -32,7 +32,13 @@ bililiteRange = function(el, debug){
 		ret = new NothingRange(); // Easier to force it to use the no-selection type than to try to find an old browser
 	}else if (window.getSelection && el.setSelectionRange){
 		// Standards. Element is an input or textarea 
-		ret = new InputRange();
+		// note that some input elements do not allow selections
+		try{
+			el.selectionStart; // even getting the selection in such an element will throw
+			ret = new InputRange();
+		}catch(e){
+			ret = new NothingRange();
+		}
 	}else if (window.getSelection){
 		// Standards, with any other kind of element
 		ret = new W3CRange()
@@ -596,7 +602,7 @@ if (!Array.prototype.forEach)
 }
 
 // jQuery doesn't copy everything from "real" events, and uses the "data" field for its own purposes, so we correct it:
-if (jQuery){
+if ('jQuery' in window){
 	// note that if some other library tries to fix these events as well, this will fail.
 	// see http://learn.jquery.com/events/event-extensions/
 	jQuery.event.fixHooks.input =
