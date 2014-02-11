@@ -38,13 +38,18 @@ $.fn.vi = function(status, toolbar){
 		return false;
 	});
 	this.each(function(){
-		bililiteRange(this).undo(0); // initialize the undo handler (ex does this but we haven't called ex yet)
+		var rng = bililiteRange(this);
+		rng.undo(0); // initialize the undo handler (ex does this but we haven't called ex yet)
 		// track saving and writing
-		var state = bililiteRange(this).exState();
+		var state = rng.exState();
 		var monitor = state.monitor = $(this).savemonitor();
 		state['save~state'] = monitor.state();
 		monitor.on($.savemonitor.states, function(evt){
 			state['save~state'] = evt.type;
+		});
+		$.get('/exrc').then(function(commands){
+			// note that this is done asynchronously, so the user may be editing before this gets executed
+			rng.ex(commands);
 		});
 	});
 	return this.addClass($.viClass).data('vi.status', $(status));
@@ -166,8 +171,8 @@ bililiteRange.ex.createOption('vimode', 'INSERT');
 bililiteRange.ex.privatize('vimode');
 
 // RE's for searching
-bililiteRange.ex.createOption('word', "^|$|\\W+|\\w+");
-bililiteRange.ex.createOption('bigword', "^|$|\\s+|\\S+");
+bililiteRange.ex.createOption('word', /^|$|\W+|\w+/);
+bililiteRange.ex.createOption('bigword', /^|$|\s+|\S+/);
 
 // writing files. Assumes POSTing with {buffer: text-to-be-saved, file: filename}
 // use mockjax to do something else.
@@ -204,7 +209,7 @@ body.on('vi-keydown', {keys: /" [A-Za-z]/, mode: 'VISUAL'}, function (evt){
 $.exmap([
 {
 	name: 'bigword',
-	command: bililiteRange.ex.stringOption('bigword')
+	command: bililiteRange.ex.reOption('bigword')
 },{
 	name: 'console',
 	command: function (parameter, variant){
@@ -271,7 +276,7 @@ $.exmap([
 	}
 },{
 	name: 'word',
-	command: bililiteRange.ex.stringOption('word')
+	command: bililiteRange.ex.reOption('word')
 },{
 	name: 'write',
 	command: function(parameter, variant){
@@ -320,7 +325,7 @@ $.exmap([
 	command: function(){
 		var state = this.exState();
 		for (var i = state.count || 1; i > 0; --i){
-			this.findBack(new RegExp(state.word), true);
+			this.findBack(state.word, true);
 		}
 		this.bounds('endbounds');
 	}
@@ -329,7 +334,7 @@ $.exmap([
 	command: function(){
 		var state = this.exState();
 		for (var i = state.count || 1; i > 0; --i){
-			this.findBack(new RegExp(state.bigword), true);
+			this.findBack(state.bigword, true);
 		}
 		this.bounds('endbounds');
 	}
@@ -338,7 +343,7 @@ $.exmap([
 	command: function(){
 		var state = this.exState();
 		for (var i = state.count || 1; i > 0; --i){
-			this.find(new RegExp(state.word), true);
+			this.find(state.word, true);
 		}
 		this.bounds('endbounds');
 	}
@@ -347,7 +352,7 @@ $.exmap([
 	command: function(){
 		var state = this.exState();
 		for (var i = state.count || 1; i > 0; --i){
-			this.find(new RegExp(state.bigword), true);
+			this.find(state.bigword, true);
 		}
 		this.bounds('endbounds');
 	}

@@ -1,11 +1,11 @@
-// Attempts to implement the ex editor (http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ex.html) with some tweaks to make it javascript-friendly 
+// Attempts to implement the ex editor (http://ex-vi.sourceforge.net/ex.html) with some tweaks to make it javascript-friendly 
 // javascript regular expressions (and change ?regexp? addressing to ?/regexp/ since '?' is used so often as a metacharacter.
 // It's also much more forgiving of syntax errors.
 // errors are thrown with {message: 'whatever'}
 // messages are returned in range.exMessage
 
-// documentation: to be created
-// Version 0.9
+// documentation: http://bililite.com/blog/2014/02/05/new-bililiterange-plugin-ex
+// Version 1.0
 //  depends: bililiteRange.js, bililiteRange.util.js
 
 // Copyright (c) 2013 Daniel Wachsstock
@@ -30,6 +30,8 @@
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
+
+"use strict";
 
 (function(undefined){
 
@@ -62,12 +64,13 @@ lines: function(i, j){
 		if (j <= 0) return this.bounds('start');
 		var totallines = this.all().split('\n').length;
 		if (i > totallines) return this.bounds('end');
-		var start = this.line(i).bounds('BOL').bounds();
-		var end = this.line(j).bounds('EOL').bounds();
-		return this.bounds([start[0], end[1]]);
+		var start = this.line(i).bounds('BOL').bounds()[0];
+		var end = this.line(j).bounds('EOL').bounds()[1]+1; // the +1 is to include the newline at the end of the line. 
+		return this.bounds([start, end]);
 	}else{
-		var test = this.clone();
-		return [test.line(), test.bounds('endbounds').line()];
+		// if we end on a newline, don't count it
+		var start = this.line(), lines = this.text().slice(0,-1).split('\n').length;
+		return [start, start+lines-1];
 	}
 },
 
@@ -75,6 +78,8 @@ newline: function(line, select){
 	//insert text in a line by itself. Note that it's a newline, not a <br/> even if that would be appropriate
 	var b = this.bounds();
 	var text = this.all();
+	// remove single newlines at the end of line, since we presumably don't want multiple ones
+	line = line.replace(/\n$/, '');
 	if (b[0] > 0 && text.charAt(b[0]-1) != '\n') line = '\n'+line;
 	if (b[1] < text.length && text.charAt(b[1]) != '\n') line += '\n';
 	return this.text(line, select);
@@ -121,7 +126,6 @@ function ExState(rng){
 	// defaults
 	this.autoindent = false;
 	this.shiftwidth = 8;
-	this.multiline = true;
 	this.wrapscan = true;
 
 	try{
@@ -143,6 +147,7 @@ ExState.prototype = { privates: {} };
 privatize ('rng');
 privatize ('marks');
 function createOption (option, value){
+	if (value instanceof RegExp) value = createRE(value.toString()); // make it one of my extended RegExps
 	ExState.prototype[option] = value;
 }
 function privatize(option, isPrivate){
@@ -195,10 +200,10 @@ function commandCompletion(command){
 	var ret = (function(){
 		if (commands[command]) return commands[command];
 		command = command.toLowerCase();
-		for(trialCommand in commands){
+		for (var trialCommand in commands){
 			if (trialCommand.substr(0,command.length) == command) return commands[trialCommand];
 		}
-		throw {message: command+" not defined"};
+		throw new Error(command+" not defined");
 	})();
 	if (typeof ret == 'string') return commandCompletion(ret); // look for synonyms; beware of infinite loops!
 	return ret;
@@ -260,7 +265,7 @@ var addressRE = new RegExp('^\\s*' + // allow whitespace at the beginning
 );
 
 // command id's in the real ex are letters and = & ~ > < 
-var idRE = /^\s*([a-zA-Z=&~><]+)/;
+var idRE = /^\s*(!|[a-zA-Z=&~><]+)/; // a single exclamation point is a legal command
 var aUnicode = 'a'.charCodeAt(0);
 function encodeID (c){
 	// encodes a single character in base-26 (a-z) numbers preceded by '&'; sort of like encodeURI with '%'s
@@ -274,7 +279,7 @@ function encodeID (c){
 bililiteRange.ex.toID = function (s){
 	// creates a legal id from an arbitrary string. Since I use sendkeys/keymap, I special-case those characters
 	return s.replace(/./g, function (c){
-		if (idRE.test(c)) return c;
+		if (idRE.test(c) && c != '!') return c; // don't include ! in id's
 		return {
 			'-': '~',
 			'%': 'alt~',
@@ -322,7 +327,7 @@ function parseCommand(command, defaultaddress){
 			ret = c;
 			return '';
 		});
-		if (!ret) throw {message: "No command string"};
+		if (!ret) throw new Error("No command string");
 		return ret;
 	}
 	function parseVariant(){
@@ -371,31 +376,36 @@ function interpretAddresses (rng, addresses){
 		}else if (s.charAt(0) == "'"){
 			var mark = state.marks[s.slice(1)];
 			if (mark){
-				lines.push(mark.line());
+				var these = mark.lines();
+				lines.push(these[0]);
+				if (these[0] != these[1]) lines.push(these[1]);
 			}else{
-				throw {message: 'Mark '+s.slice(1)+' not defined'};
+				throw new Error('Mark '+s.slice(1)+' not defined');
 			}
 		}else if (/\d+/.test(s)){
 			lines.push(rng.line(parseInt(s)).find(/.*/).bounds('endbounds').line()+offset); // make sure we go to the end of the line
 		}else if (s == '.'){
 			lines.push(currLine+offset);
 		}else if (s == '%%'){
-			lines.push.apply(lines, rng.lines());
+			var rnglines = rng.lines();
+			lines.push(rnglines[0]);
+			lines.push(rnglines[1]+offset);
 		}else if (s == '$'){
 			lines.push (rng.bounds('all').bounds('endbounds').line()+offset);
 		}else if (s == '%'){
 			lines.push(0);
-			lines.push (rng.bounds('all').bounds('endbounds').line());
+			lines.push (rng.bounds('all').bounds('endbounds').line()+offset);
 		}else if (s == ';'){
-			currLine = rng.line();
+			if (lines.length > 0)	currLine = lines[lines.length-1];
 		}else if (s == ''){
 			lines.push(offset);
 		}
 	});
-	var lastline = lines.pop();
-	rng.lines(lines.pop(), lastline);
+	rng.lines(lines.pop(), lines.pop());
 }
 
+// we want to be able to list RegExp's with set, which uses JSON.stringify. This function lets us to that.
+function REtoJSON() { return '/' + this.source + '/' + (this.flags || '') }
 function createRE(s, ignorecase){
 	// create a RegExp from a string (with an aribitrary delimiter), of the form /re/(rest)?/?flags?/? (the "rest" part is for the substitute command)
 	// as with splitCommands above, easier to scan with a simple parser than to use RegExps
@@ -403,7 +413,7 @@ function createRE(s, ignorecase){
 	var escaper = /\\/;
 	var re, rest,flags;
 	for (var i = 1; i < s.length; ++i){
-		c = s.charAt(i);
+		var c = s.charAt(i);
 		if (escaper.test(c)) ++i;
 		if (c == delim) break;
 	}
@@ -427,6 +437,7 @@ function createRE(s, ignorecase){
 	ret.rest = s.replace(new RegExp('\\'+delim+'$'), ''); // remove the last delimiter if present
 	lastRE = ret;
 	lastRE.flags = flags;
+	lastRE.toJSON = REtoJSON;
 	return ret;
 }
 bililiteRange.ex.createRE = createRE;
@@ -470,7 +481,7 @@ function indentation(rng){
 	return /^\s*/.exec(rng.clone().bounds('line').text())[0];
 }
 function indent(text, tabs){
-	return text.replace(/(^|\n)/g, '$1'+tabs);
+	return text.replace(/^(.)/gm, tabs+'$1'); // only indent lines with content
 }
 function autoindent (text, rng){
 	return indent(text, indentation(rng));
@@ -514,6 +525,17 @@ function stringOption (name){
 }
 bililiteRange.ex.stringOption = stringOption;
 
+function reOption (name){
+	return function (parameter, variant){
+		if (parameter == '?' || parameter === true || !parameter){
+			this.exMessage = JSON.stringify(this.exState()[name]);
+		}else{
+			this.exState()[name] = createRE(parameter, this.exState().ignorecase);
+		}
+	}
+}
+bililiteRange.ex.reOption = reOption;
+
 // a command is a function (parameter {String}, variant{Boolean}). 'this' is the bililiteRange; or a string that marks a synonym
 var commands = bililiteRange.ex.commands = {
 	a: 'append',
@@ -538,7 +560,7 @@ var commands = bililiteRange.ex.commands = {
 
 	copy: function (parameter, variant){
 		var targetrng = this.clone();
-		var parsed = parseCommand(parameter);
+		var parsed = parseCommand(parameter, '.');
 		interpretAddresses(targetrng, parsed.addresses);
 		targetrng.bounds('endbounds').newline(this.text(), 'end');
 		this.bounds(targetrng.bounds());
@@ -553,8 +575,6 @@ var commands = bililiteRange.ex.commands = {
 			this.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
 		}
 		pushRegister(this.text(), match[1]);
-		// need to delete the newline as well.
-		this.bounds([this.bounds()[0], this.bounds()[1]+1]);
 		this.text('', 'end');
 	},
 
@@ -562,22 +582,23 @@ var commands = bililiteRange.ex.commands = {
 
 	global: function (parameter, variant){
 		var re = createRE(parameter, this.exState().ignorecase);
-		// turn pat into a list of live bookmarks
-		var rngs = [];
+		var commands = splitCommands(string(re.rest), '\\n');
+		var line = this.clone();
 		var lines = this.lines();
-		for (i = lines[0]; i <= lines[1]; ++i){
-			var line = this.clone().lines(i);
-			if (re.test(line.text()) ? !variant : variant){ // that's re.test XOR variant
-				rngs.push(line.live());
+		for (var i = lines[0]; i <= lines[1]; ++i){
+			if (re.test(line.lines(i).text()) != variant){
+				var oldlines = this.all().split('\n').length;
+				commands.forEach(function(command){
+					var parsed = parseCommand(command);
+					parsed.command.call(line, parsed.parameter, parsed.variant);
+				});
+				var addedlines = this.all().split('\n').length - oldlines;
+				lines[1] += addedlines;
+				if (addedlines > 0) i += addedlines;
+				// note that this assumes the added lines are all  before or immediately after the current line. If not, we will skip the wrong lines			
 			}
 		}
-		rngs.forEach(function(line){
-			splitCommands(re.rest, '\\n').forEach(function(command){
-				var parsed = parseCommand(command);
-				parsed.command.call(line, parsed.parameter, parsed.variant);
-			});
-		});
-		this.bounds (rngs.length ? rngs.pop().bounds() : 'endbounds');
+		this.bounds(line.bounds()).bounds('endbounds'); // move to the end of the last modified line
 	},
 
 	hardtabs: 'shiftwidth',
@@ -617,15 +638,25 @@ var commands = bililiteRange.ex.commands = {
 		this.exState().marks[parameter] = this.clone().live();
 	},
 
-	ml: 'multiline',
-
 	move: function (parameter, variant){
-		var thisrng = this.clone().live();
-		commands.copy.call (this, parameter, variant);
-		commands.del.call (thisrng, '', false);
+		var targetrng = this.clone();
+		var parsed = parseCommand(parameter, '.');
+		interpretAddresses(targetrng, parsed.addresses);
+		targetrng.bounds('endbounds');
+		var target = targetrng.bounds()[0];
+		var b = this.bounds();
+		var text = this.text();
+		if (target < b[0]){
+			// move to before the current bounds
+			this.text('');
+			targetrng.text(text);
+			this.bounds([target+text.length,target+text.length]);
+		}else if (target > b[1]){
+			targetrng.text(text); // it will end up pointing to the end when we delete the old text below
+			this.text('');
+			this.bounds([target,target]);
+		} // if target is inside the current range, don't do anything
 	},
-
-	multiline: booleanOption ('multiline'),
 
 	notglobal: function (parameter, variant){
 		commands.global.call (this, parameter, !variant);
@@ -653,10 +684,10 @@ var commands = bililiteRange.ex.commands = {
 			var self = this;
 			splitCommands(parameter, ' ').forEach(function(command){
 				var match = /(no)?(\w+)(\?|=(\S+)|)/.exec(command);
-				if (!match && command.trim()) throw {message: 'Bad syntax in set: '+command};
+				if (!match && command.trim()) throw new Error('Bad syntax in set: '+command);
 				var func = match[2];
 				if (match[1]){
-					var value = match[1];
+					var value = 'off';
 				}else if (!match[3]){
 					value = 'on';
 				}else if (match[3] == '?'){
@@ -674,7 +705,7 @@ var commands = bililiteRange.ex.commands = {
 			this.exMessage = '['+this.exState().shiftwidth+']';
 		}else{
 			var shiftwidth = parseInt(parameter);
-			if (isNaN(shiftwidth) || shiftwidth <= 0) throw {message: 'Invalid value for shiftwidth: '+parameter};
+			if (isNaN(shiftwidth) || shiftwidth <= 0) throw new Error('Invalid value for shiftwidth: '+parameter);
 			this.exState().shiftwidth =
 				this.element().style.tabSize =
 				this.element().style.OTabSize =
@@ -731,10 +762,6 @@ var commands = bililiteRange.ex.commands = {
 	'&': 'substitute',
 
 	'~': function (parameter, variant){
-		// repeat substitution with last replacement string as the search pattern
-		// according to http://pubs.opengroup.org/onlinepubs/9699919799/utilities/ex.html, this is synonymous with &
-		// but according to the original ex manual (http://roguelife.org/~fujita/COOKIES/HISTORY/1BSD/exrefm.pdf)
-		// this is the definition. It seems useless to have two identical shortcuts, so I'll use the latter
 		lastRE = new RegExp (lastRE.rest, 'g');
 		commands.substitute.call (rng, parameter, variant);
 	},
@@ -749,6 +776,13 @@ var commands = bililiteRange.ex.commands = {
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
 		this.text(unindent(this.text(), parameter, this.exState().shiftwidth));
+	},
+	
+	'!': function (parameter, variant){
+		// not a shell escape but a Javascript escape
+		var result = eval(parameter);
+		console.log(result);
+		if (result != undefined) this.text(result, 'end');
 	}
 };
 
