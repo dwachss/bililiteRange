@@ -102,7 +102,9 @@ bililiteRange = function(el, debug){
 		});
 	}
 	if (!('oninput' in el)){
-		// give IE8 a chance
+		// give IE8 a chance. Note that this still fails in IE11, which has has oninput on contenteditable elements but does not 
+		// dispatch input events. See http://connect.microsoft.com/IE/feedback/details/794285/ie10-11-input-event-does-not-fire-on-div-with-contenteditable-set
+		// TODO: revisit this when I have IE11 running on my development machine
 		var inputhack = function() {ret.dispatch({type: 'input'}) };
 		ret.listen('keyup', inputhack);
 		ret.listen('cut', inputhack);
@@ -231,14 +233,10 @@ Range.prototype = {
 			try {
 				el.dispatchEvent ? el.dispatchEvent(event) : el.fireEvent("on" + opts.type, document.createEventObject());
 				}catch(e){
-					// IE8 will not let me fire custom events at all. Call them directly
-					if (window.jQuery) {
-						jQuery(el).trigger(new jQuery.Event(event));
-					}else{
-						var listeners = el['listen'+opts.type];
-						if (listeners) for (var i = 0; i < listeners.length; ++i){
-							listeners[i].call(el, event);
-						}
+				// IE8 will not let me fire custom events at all. Call them directly
+					var listeners = el['listen'+opts.type];
+					if (listeners) for (var i = 0; i < listeners.length; ++i){
+						listeners[i].call(el, event);
 					}
 				}
 		}, 0);
@@ -248,8 +246,6 @@ Range.prototype = {
 		var el = this._el;
 		if (el.addEventListener){
 			el.addEventListener(type, func);
-		}else if (window.jQuery){
-			jQuery(el).on(type, func);
 		}else{
 			el.attachEvent("on" + type, func);
 			// IE8 can't even handle custom events created with createEventObject  (though it permits attachEvent), so we have to make our own
@@ -262,8 +258,6 @@ Range.prototype = {
 		var el = this._el;
 		if (el.removeEventListener){
 			el.removeEventListener(type, func);
-		}else if (window.jQuery){
-			jQuery(el).off(type, func);
 		}else try{
 			el.detachEvent("on" + type, func);
 		}catch(e){
@@ -599,21 +593,4 @@ if (!Array.prototype.forEach)
         fun.call(thisArg, t[i], i, t);
     }
   };
-}
-
-// jQuery doesn't copy everything from "real" events, and uses the "data" field for its own purposes, so we correct it:
-if ('jQuery' in window){
-	// note that if some other library tries to fix these events as well, this will fail.
-	// see http://learn.jquery.com/events/event-extensions/
-	jQuery.event.fixHooks.input =
-	jQuery.event.fixHooks.beforeinput = {
-		props: ['data', 'bounds'] // the "data" is just for show; it gets overwritten in jQuery.event.dispatch
-	};
-	jQuery.event.special.input =
-	jQuery.event.special.beforeinput = {
-		handle: function (event){
-			if (!event.data && event.originalEvent) event.data = event.originalEvent.data; // here's where we really copy it
-			return event.handleObj.handler.apply(this, arguments);
-		}
-	}
 }
