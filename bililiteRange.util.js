@@ -188,7 +188,7 @@ function diff (oldtext, newtext){
 	// This is wrong for drag and drop, which only fires one input event for both removal and insertion
 	var oldlen = oldtext.length;
 	var	newlen = newtext.length;
-	for (i = 0; i < newlen && i < oldlen; ++i){
+	for (var i = 0; i < newlen && i < oldlen; ++i){
 		if (newtext.charAt(i) != oldtext.charAt(i)) break;
 	}
 	start = i;
@@ -197,8 +197,8 @@ function diff (oldtext, newtext){
 		if (newpos < start || oldpos < start) break;
 		if (newtext.charAt(newpos) != oldtext.charAt(oldpos)) break;
 	}
-	oldend = oldlen-i;
-	newend = newlen-i;
+	var oldend = oldlen-i;
+	var newend = newlen-i;
 	return {bounds: [start, oldend], data: newtext.slice(start, newend)}
 };
 bililiteRange.diff = diff; // expose
