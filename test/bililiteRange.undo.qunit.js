@@ -11,7 +11,7 @@ multitest("Testing bililiteRange undo", function (rng, el, text, i){
 			equal(rng.all(), text, 'undo');
 			rng.undo(-1);
 			equal(rng.all(), newtext, 'redo');
-			start();
+			QUnit.start();
 		})();
 	})();
 }, true);

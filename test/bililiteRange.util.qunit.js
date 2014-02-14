@@ -25,6 +25,6 @@ multitest("Testing bililiteRange live", function (rng, el, text, i){
 		rng.live(false);
 		rng.clone().bounds('start').text('bar'); // insert text before the original range
 		equal(rng.text(), rng.all().substring.apply(rng.all(), b), 'non-live range text changes');			
-		start();
+		QUnit.start();
 	})(); // input events are async, so the live happens after the test
 }, true);
