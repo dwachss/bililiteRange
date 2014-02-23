@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 2.2
+// Version: 2.3
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -572,14 +572,12 @@ NothingRange.prototype._nativeWrap = function() {throw new Error("Wrapping not i
 
 // data for elements, similar to jQuery data, but allows for monitoring with custom events
 var data = []; // to avoid attaching javascript objects to DOM elements, to avoid memory leaks
-bililiteRange.fn.data = function(name, value, isPrivate){
+bililiteRange.fn.data = function(){
 	var index = this.element().bililiteRangeData;
 	if (index == undefined){
 		index = this.element().bililiteRangeData = data.length;
 		data[index] = new Data(this);
 	}
-	if (name) createData(name, value);
-	if (isPrivate) privatize(name);
 	return data[index];
 }
 try {
@@ -587,9 +585,6 @@ try {
 	var Data = function(rng) {
 		// we use JSON.stringify to display the data values. To make some of those non-enumerable, we have to use properties
 		Object.defineProperty(this, 'values', {
-			value: {}
-		});
-		Object.defineProperty(this, 'monitors', {
 			value: {}
 		});
 		Object.defineProperty(this, 'sourceRange', {
@@ -616,51 +611,40 @@ try {
 	Object.defineProperty(Data.prototype, 'values', {
 		value: {}
 	});
+	Object.defineProperty(Data.prototype, 'monitored', {
+		value: {}
+	});
 	
-	var createData = function(name, value){
-		if (!(name in Data.prototype) || value != undefined){
-			Object.defineProperty(Data.prototype, name, {
-				enumerable: true,
-				configurable: true,
-				get: function (){
-					if (name in this.values) return this.values[name];
-					return Data.prototype.values[name];
-				},
-				set: function (value){
-					this.values[name] = value;
-					if (this.monitors[name]) this.sourceRange.dispatch({
-						type: 'bililiteRangeData',
-						bubbles: true,
-						detail: {name: name, value: value}
-					});
-				}
+	bililiteRange.data = function (name, newdesc){
+		newdesc = newdesc || {};
+		var desc = Object.getOwnPropertyDescriptor(Data.prototype, name) || {};
+		if ('enumerable' in newdesc) desc.enumerable = !!newdesc.enumerable;
+		if (!('enumerable' in desc)) desc.enumerable = true; // default
+		if ('value' in newdesc) Data.prototype.values[name] = newdesc.value;
+		if ('monitored' in newdesc) Data.prototype.monitored[name] = newdesc.monitored;
+		desc.configurable = true;
+		desc.get = function (){
+			if (name in this.values) return this.values[name];
+			return Data.prototype.values[name];
+		};
+		desc.set = function (value){
+			this.values[name] = value;
+			if (Data.prototype.monitored[name]) this.sourceRange.dispatch({
+				type: 'bililiteRangeData',
+				bubbles: true,
+				detail: {name: name, value: value}
 			});
-			Data.prototype.values[name] = value;
 		}
-	}
-	
-	function privatize(name){
-		var desc = Object.getOwnPropertyDescriptor(Data.prototype, name);
-		desc.enumerable = false;
 		Object.defineProperty(Data.prototype, name, desc);
-	}
-
-	var monitor = function(name){
-		createData(name);
-		this.data().monitors[name] = true;
 	}
 }catch(err){
 	// if we can't set object property properties, just use old-fashioned properties
   Data = function(rng){ this.sourceRange = rng };
 	Data.prototype = {};
-	createData = privatize = monitor = function(name, value){
-		if (!(name in Data.prototype) || value != undefined){
-			Data.prototype[name] = value;
-		}
+	bililiteRange.data = function(name, newdesc){
+		if ('value' in newdesc) Data.prototype[name] = newdesc.value;
 	}
 }
-bililiteRange.fn.data.privatize = privatize;
-bililiteRange.fn.monitor = monitor;
 
 })();
 

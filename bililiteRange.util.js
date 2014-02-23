@@ -1,7 +1,7 @@
 // Text range utilities
 // documentation: http://bililite.com/blog/2013/02/08/bililiterange-plugins/
 // depends on bililiteRange.js (http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/)
-// Version: 1.2
+// Version: 1.3
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person

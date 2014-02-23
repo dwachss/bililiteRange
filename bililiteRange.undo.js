@@ -30,6 +30,7 @@
 
 if (bililiteRange) (function(){
 
+
 bililiteRange.fn.undo = function(n){
 	if (arguments.length == 0) n = 1; // default
 	var state = getundostate(this);
@@ -42,8 +43,7 @@ bililiteRange.fn.undo = function(n){
 };
 
 function getundostate(rng){
-	// the undo stack should not contain any DOM elements so we will not create a circular reference that might create a memory leak
-	// if we attach it directly to the element.
+	rng.data('undos', undefined, true); // 
 	if (rng._el.bililiteRangeUndos) return rng._el.bililiteRangeUndos;
 	var state = new undostate (rng);
 	setuplisteners (rng);
