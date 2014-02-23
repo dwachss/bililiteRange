@@ -101,6 +101,7 @@ bililiteRange.extend({
 	
 	unindent: function (n, tabSize){
 		// remove n tabs or sets of tabSize spaces from the beginning of each line
+		tabSize = tabSize || this.data().tabSize || 8; // 8 is the browser default
 		// remove internal tabs
 		var oldtext = this.text(), newtext = unindent(oldtext, n, tabSize, false), b = this.bounds();
 		this.text(newtext).bounds([b[0], b[1]+newtext.length-oldtext.length]);
