@@ -39,3 +39,29 @@ multitest("Testing bililiteRange event handling", function (rng, el, text, i){
 	rng.listen('click', start);
 	rng.dispatch({type: 'click'});
 }, true);
+multitest("Testing bililiteRange data", function (rng, el, text, i){
+	var data = rng.data();
+	rng.data('n', 1);
+	equal (rng.data().n, 1, 'default data added');
+	equal (JSON.stringify(rng.data()), JSON.stringify({}),'default data not stringified');
+	equal (JSON.stringify(rng.data().all), JSON.stringify({n: 1}),'all data stringified');
+	rng.data().n = 2;
+	equal (JSON.stringify(rng.data()), JSON.stringify({n: 2}),'data set and stringified');
+	rng.data('bool', true, true);
+	equal (rng.data().bool, true, 'private data added');
+	rng.data().bool = false;
+	equal (rng.data().bool, false, 'private data changed added');
+	equal (JSON.stringify(rng.data()), JSON.stringify({n: 2}),'privatized data not enumerated');
+});
+multitest ('Testing monitored data', function (rng, el, text, i){
+	expect(4);
+	equal(rng.data().sourceRange, rng, 'sourceRange set');
+	rng.monitor('monitored');
+	ok(rng.data().monitors.monitored, 'monitor created');
+	rng.listen('bililiteRangeData', function(evt){
+		equal (evt.detail.name, 'monitored');
+		equal (evt.detail.value, 1);
+		start();
+	});
+	rng.data().monitored = 1;
+}, true);

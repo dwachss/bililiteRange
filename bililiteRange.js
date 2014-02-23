@@ -569,6 +569,99 @@ NothingRange.prototype._nativeTop = function(){
 };
 NothingRange.prototype._nativeWrap = function() {throw new Error("Wrapping not implemented")};
 
+
+// data for elements, similar to jQuery data, but allows for monitoring with custom events
+var data = []; // to avoid attaching javascript objects to DOM elements, to avoid memory leaks
+bililiteRange.fn.data = function(name, value, isPrivate){
+	var index = this.element().bililiteRangeData;
+	if (index == undefined){
+		index = this.element().bililiteRangeData = data.length;
+		data[index] = new Data(this);
+	}
+	if (name) createData(name, value);
+	if (isPrivate) privatize(name);
+	return data[index];
+}
+try {
+	Object.defineProperty({},'foo',{}); // IE8 will throw an error
+	var Data = function(rng) {
+		// we use JSON.stringify to display the data values. To make some of those non-enumerable, we have to use properties
+		Object.defineProperty(this, 'values', {
+			value: {}
+		});
+		Object.defineProperty(this, 'monitors', {
+			value: {}
+		});
+		Object.defineProperty(this, 'sourceRange', {
+			value: rng
+		});
+		Object.defineProperty(this, 'toJSON', {
+			value: function(){
+				var ret = {};
+				for (var i in Data.prototype) if (i in this.values) ret[i] = this.values[i];
+				return ret;
+			}
+		});
+		// to display all the properties (not just those changed), use JSON.stringify(state.all)
+		Object.defineProperty(this, 'all', {
+			get: function(){
+				var ret = {};
+				for (var i in Data.prototype) ret[i] = this[i];
+				return ret;
+			}
+		});
+	}
+
+	Data.prototype = {};
+	Object.defineProperty(Data.prototype, 'values', {
+		value: {}
+	});
+	
+	var createData = function(name, value){
+		if (!(name in Data.prototype) || value != undefined){
+			Object.defineProperty(Data.prototype, name, {
+				enumerable: true,
+				configurable: true,
+				get: function (){
+					if (name in this.values) return this.values[name];
+					return Data.prototype.values[name];
+				},
+				set: function (value){
+					this.values[name] = value;
+					if (this.monitors[name]) this.sourceRange.dispatch({
+						type: 'bililiteRangeData',
+						bubbles: true,
+						detail: {name: name, value: value}
+					});
+				}
+			});
+			Data.prototype.values[name] = value;
+		}
+	}
+	
+	function privatize(name){
+		var desc = Object.getOwnPropertyDescriptor(Data.prototype, name);
+		desc.enumerable = false;
+		Object.defineProperty(Data.prototype, name, desc);
+	}
+
+	var monitor = function(name){
+		createData(name);
+		this.data().monitors[name] = true;
+	}
+}catch(err){
+	// if we can't set object property properties, just use old-fashioned properties
+  Data = function(rng){ this.sourceRange = rng };
+	Data.prototype = {};
+	createData = privatize = monitor = function(name, value){
+		if (!(name in Data.prototype) || value != undefined){
+			Data.prototype[name] = value;
+		}
+	}
+}
+bililiteRange.fn.data.privatize = privatize;
+bililiteRange.fn.monitor = monitor;
+
 })();
 
 // Polyfill for forEach, per Mozilla documentation. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach#Polyfill

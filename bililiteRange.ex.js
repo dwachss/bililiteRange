@@ -31,8 +31,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-"use strict";
-
 (function(undefined){
 
 /*********************** shims: it's be nice to IE8 day *********************************/
@@ -125,7 +123,7 @@ bililiteRange.fn.exState = function(){
 function ExState(rng){
 	// defaults
 	this.autoindent = false;
-	this.shiftwidth = 8;
+	this.tabSize = 8;
 	this.wrapscan = true;
 
 	try{
@@ -150,7 +148,7 @@ function createOption (option, value){
 	if (value instanceof RegExp) value = createRE(value.toString()); // make it one of my extended RegExps
 	ExState.prototype[option] = value;
 }
-function privatize(option, isPrivate){
+function privatize(option){
 	if (!(option in ExState.prototype.privates)){
 		// not been defined before
 		ExState.prototype.privates[option] = ExState.prototype[option]; // save the default
@@ -601,9 +599,9 @@ var commands = bililiteRange.ex.commands = {
 		this.bounds(line.bounds()).bounds('endbounds'); // move to the end of the last modified line
 	},
 
-	hardtabs: 'shiftwidth',
+	hardtabs: 'tabSize',
 
-	ht: 'shiftwidth',
+	ht: 'tabSize',
 
 	i: 'insert',
 
@@ -700,18 +698,7 @@ var commands = bililiteRange.ex.commands = {
 		}
 	},
 
-	shiftwidth: function (parameter, variant){
-		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = '['+this.exState().shiftwidth+']';
-		}else{
-			var shiftwidth = parseInt(parameter);
-			if (isNaN(shiftwidth) || shiftwidth <= 0) throw new Error('Invalid value for shiftwidth: '+parameter);
-			this.exState().shiftwidth =
-				this.element().style.tabSize =
-				this.element().style.OTabSize =
-				this.element().style.MozTabSize = shiftwidth; // for browsers that support this.
-		}
-	},
+	shiftwidth: "tabSize",
 
 	substitute: function (parameter, variant){
 		// we do not use the count parameter (too hard to interpret s/(f)oo/$1 -- is that last 1 a count or part of the replacement?
@@ -720,15 +707,28 @@ var commands = bililiteRange.ex.commands = {
 		this.text(this.text().replace(re, string(re.rest))).bounds('endbounds');
 	},
 
-	sw: 'shiftwidth',
+	sw: 'tabSize',
 
 	t: 'copy',
+	
+	tabSize: function (parameter, variant){
+		if (parameter == '?' || parameter === true || !parameter){
+			this.exMessage = '['+this.exState().tabSize+']';
+		}else{
+			var tabSize = parseInt(parameter);
+			if (isNaN(tabSize) || tabSize <= 0) throw new Error('Invalid value for tabSize: '+parameter);
+			this.exState().tabSize =
+				this.element().style.tabSize =
+				this.element().style.OTabSize =
+				this.element().style.MozTabSize = tabSize; // for browsers that support this.
+		}
+	},
 
-	tabstop: 'shiftwidth',
+	tabstop: 'tabSize',
 
 	transcribe: 'copy',
 
-	ts: 'shiftwidth',
+	ts: 'tabSize',
 
 	u: 'undo',
 
@@ -775,7 +775,7 @@ var commands = bililiteRange.ex.commands = {
 	'<': function (parameter, variant){
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
-		this.text(unindent(this.text(), parameter, this.exState().shiftwidth));
+		this.text(unindent(this.text(), parameter, this.exState().tabSize));
 	},
 	
 	'!': function (parameter, variant){

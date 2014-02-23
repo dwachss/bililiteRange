@@ -54,6 +54,14 @@ bililiteRange.bounds.endbounds = function(){
 	return [this.bounds()[1], this.bounds()[1]];
 };
 
+// add autoindent option
+var oldtext = bililiteRange.fn.text;
+bililiteRange.fn.text = function (text, select, autoindent){
+	if (!arguments.length) return oldtext.call (this);
+	if (autoindent) text = indent(text, indentation(this));
+	return oldtext.call (this, text, select);
+}
+
 bililiteRange.extend({
 	
 	find: function(re, nowrap, backwards){
@@ -80,6 +88,30 @@ bililiteRange.extend({
 	},
 
 	findBack: function (re, nowrap) { return this.find(re,nowrap,true) },
+	
+	indent: function (tabs){
+		// tabs is the string to insert before each line of the range
+		var oldtext = this.text(), newtext = indent(oldtext, tabs), b = this.bounds();
+		this.text(newtext);
+		// Need to indent the line containing the start of the range (indent only adds the tabs after newlines)
+		this.clone().bounds('BOL').text(tabs);
+		// Adjust bounds
+		return this.bounds([b[0]+tabs.length, b[1]+tabs.length+newtext.length-oldtext.length]);
+	},
+	
+	unindent: function (n, tabSize){
+		// remove n tabs or sets of tabSize spaces from the beginning of each line
+		// remove internal tabs
+		var oldtext = this.text(), newtext = unindent(oldtext, n, tabSize, false), b = this.bounds();
+		this.text(newtext).bounds([b[0], b[1]+newtext.length-oldtext.length]);
+		// remove initial tabs
+		var line = this.clone().bounds('line');
+		oldtext = line.text();
+		newtext = unindent(oldtext, n, tabSize, true);
+		line.text(newtext);
+		var diff = newtext.length-oldtext.length;
+		return this.bounds([b[0]+diff, b[1]+diff]);
+	},
 			
 	line:function(n){
 		// set the bounds to the nth line or
@@ -163,7 +195,7 @@ bililiteRange.extend({
 		// no way to search backwards; have to search forward until we fail
 		var match = false;
 		do {
-			lastmatch = match;
+			var lastmatch = match;
 			match = this.findprimitive(re, bounds);
 			bounds[0] = match.index+1;
 		}while (match);
@@ -191,7 +223,7 @@ function diff (oldtext, newtext){
 	for (var i = 0; i < newlen && i < oldlen; ++i){
 		if (newtext.charAt(i) != oldtext.charAt(i)) break;
 	}
-	start = i;
+	var start = i;
 	for (i = 0; i < newlen && i < oldlen; ++i){
 		var newpos = newlen-i-1, oldpos = oldlen-i-1;
 		if (newpos < start || oldpos < start) break;
@@ -202,5 +234,28 @@ function diff (oldtext, newtext){
 	return {bounds: [start, oldend], data: newtext.slice(start, newend)}
 };
 bililiteRange.diff = diff; // expose
+
+function indentation(rng){
+	// returns the whitespace at the start of this line
+	return /^\s*/.exec(rng.clone().bounds('line').text())[0];
+}
+function indent(text, tabs){
+	return text.replace(/\n/g, '\n'+tabs);
+}
+function autoindent (text, rng){
+	return indent(text, indentation(rng));
+}
+function unindentone(str, n, start){
+	// n is the number of spaces to consider a single tab
+	// start is true to unindent from the start of the string rather than after newlines
+	n = parseInt(n);
+	if (isNaN(n) || n < 1) n = 4;
+	var re = new RegExp((start ? '(^)' : '(\\n)')+'(\t| {'+n+'})', 'g');
+	return str.replace(re, '$1');
+}
+function unindent (str, repeat, n, start){
+	for (var i = 0; i < repeat; ++i) str = unindentone(str, n, start);
+	return str;
+}
 
 })();

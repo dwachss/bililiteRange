@@ -5,6 +5,8 @@
 // Version: 1.0
 // Documentation: http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
 // Copyright (c) 2013 Daniel Wachsstock
+// depends: bililiteRange.js, bililiteRange.utils.js (the latter is only for autoindenting; if that's not used it is not necessary)
+
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
 // obtaining a copy of this software and associated documentation
@@ -78,7 +80,7 @@ bililiteRange.fancyText = function(editor, highlighter, threshold){
 	rng.listen('keydown', function(evt){
 		// avoid the fancy element-creation with newlines
 		if (evt.keyCode == 13){
-			rng.bounds('selection').text('\n','end').select();
+			rng.bounds('selection').text('\n','end', rng.data().autoindent).select();
 			evt.preventDefault();
 		}
 	});
