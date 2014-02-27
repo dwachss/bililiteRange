@@ -40,11 +40,10 @@ multitest("Testing bililiteRange event handling", function (rng, el, text, i){
 	rng.dispatch({type: 'click'});
 }, true);
 multitest("Testing bililiteRange data", function (rng, el, text, i){
-	var data = rng.data();
 	bililiteRange.data('n', {value: 1});
 	equal (rng.data().n, 1, 'default data added');
 	equal (JSON.stringify(rng.data()), JSON.stringify({}),'default data not stringified');
-	equal (JSON.stringify(rng.data().all), JSON.stringify({n: 1}),'all data stringified');
+	ok (rng.data().all.hasOwnProperty('n'),'all data set');
 	rng.data().n = 2;
 	equal (JSON.stringify(rng.data()), JSON.stringify({n: 2}),'data set and stringified');
 	bililiteRange.data('bool', {value: true, enumerable: false});

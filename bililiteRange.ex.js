@@ -52,6 +52,15 @@ if (!String.prototype.repeat){
 	};
 }
 /*********************** utility plugins *********************************/
+bililiteRange.bounds.nonewline = function(){
+	// a "line" includes the final newline, if present.
+	// doing an "endbounds" puts the range after that newline, which is considered part of the next line. 
+	// This moves the range before the last newline
+	var b = this.bounds();
+	if (this.text().slice(-1) == '\n') --b[1];
+	return [b[0], b[1]];
+}
+
 bililiteRange.extend ({
 lines: function(i, j){
 	if (arguments.length){
@@ -72,7 +81,7 @@ lines: function(i, j){
 	}
 },
 
-newline: function(line, select){
+newline: function(line, select, autoindent){
 	//insert text in a line by itself. Note that it's a newline, not a <br/> even if that would be appropriate
 	var b = this.bounds();
 	var text = this.all();
@@ -80,10 +89,13 @@ newline: function(line, select){
 	line = line.replace(/\n$/, '');
 	if (b[0] > 0 && text.charAt(b[0]-1) != '\n') line = '\n'+line;
 	if (b[1] < text.length && text.charAt(b[1]) != '\n') line += '\n';
-	return this.text(line, select);
+	return this.text(line, select, autoindent);
 }
 
 });
+
+/*********************** state variables that require some attention *********************************/
+bililiteRange.data ('marks', {value: {}, enumerable: false});
 
 /*********************** the actual ex plugin *********************************/
 bililiteRange.ex = {}; // namespace for exporting utility functions
@@ -91,14 +103,21 @@ bililiteRange.ex = {}; // namespace for exporting utility functions
 bililiteRange.fn.ex = function (commandstring, defaultaddress){
 	this.exMessage = '';
 	this.undo(0); // initialize
-	var state = this.exState();
+	var state = this.data();
 	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
 	defaultaddress = defaultaddress || '.';
 	// set the next-to-last mark
-	var b = this.bounds(), lastb = state.marks["''"].bounds();
-	if (b[0] != lastb[0] || b[1] != lastb[1]){
-		state.marks["'"].bounds(lastb);
-		state.marks["''"].bounds(b);
+	if ("'" in state.marks){ // previously defined; just update
+		var b = this.bounds(), lastb = state.marks["''"].bounds();
+		if (b[0] != lastb[0] || b[1] != lastb[1]){
+			state.marks["'"].bounds(lastb);
+			state.marks["''"].bounds(b);
+		}
+	}else{
+		state.marks = {
+			"'": this.clone().live(), // this will record the last position in the text
+			"''": this.clone().live() // this records the current position; just so it can be copied into ' above
+		};
 	}
 	// actually do the command
 	commandstring = commandstring.replace(/^:+/,''); // ignore initial colons that were likely accidentally typed.
@@ -110,85 +129,6 @@ bililiteRange.fn.ex = function (commandstring, defaultaddress){
 	this.dispatch({type: 'excommand', command: commandstring, range: this});
 	return this; // allow for chaining
 };
-
-var exStates = []; // to avoid memory leaks, 
-bililiteRange.fn.exState = function(){
-	var state = exStates[this.element().exState];
-	if (!state){
-		state = exStates[this.element().exState = exStates.length] = new ExState(this);
-	}
-	return state; 
-}
-
-function ExState(rng){
-	// defaults
-	this.autoindent = false;
-	this.tabSize = 8;
-	this.wrapscan = true;
-
-	try{
-		Object.defineProperty(this, 'privates', {
-			enumerable: false,
-			configurable: true,
-			writable: true
-		});
-	}catch(e){}
-	this.privates = {};
-	this.rng = rng;
-	this.marks = {
-		"'": rng.clone().live(), // this will record the last position in the text
-		"''": rng.clone().live() // this records the current position; just so it can be copied into ' above
-	}
-}
-ExState.prototype = { privates: {} };
-
-privatize ('rng');
-privatize ('marks');
-function createOption (option, value){
-	if (value instanceof RegExp) value = createRE(value.toString()); // make it one of my extended RegExps
-	ExState.prototype[option] = value;
-}
-function privatize(option){
-	if (!(option in ExState.prototype.privates)){
-		// not been defined before
-		ExState.prototype.privates[option] = ExState.prototype[option]; // save the default
-	}
-	try{
-		Object.defineProperty(ExState.prototype, option, {
-			enumerable: false,
-			configurable: true,
-			get: function() {
-				return option in this.privates ?
-					this.privates[option] :
-					ExState.prototype.privates[option];
-			},
-			set: function(val){
-				this.privates[option] = val;
-			},
-		});
-	}catch(e){
-		// IE 8 won't let me define properties on regular objects, so the state will not be monitored. Live with it
-		console.error(e);
-	}
-};
-function monitor (option){
-	// set option to signal on all changes
-	if (!(option in ExState.prototype)) privatize(option);
-	try {
-		Object.defineProperty(ExState.prototype, option, {
-			set: function(val){
-				this.privates[option] = val;
-				this.privates.rng.dispatch ({type: 'exstate', bubbles: true, detail: {option: option, value: val}});
-			}
-		});
-	}catch(e){
-		console.error(e);
-		// IE 8 won't let me define properties on regular objects, so the state will not be monitored. Live with it
-	}
-}
-bililiteRange.ex.createOption = createOption;
-bililiteRange.ex.privatize = privatize;
-bililiteRange.ex.monitor = monitor;
 
 var registers = bililiteRange.ex.registers = []; // the delete register is a stack, with 0 the most recent (use shift rather than pop)
 
@@ -355,7 +295,7 @@ var lastRE = /(?:)/; // blank RE's refer to this
 function interpretAddresses (rng, addresses){
 	// %% is the current range. If it is used by itself, don't change the range (or use line-based addressing)
 	if (addresses.length == 1 && addresses[0] == "%%") return;
-	var state = rng.exState();
+	var state = rng.data();
 	var lines = [];
 	var currLine = rng.line();
 	addresses.forEach(function(s){
@@ -472,67 +412,7 @@ function popRegister (register){
 	return register ? registers[register.toLowerCase()] : registers.shift();
 }
 
-/*********************** autoindenting *********************************/
-
-function indentation(rng){
-	// returns the whitespace at the start of this line
-	return /^\s*/.exec(rng.clone().bounds('line').text())[0];
-}
-function indent(text, tabs){
-	return text.replace(/^(.)/gm, tabs+'$1'); // only indent lines with content
-}
-function autoindent (text, rng){
-	return indent(text, indentation(rng));
-}
-function unindentone(str, n){ // n is the number of spaces to consider a single tab
-	n = parseInt(n); if (isNaN(n) || n < 1) n = 4;
-	var re = new RegExp('(^|\n)(\t| {'+n+'})', 'g');
-	return str.replace(re, '$1');
-}
-function unindent (str, repeat, n){
-	for (var i = 0; i < repeat; ++i) str = unindentone(str, n);
-	return str;
-}
 /*********************** the actual editing commands *********************************/
-
-// exported utility functions
-function booleanOption (option){
-	return function (parameter, variant){
-		var state = this.exState();
-		if (parameter=='?'){
-			this.exMessage = state[option] ? 'on' : 'off';
-		}else if (parameter == 'off' || parameter == 'no' || parameter == 'false'){
-			state[option] = variant;
-		}else if (parameter == 'toggle'){
-			state[option] = !state[option];
-		}else{
-			state[option] = !variant; // variant == false means take it straight and set the option
-		}
-	};
-}
-bililiteRange.ex.booleanOption = booleanOption;
-
-function stringOption (name){
-	return function (parameter, variant){
-		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = JSON.stringify(this.exState()[name]);
-		}else{
-			this.exState()[name] = parameter;
-		}
-	}
-}
-bililiteRange.ex.stringOption = stringOption;
-
-function reOption (name){
-	return function (parameter, variant){
-		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = JSON.stringify(this.exState()[name]);
-		}else{
-			this.exState()[name] = createRE(parameter, this.exState().ignorecase);
-		}
-	}
-}
-bililiteRange.ex.reOption = reOption;
 
 // a command is a function (parameter {String}, variant{Boolean}). 'this' is the bililiteRange; or a string that marks a synonym
 var commands = bililiteRange.ex.commands = {
@@ -542,18 +422,16 @@ var commands = bililiteRange.ex.commands = {
 
 	append: function (parameter, variant){
 		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
-		if (!variant != !this.exState().autoindent) parameter = autoindent(parameter, this);
-		this.bounds('endbounds').newline(parameter, 'end');
+		this.bounds('nonewline').bounds('endbounds').newline(parameter, 'end', !variant != !this.data().autoindent);
 	},
-
-	autoindent: booleanOption ('autoindent'),
 
 	c: 'change',
 
 	change: function (parameter, variant){
-		if (!variant != !this.exState().autoindent) parameter = autoindent(parameter, this);
 		pushRegister (this.text());
-		this.newline(parameter, 'end');
+		var indentation = this.indentation();
+		this.newline(parameter, 'all').bounds('nonewline');
+		if (!variant != !this.data().autoindent) this.indent(indentation);
 	},
 
 	copy: function (parameter, variant){
@@ -579,7 +457,7 @@ var commands = bililiteRange.ex.commands = {
 	'delete': 'del',
 
 	global: function (parameter, variant){
-		var re = createRE(parameter, this.exState().ignorecase);
+		var re = createRE(parameter, this.data().ignorecase);
 		var commands = splitCommands(string(re.rest), '\\n');
 		var line = this.clone();
 		var lines = this.lines();
@@ -605,11 +483,10 @@ var commands = bililiteRange.ex.commands = {
 
 	i: 'insert',
 
-	ignorecase: booleanOption ('ignorecase'),
-
 	insert: function (parameter, variant){
-		if (!variant != !this.exState().autoindent) parameter = autoindent(parameter, this);
-		this.bounds('startbounds').newline(parameter, 'end');
+		this.bounds('startbounds').newline(parameter, 'all').bounds('nonewline');
+		if (!variant != !this.data().autoindent) this.indent(this.indentation());
+		this.bounds('endbounds');
 	},
 
 	ic: 'ignorecase',
@@ -624,7 +501,7 @@ var commands = bililiteRange.ex.commands = {
 		if (lines[0] == lines[1]) ++lines[1]; // join at least 2 lines
 		var re = variant ? /\n/g : /\s*\n\s*/g;
 		var replacement = variant ? '' : ' '; // just one space. Doesn't do what the ex manual says about not inserting a space before a ')'
-		this.lines(lines[0],lines[1]);
+		this.lines(lines[0],lines[1]).bounds('nonewline');
 		this.text(this.text().replace(re, replacement), 'start');
 	},
 
@@ -633,7 +510,7 @@ var commands = bililiteRange.ex.commands = {
 	m: 'move',
 
 	mark: function (parameter, variant){
-		this.exState().marks[parameter] = this.clone().live();
+		this.data().marks[parameter] = this.clone().live();
 	},
 
 	move: function (parameter, variant){
@@ -647,10 +524,10 @@ var commands = bililiteRange.ex.commands = {
 		if (target < b[0]){
 			// move to before the current bounds
 			this.text('');
-			targetrng.text(text);
+			targetrng.newline(text);
 			this.bounds([target+text.length,target+text.length]);
 		}else if (target > b[1]){
-			targetrng.text(text); // it will end up pointing to the end when we delete the old text below
+			targetrng.newline(text); // it will end up pointing to the end when we delete the old text below
 			this.text('');
 			this.bounds([target,target]);
 		} // if target is inside the current range, don't do anything
@@ -675,9 +552,10 @@ var commands = bililiteRange.ex.commands = {
 	s: 'substitute',
 
 	set: function (parameter, variant){
-		if (!parameter || parameter == 'all'){
-			// only display the stringifiable options
-			this.exMessage = JSON.stringify(this.exState());
+		if (!parameter){
+			this.exMessage = JSON.stringify(this.data());
+		}else if(parameter == 'all'){
+			this.exMessage = JSON.stringify (this.data().all);
 		}else{
 			var self = this;
 			splitCommands(parameter, ' ').forEach(function(command){
@@ -703,7 +581,7 @@ var commands = bililiteRange.ex.commands = {
 	substitute: function (parameter, variant){
 		// we do not use the count parameter (too hard to interpret s/(f)oo/$1 -- is that last 1 a count or part of the replacement?
 		// easy enough to assume it's part of the replacement but that's probably not what we meant)
-		var re = createRE(parameter, this.exState().ignorecase);
+		var re = createRE(parameter, this.data().ignorecase);
 		this.text(this.text().replace(re, string(re.rest))).bounds('endbounds');
 	},
 
@@ -711,19 +589,6 @@ var commands = bililiteRange.ex.commands = {
 
 	t: 'copy',
 	
-	tabSize: function (parameter, variant){
-		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = '['+this.exState().tabSize+']';
-		}else{
-			var tabSize = parseInt(parameter);
-			if (isNaN(tabSize) || tabSize <= 0) throw new Error('Invalid value for tabSize: '+parameter);
-			this.exState().tabSize =
-				this.element().style.tabSize =
-				this.element().style.OTabSize =
-				this.element().style.MozTabSize = tabSize; // for browsers that support this.
-		}
-	},
-
 	tabstop: 'tabSize',
 
 	transcribe: 'copy',
@@ -738,8 +603,6 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	v: 'notglobal',
-
-	wrapscan: booleanOption ('wrapscan'),
 
 	ws: 'wrapscan',
 
@@ -763,27 +626,90 @@ var commands = bililiteRange.ex.commands = {
 
 	'~': function (parameter, variant){
 		lastRE = new RegExp (lastRE.rest, 'g');
-		commands.substitute.call (rng, parameter, variant);
+		commands.substitute.call (this, parameter, variant);
 	},
 	
 	'>': function (parameter, variant){
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
-		this.text(indent(this.text(), '\t'.repeat(parameter)));
+		this.bounds('nonewline').indent('\t'.repeat(parameter));
 	},
 	
 	'<': function (parameter, variant){
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
-		this.text(unindent(this.text(), parameter, this.exState().tabSize));
+		this.bounds('nonewline').unindent(parameter, this.data().tabSize);
 	},
 	
 	'!': function (parameter, variant){
 		// not a shell escape but a Javascript escape
 		var result = eval(parameter);
-		console.log(result);
 		if (result != undefined) this.text(result, 'end');
 	}
 };
+
+/*********************** the options *********************************/
+
+function createOption (name, value){
+	bililiteRange.data(name, {value: value});
+	// now create a command to set the value, based on value's type
+	// ugly constructor name hack from http://stackoverflow.com/questions/19528377/error-in-javascript-constructor-property-ie-8
+	var constructor = value.constructor.name || value.constructor.toString().match(/function (.+)\(/)[1];
+	bililiteRange.ex.commands[name] = (createOption[constructor] || createOption.generic)(name);
+}
+
+bililiteRange.ex.createOption = createOption;
+
+createOption.generic = function (name){
+	return function (parameter, variant){
+		if (parameter == '?' || parameter === true || !parameter){
+			this.exMessage = JSON.stringify(this.data()[name]);
+		}else{
+			this.data()[name] = parameter;
+		}
+	}
+}
+
+createOption.Boolean = function (name){
+	return function (parameter, variant){
+		var state = this.data();
+		if (parameter=='?'){
+			this.exMessage = state[name] ? 'on' : 'off';
+		}else if (parameter == 'off' || parameter == 'no' || parameter == 'false'){
+			state[name] = variant;
+		}else if (parameter == 'toggle'){
+			state[name] = !state[name];
+		}else{
+			state[name] = !variant; // variant == false means take it straight and set the option
+		}
+	};
+}
+
+createOption.Number = function (name){
+	return function (parameter, variant){
+		if (parameter == '?' || parameter === true || !parameter){
+			this.exMessage = '['+this.data()[name]+']';
+		}else{
+			var value = parseInt(parameter);
+			if (isNaN(value)) throw new Error('Invalid value for '+name+': '+parameter);
+			this.data()[name] = value;
+		}
+	}
+}
+
+createOption.RegExp = function (name){
+	return function (parameter, variant){
+		if (parameter == '?' || parameter === true || !parameter){
+			this.exMessage = JSON.stringify(this.data()[name]);
+		}else{
+			this.data()[name] = createRE(parameter, this.data().ignorecase);
+		}
+	}
+}
+
+createOption ('autoindent', false);
+createOption ('ignorecase', true);
+createOption ('tabSize', 8, true);
+createOption ('wrapscan', true);
 
 })();

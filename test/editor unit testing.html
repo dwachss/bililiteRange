@@ -15,10 +15,6 @@ The focus/blur code in FF requires the tab to be active
 <script src="http://code.jquery.com/jquery-1.10.2.min.js" ></script>
 <script src="http://code.jquery.com/qunit/qunit-1.13.0.js"></script>
 <script src="http://bililite.com/inc/promise-0.1.0.min.js" ></script>
-<script src="../bililiteRange.js"></script>
-<script src="../bililiteRange.util.js"></script>
-<script src="../bililiteRange.undo.js"></script>
-<script src="../jquery.sendkeys.js"></script>
 <script>
 var elements = ['div', 'textarea', 'input'];
 var text = 'one\ntwo\n\tthree';
@@ -48,9 +44,19 @@ function async (fn){
 	}
 }
 </script>
+<script src="../bililiteRange.js"></script>
 <script src="bililiteRange.qunit.js"></script>
+
+<script src="../bililiteRange.util.js"></script>
 <script src="bililiteRange.util.qunit.js"></script>
+
+<script src="../bililiteRange.undo.js"></script>
 <script src="bililiteRange.undo.qunit.js"></script>
+
+<script src="../bililiteRange.ex.js"></script>
+<script src="bililiteRange.ex.qunit.js"></script>
+
+<script src="../jquery.sendkeys.js"></script>
 <script src="jquery.sendkeys.qunit.js"></script>
 
 </body>

@@ -29,7 +29,7 @@ if (bililiteRange) (function(){
 
 bililiteRange.bounds.EOL = function(){
 	// set the range to the end of this line
-	// if we start at the end of a line, findBack will go to the next line! Check for that case first
+	// if we start at the end of a line, find will go to the next line! Check for that case first
 	this.bounds('startbounds');
 	if (this.findprimitive (/$/mg, this.bounds())) return this.bounds();
 	return this.find(/$/m, true).bounds(); // don't wrap
@@ -58,7 +58,7 @@ bililiteRange.bounds.endbounds = function(){
 var oldtext = bililiteRange.fn.text;
 bililiteRange.fn.text = function (text, select, autoindent){
 	if (!arguments.length) return oldtext.call (this);
-	if (autoindent) text = indent(text, indentation(this));
+	if (autoindent) text = indent(text, this.indentation());
 	return oldtext.call (this, text, select);
 }
 
@@ -88,6 +88,11 @@ bililiteRange.extend({
 	},
 
 	findBack: function (re, nowrap) { return this.find(re,nowrap,true) },
+
+	indentation: function(){
+		// returns the whitespace at the start of this line
+		return /^\s*/.exec(this.clone().bounds('line').text())[0];
+	},
 	
 	indent: function (tabs){
 		// tabs is the string to insert before each line of the range
@@ -236,15 +241,8 @@ function diff (oldtext, newtext){
 };
 bililiteRange.diff = diff; // expose
 
-function indentation(rng){
-	// returns the whitespace at the start of this line
-	return /^\s*/.exec(rng.clone().bounds('line').text())[0];
-}
 function indent(text, tabs){
 	return text.replace(/\n/g, '\n'+tabs);
-}
-function autoindent (text, rng){
-	return indent(text, indentation(rng));
 }
 function unindentone(str, n, start){
 	// n is the number of spaces to consider a single tab
