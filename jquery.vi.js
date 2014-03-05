@@ -41,7 +41,7 @@ $.fn.vi = function(status, toolbar){
 		var rng = bililiteRange(this);
 		rng.undo(0); // initialize the undo handler (ex does this but we haven't called ex yet)
 		// track saving and writing
-		var state = rng.exState();
+		var state = rng.data();
 		var monitor = state.monitor = $(this).savemonitor();
 		state['save~state'] = monitor.state();
 		monitor.on($.savemonitor.states, function(evt){
@@ -58,15 +58,15 @@ $.fn.vi = function(status, toolbar){
 
 // create special events that let us check for vi-specific elements and modes
 
-$.event.fixHooks['exstate'] = { props:['detail'] }; // make sure it's copied over
-$.event.fixHooks['vi-exstate'] = { props:['detail'] };
-$.event.special['vi-exstate'] = {
-	delegateType: 'exstate',
-	bindType: 'exstate',
+$.event.fixHooks['bililiteRangeData'] = { props:['detail'] }; // make sure it's copied over
+$.event.fixHooks['vi-data'] = { props:['detail'] };
+$.event.special['vi-data'] = {
+	delegateType: 'bililiteRangeData',
+	bindType: 'bililiteRangeData',
 	handle: function(evt){
 		if (!$(evt.target).hasClass($.viClass)) return;
-		var desiredoption = evt.data && evt.data.option;
-		if (desiredoption && evt.detail.option != desiredoption) return;
+		var desiredoption = evt.data && evt.data.name;
+		if (desiredoption && evt.detail.name != desiredoption) return;
 		evt.rng = bililiteRange(evt.target);
 		return evt.handleObj.handler.apply(this, arguments);
 	}
@@ -77,7 +77,7 @@ $.event.special['vi-keydown'] = {
 	bindType: 'keydown',
 	handle: function(evt){
 		if (!$(evt.target).hasClass($.viClass)) return;
-		var mode = bililiteRange(evt.target).exState().vimode;
+		var mode = bililiteRange(evt.target).data().vimode;
 		var desiredmode = evt.data && evt.data.mode;
 		if (desiredmode && mode != desiredmode) return;
 		evt.rng = bililiteRange(evt.target);
@@ -90,7 +90,7 @@ $.event.special['vi-click'] = {
 		var self = this, args = arguments;
 		target.each(function(){
 			evt.rng = bililiteRange(this);
-			var mode = evt.rng.exState().vimode;
+			var mode = evt.rng.data().vimode;
 			var desiredmode = evt.data && evt.data.mode;
 			if (desiredmode && mode != desiredmode) return;
 			return evt.handleObj.handler.apply(self, args);
@@ -102,8 +102,8 @@ function executeCommand (rng, command, defaultAddress){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
 		rng.bounds('selection').ex(command || text, defaultAddress).select().scrollIntoView();
-		rng.exState().count = 0; // reset
-		rng.exState().register = undefined;
+		rng.data().count = 0; // reset
+		rng.data().register = undefined;
 		return rng.exMessage;
 	};
 }
@@ -125,7 +125,7 @@ $.exmap = function(opts, defaults){
 	if ($.isFunction(opts.command)){
 		var commandName = bililiteRange.ex.toID(opts.name);
 		bililiteRange.ex.commands[commandName] = opts.command;
-		opts.command = opts.monitor ? opts.monitor+" toggle" : commandName;
+		opts.command = commandName;
 	}
 	function run(event){
 		$($.data(event.rng.element(), 'vi.status')).status({
@@ -154,12 +154,11 @@ $.exmap = function(opts, defaults){
 		});
 	}
 	if (opts.monitor) {
-		bililiteRange.ex.monitor(opts.monitor);
 		if (!opts.monitoringFunction) opts.monitoringFunction = function(option, value){
 			// assume we're looking at a binary option
 			this.removeClass('on off').addClass(value ? 'on' : 'off');
 		}
-		body.on('vi-exstate', {option: opts.monitor}, function(evt){
+		body.on('vi-data', {name: opts.monitor}, function(evt){
 			opts.monitoringFunction.call(button, evt.detail.option, evt.detail.value);			
 		})
 	}
@@ -167,30 +166,48 @@ $.exmap = function(opts, defaults){
 
 /*------------ Set up default options ------------ */
 // unlike real vi, start in insert mode since that is more "natural" for a GUI
-bililiteRange.ex.createOption('vimode', 'INSERT');
-bililiteRange.ex.privatize('vimode');
+bililiteRange.data('vimode', {
+	value: 'INSERT',
+	enumerable: false
+});
 
 // RE's for searching
 bililiteRange.ex.createOption('word', /^|$|\W+|\w+/);
 bililiteRange.ex.createOption('bigword', /^|$|\s+|\S+/);
 
+// for saving
+bililiteRange.ex.createOption('directory', ''); // used as the $.post url for saving
+bililiteRange.ex.createOption('file', 'Untitled');
+
 // writing files. Assumes POSTing with {buffer: text-to-be-saved, file: filename}
 // use mockjax to do something else.
-bililiteRange.ex.privatize('monitor');
-bililiteRange.ex.privatize('save~state');
-bililiteRange.ex.monitor('save~state');
+bililiteRange.data('monitor', {
+	enumerable: false
+});
+bililiteRange.data('save~state', {
+	value: 'clean',
+	enumerable: false,
+	monitored: true
+});
 
 // a series of digits means a number of times to repeat a command
 // 'count' is that number; some commands use that directly but text-entry commands can only repeat after the text is entered.
 // so the count is saved in 'repeatcount' (since 'count' is reset after every command), and the present text is saved.
 // When we return to visual mode, we see how that text has changed and insert the new text (at whereever the insertion point is!) 
 // 'repeatcount'-1 times ( since it's already been inserted once)
-bililiteRange.ex.createOption('count', 0);
-bililiteRange.ex.privatize('count'); // a number preceding vi commands
-bililiteRange.ex.privatize('oldtext'); // for repeated insertions, this is the original text to compare to
-bililiteRange.ex.privatize('repeatcount'); // this is the number of times to repeat insertions
+bililiteRange.data('count', { // a number preceding vi commands
+	value: 0,
+	enumerable: false
+});
+bililiteRange.data('oldtext', { // for repeated insertions, this is the original text to compare to
+	enumerable: false
+});
+bililiteRange.data('repeatcount', { // this is the number of times to repeat insertions
+	value: 0,
+	enumerable: false
+});
 body.on('vi-keydown', {keys: /\d/, mode: 'VISUAL'}, function (evt){
-	var state = bililiteRange(evt.target).exState();
+	var state = bililiteRange(evt.target).data();
 	if (state.count == 0 && evt.hotkeys == '0') return; // 0 has a different meaning if not part of a number
 	state.count = state.count * 10 + parseInt(evt.hotkeys);
 	evt.preventDefault();
@@ -198,29 +215,30 @@ body.on('vi-keydown', {keys: /\d/, mode: 'VISUAL'}, function (evt){
 });
 
 // a double quote followed by a letter means store the result of the next command (if it removes text) into that register
-bililiteRange.ex.privatize('register');
+bililiteRange.data('register', {enumerable: false});
 body.on('vi-keydown', {keys: /" [A-Za-z]/, mode: 'VISUAL'}, function (evt){
-	state.register = evt.hotkeys.charAt(2);
+	evt.range.data().register = evt.hotkeys.charAt(2);
 	evt.preventDefault();
 	evt.stopImmediatePropagation();
 });
 
+// track tab size
+bililiteRange.data ('tabSize', {monitored: true});
+body.on('vi-data', {name: 'tabSize'}, function (evt){
+	var style = evt.rng.element().style;
+	style.tabSize =
+	style.OTabSize =
+	style.MozTabSize = evt.detail.value; // for browsers that support this.
+});
+
 /*------------ Set up generic commands ------------ */
+
 $.exmap([
 {
-	name: 'bigword',
-	command: bililiteRange.ex.reOption('bigword')
-},{
 	name: 'console',
 	command: function (parameter, variant){
 		console.log(executeCommand(this)(parameter));
 	}
-},{
-	name: 'directory', // used as the $.post url for saving
-	command: bililiteRange.ex.stringOption('directory')
-},{
-	name: 'file',
-	command: bililiteRange.ex.stringOption('file')
 },{
 	name: 'map',
 	command: function (parameter, variant){
@@ -240,7 +258,7 @@ $.exmap([
 },{
 	name: 'repeat',
 	command: function (parameter, variant){
-		var state = this.exState();
+		var state = this.data();
 		for (var i = state.count || 1; i > 0; --i){
 			var result = executeCommand(this)(parameter);
 		}
@@ -261,7 +279,7 @@ $.exmap([
 	name: 'vi',
 	keys: '{esc}',
 	command: function (parameter, variant){
-		var state = this.exState();
+		var state = this.data();
 		parameter = parameter || 'VISUAL';
 		// an insertion with a count means repeat the insertion when we return to visual mode
 		if (parameter == 'INSERT'){
@@ -275,12 +293,9 @@ $.exmap([
 		state.vimode = parameter;
 	}
 },{
-	name: 'word',
-	command: bililiteRange.ex.reOption('word')
-},{
 	name: 'write',
 	command: function(parameter, variant){
-		var rng = this, state = this.exState(), el = this.element();
+		var rng = this, state = this.data(), el = this.element();
 		if (parameter) state.file = parameter;
 		state.monitor.clean($.data(el, 'vi.status').status({
 			run: function() { return $.post(state.directory, {
@@ -323,7 +338,7 @@ $.exmap([
 },{
 	keys: 'b', // end of previous word
 	command: function(){
-		var state = this.exState();
+		var state = this.data();
 		for (var i = state.count || 1; i > 0; --i){
 			this.findBack(state.word, true);
 		}
@@ -332,7 +347,7 @@ $.exmap([
 },{
 	keys: 'B', // end of previous bigword
 	command: function(){
-		var state = this.exState();
+		var state = this.data();
 		for (var i = state.count || 1; i > 0; --i){
 			this.findBack(state.bigword, true);
 		}
@@ -341,7 +356,7 @@ $.exmap([
 },{
 	keys: 'e', // end of next word
 	command: function(){
-		var state = this.exState();
+		var state = this.data();
 		for (var i = state.count || 1; i > 0; --i){
 			this.find(state.word, true);
 		}
@@ -350,7 +365,7 @@ $.exmap([
 },{
 	keys: 'E', // end of next bigword
 	command: function(){
-		var state = this.exState();
+		var state = this.data();
 		for (var i = state.count || 1; i > 0; --i){
 			this.find(state.bigword, true);
 		}

@@ -62,7 +62,7 @@ multitest("Testing bililiteRange ex marks", function (rng, el, text, i){
 multitest("Testing bililiteRange ex options", function (rng, el, text, i){
 	rng.ex('set ai|ai?');
 	equal (rng.exMessage, 'on', 'set boolean');
-	rng.ex('set sw=12|tabSize?');
+	rng.ex('set sw=12|set tabSize?');
 	equal (rng.exMessage, '[12]', 'set numeric');
 });
 multitest("Testing bililiteRange ex escape", function (rng, el, text, i){
