@@ -172,7 +172,7 @@ Range.prototype = {
 			this.dispatch({type: 'input', data: text, bounds: bounds});
 			return this; // allow for chaining
 		}else{
-			return this._nativeGetText(this._nativeRange(this.bounds()));
+			return this._nativeGetText(this._nativeRange(this.bounds())).replace(/\r/g, ''); // need to correct for IE's CrLf weirdness
 		}
 	},
 	insertEOL: function (){
@@ -216,7 +216,7 @@ Range.prototype = {
 			this.dispatch ({type: 'input', data: text});
 			return this;
 		}else{
-			return this._el[this._textProp].replace(/\r/g, ''); // need to correct for IE's CrLf weirdness;
+			return this._el[this._textProp].replace(/\r/g, ''); // need to correct for IE's CrLf weirdness
 		}
 	},
 	element: function() { return this._el },
@@ -305,7 +305,7 @@ IERange.prototype._nativeRange = function (bounds){
 	if (bounds){
 		if (bounds[1] < 0) bounds[1] = 0; // IE tends to run elements out of bounds
 		if (bounds[0] > this.length()) bounds[0] = this.length();
-		if (bounds[1] < rng.text.replace(/\r/g, '').length){ // correct for IE's CrLf wierdness
+		if (bounds[1] < rng.text.replace(/\r/g, '').length){ // correct for IE's CrLf weirdness
 			// block-display elements have an invisible, uncounted end of element marker, so we move an extra one and use the current length of the range
 			rng.moveEnd ('character', -1);
 			rng.moveEnd ('character', bounds[1]-rng.text.replace(/\r/g, '').length);
@@ -334,7 +334,7 @@ IERange.prototype._nativeSelection = function (){
 	}
 };
 IERange.prototype._nativeGetText = function (rng){
-	return rng.text.replace(/\r/g, ''); // correct for IE's CrLf weirdness
+	return rng.text;
 };
 IERange.prototype._nativeSetText = function (text, rng){
 	rng.text = text;
@@ -362,7 +362,7 @@ IERange.prototype._nativeWrap = function(n, rng) {
 // IE internals
 function iestart(rng, constraint){
 	// returns the position (in character) of the start of rng within constraint. If it's not in constraint, returns 0 if it's before, length if it's after
-	var len = constraint.text.replace(/\r/g, '').length; // correct for IE's CrLf wierdness
+	var len = constraint.text.replace(/\r/g, '').length; // correct for IE's CrLf weirdness
 	if (rng.compareEndPoints ('StartToStart', constraint) <= 0) return 0; // at or before the beginning
 	if (rng.compareEndPoints ('StartToEnd', constraint) >= 0) return len;
 	for (var i = 0; rng.compareEndPoints ('StartToStart', constraint) > 0; ++i, rng.moveStart('character', -1));
@@ -370,7 +370,7 @@ function iestart(rng, constraint){
 }
 function ieend (rng, constraint){
 	// returns the position (in character) of the end of rng within constraint. If it's not in constraint, returns 0 if it's before, length if it's after
-	var len = constraint.text.replace(/\r/g, '').length; // correct for IE's CrLf wierdness
+	var len = constraint.text.replace(/\r/g, '').length; // correct for IE's CrLf weirdness
 	if (rng.compareEndPoints ('EndToEnd', constraint) >= 0) return len; // at or after the end
 	if (rng.compareEndPoints ('EndToStart', constraint) <= 0) return 0;
 	for (var i = 0; rng.compareEndPoints ('EndToStart', constraint) > 0; ++i, rng.moveEnd('character', -1));
