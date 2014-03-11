@@ -11,6 +11,7 @@ multitest("Testing bililiteRange utilities", function (rng, el, text, i){
 	}
 	rng.all(text).bounds('start');
 	rng.find(/two/);
+	console.log(rng.text());
 	equal(rng.line(), line, 'find correct line');
 	rng.bounds('EOL');
 	deepEqual(rng.bounds(), bounds, 'bounds (EOL)');

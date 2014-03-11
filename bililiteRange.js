@@ -26,6 +26,9 @@
 
 (function(){
 
+// a bit of weirdness with IE11: using 'focus' is flaky, even if I'm not bubbling, as far as I can tell.
+var focusEvent = 'onfocusin' in document.createElement('input') ? 'focusin' : 'focus';
+
 bililiteRange = function(el, debug){
 	var ret;
 	if (debug){
@@ -41,7 +44,7 @@ bililiteRange = function(el, debug){
 		}
 	}else if (window.getSelection){
 		// Standards, with any other kind of element
-		ret = new W3CRange()
+		ret = new W3CRange();
 	}else if (document.selection){
 		// Internet Explorer
 		ret = new IERange();
@@ -85,14 +88,14 @@ bililiteRange = function(el, debug){
 			}
 		}
 		trackSelection();
-		// only IE does this right and allows us to grap the selection before blurring
+		// only IE does this right and allows us to grab the selection before blurring
 		if ('onbeforedeactivate' in el){
 			ret.listen('beforedeactivate', trackSelection);
 		}else{
 			// with standards-based browsers, have to listen for every user interaction
 			ret.listen('mouseup', trackSelection).listen('keyup', trackSelection);
 		}
-		ret.listen('focus', function(){
+		ret.listen(focusEvent, function(){
 			// restore the correct selection when the element comes into focus (mouse clicks change the position of the selection)
 			// Note that Firefox will not fire the focus event until the window/tab is active even if el.focus() is called
 			// https://bugzilla.mozilla.org/show_bug.cgi?id=566671
@@ -433,14 +436,14 @@ W3CRange.prototype._nativeSelect = function (rng){
 	this._win.getSelection().addRange (rng);
 };
 W3CRange.prototype._nativeSelection = function (){
-		// returns [start, end] for the selection constrained to be in element
-		var rng = this._nativeRange(); // range of the element to constrain to
-		if (this._win.getSelection().rangeCount == 0) return [this.length(), this.length()]; // append to the end
-		var sel = this._win.getSelection().getRangeAt(0);
-		return [
-			w3cstart(sel, rng),
-			w3cend (sel, rng)
-		];
+	// returns [start, end] for the selection constrained to be in element
+	var rng = this._nativeRange(); // range of the element to constrain to
+	if (this._win.getSelection().rangeCount == 0) return [this.length(), this.length()]; // append to the end
+	var sel = this._win.getSelection().getRangeAt(0);
+	return [
+		w3cstart(sel, rng),
+		w3cend (sel, rng)
+	];
 	}
 W3CRange.prototype._nativeGetText = function (rng){
 	return rng.toString();
@@ -534,14 +537,14 @@ function w3cstart(rng, constraint){
 	if (rng.compareBoundaryPoints (END_TO_START, constraint) >= 0) return constraint.toString().length;
 	rng = rng.cloneRange(); // don't change the original
 	rng.setEnd (constraint.endContainer, constraint.endOffset); // they now end at the same place
-	return constraint.toString().length - rng.toString().length;
+	return constraint.toString().replace(/\r/g, '').length - rng.toString().replace(/\r/g, '').length;
 }
 function w3cend (rng, constraint){
 	if (rng.compareBoundaryPoints (END_TO_END, constraint) >= 0) return constraint.toString().length; // at or after the end
 	if (rng.compareBoundaryPoints (START_TO_END, constraint) <= 0) return 0;
 	rng = rng.cloneRange(); // don't change the original
 	rng.setStart (constraint.startContainer, constraint.startOffset); // they now start at the same place
-	return rng.toString().length;
+	return rng.toString().replace(/\r/g, '').length;
 }
 
 function NothingRange(){}

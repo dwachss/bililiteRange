@@ -138,7 +138,7 @@ bililiteRange.extend({
 		}else{
 			// just count newlines before this.bounds
 			// If we are on the boundary between lines (i.e. after the newline), this counts the next line
-			return bililiteRange(this._el).bounds([0, this.bounds()[0]]).text().split('\n').length;
+			return this.all().slice(0, this.bounds()[0]).split('\n').length;
 		}
 	},
 	

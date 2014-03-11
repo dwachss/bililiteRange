@@ -19,7 +19,6 @@ The focus/blur code in FF requires the tab to be active
 var elements = ['div', 'textarea', 'input'];
 var text = 'one\ntwo\n\tthree';
 var oneline = text.replace(/\n/g, '');
-var $fixture = $( "#qunit-fixture" );
 function multitest (message, fn, async){
 	elements.forEach(function(name, i){
 		window[async ? 'asyncTest' : 'test'](message+' on '+name, function(){
@@ -29,7 +28,7 @@ function multitest (message, fn, async){
 				height: '40px',
 				width: '200px',
 			}).attr('contenteditable', '');
-			$fixture.append($el);
+			$( "#qunit-fixture" ).append($el);
 			var el = $el[0];
 			var rng = bililiteRange(el);
 			fn (rng, el, name == 'input' ? oneline : text, i);
