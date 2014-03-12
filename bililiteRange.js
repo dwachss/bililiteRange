@@ -183,6 +183,23 @@ Range.prototype = {
 		this._bounds = [this._bounds[0]+1, this._bounds[0]+1]; // move past the EOL marker
 		return this;
 	},
+	sendkeys: function (text){
+		var self = this;
+		this.data().sendkeysOriginalText = this.text();
+		text.replace(/{[^}]*}|[^{]+/g, function(s){
+			function simplechar (rng, s){
+				if (/^{[^}]*}$/.test(s)) s = s.slice(1,-1);	// deal with unknown {key}s
+				for (var i =0; i < s.length; ++i){
+					var x = s.charCodeAt(i);
+					rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
+				}
+				rng.text(s, 'end');
+			}
+			(bililiteRange.sendkeys[s] || simplechar)(self, s);
+		});
+		this.dispatch({type: 'sendkeys', which: text});
+		return this;
+	},
 	top: function(){
 		return this._nativeTop(this._nativeRange(this.bounds()));
 	},
@@ -291,6 +308,55 @@ bililiteRange.bounds = {
 		}else{
 			return this._el.bililiteRangeSelection;
 		}
+	}
+};
+
+// sendkeys functions
+bililiteRange.sendkeys = {
+	'{enter}': function (rng){
+		var x = '\n'.charCodeAt(0);
+		rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
+		rng.insertEOL();
+	},
+	'{tab}': function (rng){
+		rng.text('\t', 'end'); // useful for inserting what would be whitespace
+	},
+	'{backspace}': function (rng){
+		var b = rng.bounds();
+		if (b[0] == b[1]) rng.bounds([b[0]-1, b[0]]); // no characters selected; it's just an insertion point. Remove the previous character
+		rng.text('', 'end'); // delete the characters and update the selection
+	},
+	'{del}': function (rng){
+		var b = rng.bounds();
+		if (b[0] == b[1]) rng.bounds([b[0], b[0]+1]); // no characters selected; it's just an insertion point. Remove the next character
+		rng.text('', 'end'); // delete the characters and update the selection
+	},
+	'{rightarrow}':  function (rng){
+		var b = rng.bounds();
+		if (b[0] == b[1]) ++b[1]; // no characters selected; it's just an insertion point. Move to the right
+		rng.bounds([b[1], b[1]]);
+	},
+	'{leftarrow}': function (rng){
+		var b = rng.bounds();
+		if (b[0] == b[1]) --b[0]; // no characters selected; it's just an insertion point. Move to the left
+		rng.bounds([b[0], b[0]]);
+	},
+	'{selectall}' : function (rng){
+		rng.bounds('all');
+	},
+	'{selection}': function (rng){
+		// insert the characters without the sendkeys processing
+		var s = rng.data().sendkeysOriginalText;
+		for (var i =0; i < s.length; ++i){
+			var x = s.charCodeAt(i);
+			rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
+		}
+		rng.text(s, 'end');
+	},
+	'{mark}' : function (rng){
+		var bounds = rng.bounds();
+		function handler() { rng.bounds(bounds).dontlisten('sendkeys', handler) }
+		rng.listen('sendkeys', handler);
 	}
 };
 
@@ -450,7 +516,7 @@ W3CRange.prototype._nativeGetText = function (rng){
 };
 W3CRange.prototype._nativeSetText = function (text, rng){
 	rng.deleteContents();
-	rng.insertNode (this._doc.createTextNode(text));
+	if (text != '') rng.insertNode (this._doc.createTextNode(text)); // IE randomly has a problem with empty text nodes
 	this._el.normalize(); // merge the text with the surrounding text
 };
 W3CRange.prototype._nativeEOL = function(){
