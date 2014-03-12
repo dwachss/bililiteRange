@@ -29,6 +29,14 @@
 // a bit of weirdness with IE11: using 'focus' is flaky, even if I'm not bubbling, as far as I can tell.
 var focusEvent = 'onfocusin' in document.createElement('input') ? 'focusin' : 'focus';
 
+// IE11 normalize is buggy (http://connect.microsoft.com/IE/feedback/details/809424/node-normalize-removes-text-if-dashes-are-present)
+var n = document.createElement('div');
+n.appendChild(document.createTextNode('x-'));
+n.appendChild(document.createTextNode('x'));
+n.normalize();
+var canNormalize = n.firstChild.length == 3;
+
+
 bililiteRange = function(el, debug){
 	var ret;
 	if (debug){
@@ -186,17 +194,19 @@ Range.prototype = {
 	sendkeys: function (text){
 		var self = this;
 		this.data().sendkeysOriginalText = this.text();
-		text.replace(/{[^}]*}|[^{]+/g, function(s){
-			function simplechar (rng, s){
-				if (/^{[^}]*}$/.test(s)) s = s.slice(1,-1);	// deal with unknown {key}s
-				for (var i =0; i < s.length; ++i){
-					var x = s.charCodeAt(i);
+		this.data().sendkeysBounds = undefined;
+		text.replace(/{[^}]*}|[^{]+/g, function(part){
+			function simplechar (rng, c){
+				if (/^{[^}]*}$/.test(c)) c = c.slice(1,-1);	// deal with unknown {key}s
+				for (var i =0; i < c.length; ++i){
+					var x = c.charCodeAt(i);
 					rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
 				}
-				rng.text(s, 'end');
+				rng.text(c, 'end');
 			}
-			(bililiteRange.sendkeys[s] || simplechar)(self, s);
+			(bililiteRange.sendkeys[part] || simplechar)(self, part);
 		});
+		this.bounds(this.data().sendkeysBounds);
 		this.dispatch({type: 'sendkeys', which: text});
 		return this;
 	},
@@ -354,9 +364,7 @@ bililiteRange.sendkeys = {
 		rng.text(s, 'end');
 	},
 	'{mark}' : function (rng){
-		var bounds = rng.bounds();
-		function handler() { rng.bounds(bounds).dontlisten('sendkeys', handler) }
-		rng.listen('sendkeys', handler);
+		rng.data().sendkeysBounds = rng.bounds();
 	}
 };
 
@@ -516,8 +524,8 @@ W3CRange.prototype._nativeGetText = function (rng){
 };
 W3CRange.prototype._nativeSetText = function (text, rng){
 	rng.deleteContents();
-	if (text != '') rng.insertNode (this._doc.createTextNode(text)); // IE randomly has a problem with empty text nodes
-	this._el.normalize(); // merge the text with the surrounding text
+	rng.insertNode (this._doc.createTextNode(text)); // IE randomly has a problem with empty text nodes
+	if (canNormalize) this._el.normalize(); // merge the text with the surrounding text
 };
 W3CRange.prototype._nativeEOL = function(){
 	var rng = this._nativeRange(this.bounds());
