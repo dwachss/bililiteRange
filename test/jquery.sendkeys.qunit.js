@@ -12,6 +12,11 @@ multitest("Testing sendkeys mark/selection", function (rng, el, text, i){
 multitest("Testing jquery.sendkeys", function (rng, el, text, i){
 	rng.all(text);
 	rng.bounds([1,1]).select();
-	$(el).sendkeys('12{backspace}3{leftarrow}4{rightarrow}56{leftarrow}{del}');
-	equal(rng.all(), text.replace(/^./, '$&1435'), 'sendkeys jquery');
+	if (el.nodeName.toLowerCase() == 'input'){
+		$(el).sendkeys('12{backspace}3{leftarrow}4{rightarrow}56{leftarrow}{del}');
+		equal(rng.all(), text.replace(/^./, '$&1435'), 'sendkeys jquery');
+	}else{
+		$(el).sendkeys('12{backspace}3{leftarrow}\n4{rightarrow}56{leftarrow}{del}');
+		equal(rng.all(), text.replace(/^./, '$&1\n435'), 'sendkeys jquery');
+	}
 });
