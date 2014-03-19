@@ -520,11 +520,12 @@ W3CRange.prototype._nativeSelection = function (){
 	];
 	}
 W3CRange.prototype._nativeGetText = function (rng){
-	return rng.toString();
+	return String.prototype.slice.apply(this._el.textContent, this.bounds());
+	// return rng.toString(); // this fails in IE11 since it insists on inserting \r's before \n's in Ranges. node.textContent works as expected
 };
 W3CRange.prototype._nativeSetText = function (text, rng){
 	rng.deleteContents();
-	rng.insertNode (this._doc.createTextNode(text)); // IE randomly has a problem with empty text nodes
+	rng.insertNode (this._doc.createTextNode(text));
 	if (canNormalize) this._el.normalize(); // merge the text with the surrounding text
 };
 W3CRange.prototype._nativeEOL = function(){
@@ -577,10 +578,11 @@ function w3cmoveBoundary (rng, n, bStart, el){
 	}
 	while (node){
 		if (node.nodeType == 3){
-			if (n <= node.nodeValue.length){
+			var length = node.nodeValue.length;
+			if (n <= length){
 				rng[bStart ? 'setStart' : 'setEnd'](node, n);
 				// special case: if we end next to a <br>, include that node.
-				if (n == node.nodeValue.length){
+				if (n == length){
 					// skip past zero-length text nodes
 					for (var next = nextnode (node, el); next && next.nodeType==3 && next.nodeValue.length == 0; next = nextnode(next, el)){
 						rng[bStart ? 'setStartAfter' : 'setEndAfter'](next);
@@ -590,7 +592,7 @@ function w3cmoveBoundary (rng, n, bStart, el){
 				return;
 			}else{
 				rng[bStart ? 'setStartAfter' : 'setEndAfter'](node); // skip past this one
-				n -= node.nodeValue.length; // and eat these characters
+				n -= length; // and eat these characters
 			}
 		}
 		node = nextnode (node, el);

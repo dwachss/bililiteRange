@@ -72,7 +72,7 @@ lines: function(i, j){
 		var totallines = this.all().split('\n').length;
 		if (i > totallines) return this.bounds('end');
 		var start = this.line(i).bounds('BOL').bounds()[0];
-		var end = this.line(j).bounds('EOL').bounds()[1]+1; // the +1 is to include the newline at the end of the line. 
+		var end = this.line(j).bounds('EOL').bounds()[1]+1; // the +1 is to include the newline at the end of the line
 		return this.bounds([start, end]);
 	}else{
 		// if we end on a newline, don't count it
@@ -422,7 +422,8 @@ var commands = bililiteRange.ex.commands = {
 
 	append: function (parameter, variant){
 		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
-		this.bounds('nonewline').bounds('endbounds').newline(parameter, 'end', !variant != !this.data().autoindent);
+		this.bounds('nonewline').bounds('endbounds');
+		this.newline(parameter, 'end', !variant != !this.data().autoindent);
 	},
 
 	c: 'change',

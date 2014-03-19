@@ -64,3 +64,11 @@ multitest ('Testing monitored data', function (rng, el, text, i){
 	});
 	rng.data()['monitored~value'] = 1;
 }, true);
+multitest ('Testing bililiteRange wrap', function (rng, el, text, i){
+	try {
+		rng.all(text).bounds([1,2]).wrap(document.createElement('em'));
+		equal (el.innerHTML, text.slice(0,1)+'<em>'+text.slice(1,2)+'</em>'+text.slice(2), 'wrap');
+	}catch(e){
+		ok(el.nodeName == 'INPUT' || el.nodeName == 'TEXTAREA', 'wrap throws in text-only elements');
+	}
+});
