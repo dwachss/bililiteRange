@@ -1,0 +1,8 @@
+{
+   "name": "bililiteRange",
+   "version": "1.0.0",
+   "main": "bililiteRange.js",
+   "ignore": [
+      "test/**/*"
+   ]
+}
