@@ -100,7 +100,6 @@ function highlight (rng){
 }
 
 function deletehighlight(rng){
-	console.log('deleting');
 	var display = $.data(rng._el, 'livesearch.display');
 	if (display){
 		display.remove();
