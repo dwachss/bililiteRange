@@ -408,7 +408,7 @@ $.exmap([
 		$status.status({
 			prompt: variant ? '?' : '/',
 			run: function(text){
-				rng.bounds('selection').find(new RegExp(text), variant).select().scrollIntoView();
+				rng.bounds('selection').find(new RegExp(text), undefined, variant).select().scrollIntoView();
 				if (!rng.match) throw new Error(text+' not found');
 			},
 			returnPromise: true
