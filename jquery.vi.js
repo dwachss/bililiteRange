@@ -400,6 +400,27 @@ $.exmap([
 },{
 	keys: '<',
 	command: 'repeat <'
+},{
+	keys: '/',
+	name: 'livesearch',
+	command: function(parameter, variant){
+		var rng = this, el = this.element(), $status = $.data(el, 'vi.status');
+		$status.status({
+			prompt: variant ? '?' : '/',
+			run: function(text){
+				rng.bounds('selection').find(new RegExp(text), variant).select().scrollIntoView();
+				if (!rng.match) throw new Error(text+' not found');
+			},
+			returnPromise: true
+		}).then( // make sure we return focus to the text! It would be nice to have a finally method
+			function(e) {el.focus()},
+			function(e) {el.focus()}
+		);
+		$status.off('.search').on('input.search focus.search focusout.search', 'input', $(el).livesearch(variant));
+	}
+},{
+	keys: '?',
+	command: 'livesearch!'
 }
 ], {mode: 'VISUAL'});
 
