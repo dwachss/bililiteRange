@@ -31,7 +31,7 @@
 (function($){
 
 $.viClass = $.viClass || 'vi';
-$.fn.vi = function(status, toolbar){
+$.fn.vi = function(status, toolbar, exrc){
 	var self = this;
 	$(toolbar).click (function(evt){
 		$(evt.target).trigger('vi-click', [self]);
@@ -47,7 +47,7 @@ $.fn.vi = function(status, toolbar){
 		monitor.on($.savemonitor.states, function(evt){
 			state['save~state'] = evt.type;
 		});
-		$.get('/exrc').then(function(commands){
+		if (exrc) $.get(exrc).then(function(commands){
 			// note that this is done asynchronously, so the user may be editing before this gets executed
 			rng.ex(commands);
 		});
