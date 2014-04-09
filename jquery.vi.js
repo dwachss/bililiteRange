@@ -102,6 +102,7 @@ function executeCommand (rng, command, defaultAddress){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
 		rng.bounds('selection').ex(command || text, defaultAddress).select().scrollIntoView();
+		rng.element().focus();
 		rng.data().count = 0; // reset
 		rng.data().register = undefined;
 		return rng.exMessage;
@@ -272,8 +273,7 @@ $.exmap([
 },{
 	name: 'sendkeys',
 	command: function (parameter, variant){
-		$(this.element()).sendkeys(parameter);
-		this.bounds('selection');
+		this.sendkeys(parameter);
 	}
 },{
 	name: 'vi',
