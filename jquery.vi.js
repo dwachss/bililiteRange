@@ -52,7 +52,7 @@ $.fn.vi = function(status, toolbar, exrc){
 			rng.ex(commands);
 		});
 	});
-	return this.addClass($.viClass).data('vi.status', $(status));
+	return this.addClass($.viClass).data('vi.status', $(status)).data('vi.toolbar', $(toolbar));
 }
 
 
@@ -102,7 +102,6 @@ function executeCommand (rng, command, defaultAddress){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
 		rng.bounds('selection').ex(command || text, defaultAddress).select().scrollIntoView();
-		rng.element().focus();
 		rng.data().count = 0; // reset
 		rng.data().register = undefined;
 		return rng.exMessage;
@@ -122,6 +121,7 @@ $.exmap = function(opts, defaults){
 	if (!opts.name && opts.keys) opts.name = opts.keys;
 	if (!opts.name) opts.name = Math.random().toString(); // need something!
 	if (!opts.command && opts.monitor) opts.command = opts.monitor+" toggle";
+	if (!opts.command && bililiteRange.ex.commands[opts.name]) opts.command = opts.name;
 	if (!opts.command) opts.command = 'sendkeys '+JSON.stringify(opts.name);
 	if ($.isFunction(opts.command)){
 		var commandName = bililiteRange.ex.toID(opts.name);
@@ -155,6 +155,7 @@ $.exmap = function(opts, defaults){
 		});
 	}
 	if (opts.monitor) {
+		// TODO: remove the monitoring function; make a logical default
 		if (!opts.monitoringFunction) opts.monitoringFunction = function(option, value){
 			// assume we're looking at a binary option
 			this.removeClass('on off').addClass(value ? 'on' : 'off');
@@ -236,6 +237,25 @@ body.on('vi-data', {name: 'tabSize'}, function (evt){
 
 $.exmap([
 {
+	name: 'button',
+	command: function (parameter, variant){
+		var exmapparam = { buttonContainer: $.data(this.element(), 'vi.toolbar') };
+		if (variant){
+			// use the complex form
+			bililiteRange.ex.splitCommands(parameter, ' ').forEach(function(item){
+				var match = /(\w+)=(.+)/.exec(item);
+				if (!match) throw new Error('Bad syntax in button: '+item);
+				exmapparam[match[1]] = bililiteRange.ex.string(match[2]);
+			});
+		}else{
+			exmapparam.name = parameter;
+		}
+		// TODO: assign keys
+		console.log($.data(this.element(), 'vi.toolbar').find('button').length);
+		console.log(exmapparam);
+		$.exmap(exmapparam);
+	}
+},{
 	name: 'console',
 	command: function (parameter, variant){
 		console.log(executeCommand(this)(parameter));
@@ -273,7 +293,8 @@ $.exmap([
 },{
 	name: 'sendkeys',
 	command: function (parameter, variant){
-		this.sendkeys(parameter);
+		console.log('sendkeys', parameter);
+		this.sendkeys(parameter).element().focus();
 	}
 },{
 	name: 'vi',

@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 2.5.0
+// Version: 2.5.1
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -195,16 +195,16 @@ Range.prototype = {
 		var self = this;
 		this.data().sendkeysOriginalText = this.text();
 		this.data().sendkeysBounds = undefined;
-		text.replace(/{[^}]*}|[^{]+/g, function(part){
-			function simplechar (rng, c){
-				if (/^{[^}]*}$/.test(c)) c = c.slice(1,-1);	// deal with unknown {key}s
-				for (var i =0; i < c.length; ++i){
-					var x = c.charCodeAt(i);
-					rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
-				}
-				rng.text(c, 'end');
+		function simplechar (rng, c){
+			if (/^{[^}]*}$/.test(c)) c = c.slice(1,-1);	// deal with unknown {key}s
+			for (var i =0; i < c.length; ++i){
+				var x = c.charCodeAt(i);
+				rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
 			}
-			(bililiteRange.sendkeys[part] || simplechar)(self, part);
+			rng.text(c, 'end');
+		}
+		text.replace(/{[^}]*}|[^{]+/g, function(part){
+			(bililiteRange.sendkeys[part] || simplechar)(self, part, simplechar);
 		});
 		this.bounds(this.data().sendkeysBounds);
 		this.dispatch({type: 'sendkeys', which: text});
@@ -328,8 +328,11 @@ bililiteRange.sendkeys = {
 		rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
 		rng.insertEOL();
 	},
-	'{tab}': function (rng){
-		rng.text('\t', 'end'); // useful for inserting what would be whitespace
+	'{tab}': function (rng, c, simplechar){
+		simplechar(rng, '\t'); // useful for inserting what would be whitespace
+	},
+	'{newline}': function (rng, c, simplechar){
+		simplechar(rng, '\n'); // useful for inserting what would be whitespace (and if I don't want to use insertEOL, which does some fancy things)
 	},
 	'{backspace}': function (rng){
 		var b = rng.bounds();

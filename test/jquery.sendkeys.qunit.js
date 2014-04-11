@@ -3,6 +3,16 @@ multitest("Testing bililiteRange.sendkeys", function (rng, el, text, i){
 	rng.bounds([1,1]).sendkeys('12{backspace}3{leftarrow}4{rightarrow}56{leftarrow}{del}');
 	equal(rng.all(), text.replace(/^./, '$&1435'), 'sendkeys bililiteRange');
 });
+multitest("Testing bililiteRange.sendkeys tab, newline", function (rng, el, text, i){
+	rng.all(text);
+	rng.bounds([1,1]).sendkeys('{tab}{newline}');
+	if (el.nodeName == 'INPUT'){
+		equal(rng.all(), text.replace(/^./, '$&\t'), 'sendkeys tab/newline');
+	}else{
+		equal(rng.all(), text.replace(/^./, '$&\t\n'), 'sendkeys tab/newline');
+	}
+});
+
 multitest("Testing sendkeys mark/selection", function (rng, el, text, i){
 	rng.all('abc');
 	rng.bounds([1,2]).sendkeys('<a href="{mark}">x{selection}</a>');
