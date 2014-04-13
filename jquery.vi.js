@@ -251,8 +251,6 @@ $.exmap([
 			exmapparam.name = parameter;
 		}
 		// TODO: assign keys
-		console.log($.data(this.element(), 'vi.toolbar').find('button').length);
-		console.log(exmapparam);
 		$.exmap(exmapparam);
 	}
 },{
@@ -293,7 +291,6 @@ $.exmap([
 },{
 	name: 'sendkeys',
 	command: function (parameter, variant){
-		console.log('sendkeys', parameter);
 		this.sendkeys(parameter).element().focus();
 	}
 },{
