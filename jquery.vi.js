@@ -55,6 +55,16 @@ $.fn.vi = function(status, toolbar, exrc){
 	return this.addClass($.viClass).data('vi.status', $(status)).data('vi.toolbar', $(toolbar));
 }
 
+// extensions to bililiteRange
+bililiteRange.extend({
+	is: function (b){
+		return this.bounds()[0] == b[0] && this.bounds()[1] == b[1];
+	},
+	union: function (b){
+		this.bounds(Math.min (this.bounds()[0],b[0]), Math.max (this.bounds()[1],b[1]));
+	}
+});
+
 
 // create special events that let us check for vi-specific elements and modes
 
@@ -101,9 +111,15 @@ $.event.special['vi-click'] = {
 function executeCommand (rng, command, defaultAddress){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
+		var data = rng.data();
 		rng.bounds('selection').ex(command || text, defaultAddress).select().scrollIntoView();
-		rng.data().count = 0; // reset
-		rng.data().register = undefined;
+		if (data.motionCommand && !rng.is(data.motionStart)){
+			rng.union(data.motionStart).ex(data.motionCommand);
+			data.motionCommand = undefined;
+			data.motionStart = undefined;
+		}
+		data.count = 0; // reset
+		data.register = undefined;
 		return rng.exMessage;
 	};
 }
@@ -127,6 +143,15 @@ $.exmap = function(opts, defaults){
 		var commandName = bililiteRange.ex.toID(opts.name);
 		bililiteRange.ex.commands[commandName] = opts.command;
 		opts.command = commandName;
+	}
+	if (/([a-z]+)~motion/.test(opts.command)){
+		// replace this command with one that just pushes the name of the command, leaving the original command to be run after the motion is complete 
+		var motionCommand = opts.command; // this is the real command
+		opts.command = RegExp.$1+'~motiondependent';
+		bililiteRange.ex.commands[opts.command] = function(){
+			this.data().motionStart = [this.bounds()[0], this.bounds()[1]];
+			this.data().motionCommand = motionCommand;
+		};
 	}
 	function run(event){
 		$($.data(event.rng.element(), 'vi.status')).status({
@@ -279,7 +304,7 @@ $.exmap([
 	command: function (parameter, variant){
 		var state = this.data();
 		for (var i = state.count || 1; i > 0; --i){
-			var result = executeCommand(this)(parameter);
+			var result = executeCommand(this, parameter, '%%')(); 
 		}
 		return result;
 	}
@@ -414,7 +439,8 @@ $.exmap([
 	}
 },{
 	keys: '>',
-	command: 'repeat >'
+	//command: 'repeat >'
+	command: '>'
 },{
 	keys: '<',
 	command: 'repeat <'
