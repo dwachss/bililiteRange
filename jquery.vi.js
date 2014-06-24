@@ -304,7 +304,7 @@ $.exmap([
 	command: function (parameter, variant){
 		var state = this.data();
 		for (var i = state.count || 1; i > 0; --i){
-			var result = executeCommand(this, parameter, '%%')(); 
+			var result = executeCommand(this, parameter, '%%')();
 		}
 		return result;
 	}
@@ -359,6 +359,8 @@ $.exmap([
 	command: 'redo'
 }
 ]);
+
+bililiteRange.ex.commands.w = 'write'; // shortcut
 
 /*------------ Set up VISUAL mode commands ------------ */
 $.exmap([
@@ -439,8 +441,7 @@ $.exmap([
 	}
 },{
 	keys: '>',
-	//command: 'repeat >'
-	command: '>'
+	command: 'repeat >'
 },{
 	keys: '<',
 	command: 'repeat <'

@@ -1,3 +1,8 @@
+multitest("Testing bililiteRange selection", function (rng, el, text, i){
+	rng.all(text);
+	el.focus();
+	equal (rng.bounds('selection').length(), text.length, "initial selection is empty");
+});
 multitest("Testing bililiteRange", function (rng, el, text, i){
 	rng.all('');
 	equal (rng.text(), '' , "element should be empty" );
