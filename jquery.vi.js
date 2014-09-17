@@ -31,7 +31,7 @@
 (function($){
 
 $.viClass = $.viClass || 'vi';
-$.fn.vi = function(status, toolbar){
+$.fn.vi = function(status, toolbar, exrc){
 	var self = this;
 	$(toolbar).click (function(evt){
 		$(evt.target).trigger('vi-click', [self]);
@@ -47,13 +47,23 @@ $.fn.vi = function(status, toolbar){
 		monitor.on($.savemonitor.states, function(evt){
 			state['save~state'] = evt.type;
 		});
-		$.get('/exrc').then(function(commands){
+		if (exrc) $.get(exrc).then(function(commands){
 			// note that this is done asynchronously, so the user may be editing before this gets executed
 			rng.ex(commands);
 		});
 	});
-	return this.addClass($.viClass).data('vi.status', $(status));
+	return this.addClass($.viClass).data('vi.status', $(status)).data('vi.toolbar', $(toolbar));
 }
+
+// extensions to bililiteRange
+bililiteRange.extend({
+	is: function (b){
+		return this.bounds()[0] == b[0] && this.bounds()[1] == b[1];
+	},
+	union: function (b){
+		this.bounds(Math.min (this.bounds()[0],b[0]), Math.max (this.bounds()[1],b[1]));
+	}
+});
 
 
 // create special events that let us check for vi-specific elements and modes
@@ -101,9 +111,15 @@ $.event.special['vi-click'] = {
 function executeCommand (rng, command, defaultAddress){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
+		var data = rng.data();
 		rng.bounds('selection').ex(command || text, defaultAddress).select().scrollIntoView();
-		rng.data().count = 0; // reset
-		rng.data().register = undefined;
+		if (data.motionCommand && !rng.is(data.motionStart)){
+			rng.union(data.motionStart).ex(data.motionCommand);
+			data.motionCommand = undefined;
+			data.motionStart = undefined;
+		}
+		data.count = 0; // reset
+		data.register = undefined;
 		return rng.exMessage;
 	};
 }
@@ -121,11 +137,21 @@ $.exmap = function(opts, defaults){
 	if (!opts.name && opts.keys) opts.name = opts.keys;
 	if (!opts.name) opts.name = Math.random().toString(); // need something!
 	if (!opts.command && opts.monitor) opts.command = opts.monitor+" toggle";
+	if (!opts.command && bililiteRange.ex.commands[opts.name]) opts.command = opts.name;
 	if (!opts.command) opts.command = 'sendkeys '+JSON.stringify(opts.name);
 	if ($.isFunction(opts.command)){
 		var commandName = bililiteRange.ex.toID(opts.name);
 		bililiteRange.ex.commands[commandName] = opts.command;
 		opts.command = commandName;
+	}
+	if (/([a-z]+)~motion/.test(opts.command)){
+		// replace this command with one that just pushes the name of the command, leaving the original command to be run after the motion is complete 
+		var motionCommand = opts.command; // this is the real command
+		opts.command = RegExp.$1+'~motiondependent';
+		bililiteRange.ex.commands[opts.command] = function(){
+			this.data().motionStart = [this.bounds()[0], this.bounds()[1]];
+			this.data().motionCommand = motionCommand;
+		};
 	}
 	function run(event){
 		$($.data(event.rng.element(), 'vi.status')).status({
@@ -154,6 +180,7 @@ $.exmap = function(opts, defaults){
 		});
 	}
 	if (opts.monitor) {
+		// TODO: remove the monitoring function; make a logical default
 		if (!opts.monitoringFunction) opts.monitoringFunction = function(option, value){
 			// assume we're looking at a binary option
 			this.removeClass('on off').addClass(value ? 'on' : 'off');
@@ -235,6 +262,23 @@ body.on('vi-data', {name: 'tabSize'}, function (evt){
 
 $.exmap([
 {
+	name: 'button',
+	command: function (parameter, variant){
+		var exmapparam = { buttonContainer: $.data(this.element(), 'vi.toolbar') };
+		if (variant){
+			// use the complex form
+			bililiteRange.ex.splitCommands(parameter, ' ').forEach(function(item){
+				var match = /(\w+)=(.+)/.exec(item);
+				if (!match) throw new Error('Bad syntax in button: '+item);
+				exmapparam[match[1]] = bililiteRange.ex.string(match[2]);
+			});
+		}else{
+			exmapparam.name = parameter;
+		}
+		// TODO: assign keys
+		$.exmap(exmapparam);
+	}
+},{
 	name: 'console',
 	command: function (parameter, variant){
 		console.log(executeCommand(this)(parameter));
@@ -260,7 +304,7 @@ $.exmap([
 	command: function (parameter, variant){
 		var state = this.data();
 		for (var i = state.count || 1; i > 0; --i){
-			var result = executeCommand(this)(parameter);
+			var result = executeCommand(this, parameter, '%%')();
 		}
 		return result;
 	}
@@ -272,8 +316,7 @@ $.exmap([
 },{
 	name: 'sendkeys',
 	command: function (parameter, variant){
-		$(this.element()).sendkeys(parameter);
-		this.bounds('selection');
+		this.sendkeys(parameter).element().focus();
 	}
 },{
 	name: 'vi',
@@ -316,6 +359,8 @@ $.exmap([
 	command: 'redo'
 }
 ]);
+
+bililiteRange.ex.commands.w = 'write'; // shortcut
 
 /*------------ Set up VISUAL mode commands ------------ */
 $.exmap([
@@ -400,6 +445,27 @@ $.exmap([
 },{
 	keys: '<',
 	command: 'repeat <'
+},{
+	keys: '/',
+	name: 'livesearch',
+	command: function(parameter, variant){
+		var rng = this, el = this.element(), $status = $.data(el, 'vi.status');
+		$status.status({
+			prompt: variant ? '?' : '/',
+			run: function(text){
+				rng.bounds('selection').find(new RegExp(text), undefined, variant).select().scrollIntoView();
+				if (!rng.match) throw new Error(text+' not found');
+			},
+			returnPromise: true
+		}).then( // make sure we return focus to the text! It would be nice to have a finally method
+			function(e) {el.focus()},
+			function(e) {el.focus()}
+		);
+		$status.off('.search').on('input.search focus.search focusout.search', 'input', $(el).livesearch(variant));
+	}
+},{
+	keys: '?',
+	command: 'livesearch!'
 }
 ], {mode: 'VISUAL'});
 

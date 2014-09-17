@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 2.3
+// Version: 2.5.1
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -26,6 +26,17 @@
 
 (function(){
 
+// a bit of weirdness with IE11: using 'focus' is flaky, even if I'm not bubbling, as far as I can tell.
+var focusEvent = 'onfocusin' in document.createElement('input') ? 'focusin' : 'focus';
+
+// IE11 normalize is buggy (http://connect.microsoft.com/IE/feedback/details/809424/node-normalize-removes-text-if-dashes-are-present)
+var n = document.createElement('div');
+n.appendChild(document.createTextNode('x-'));
+n.appendChild(document.createTextNode('x'));
+n.normalize();
+var canNormalize = n.firstChild.length == 3;
+
+
 bililiteRange = function(el, debug){
 	var ret;
 	if (debug){
@@ -41,7 +52,7 @@ bililiteRange = function(el, debug){
 		}
 	}else if (window.getSelection){
 		// Standards, with any other kind of element
-		ret = new W3CRange()
+		ret = new W3CRange();
 	}else if (document.selection){
 		// Internet Explorer
 		ret = new IERange();
@@ -85,14 +96,14 @@ bililiteRange = function(el, debug){
 			}
 		}
 		trackSelection();
-		// only IE does this right and allows us to grap the selection before blurring
+		// only IE does this right and allows us to grab the selection before blurring
 		if ('onbeforedeactivate' in el){
 			ret.listen('beforedeactivate', trackSelection);
 		}else{
 			// with standards-based browsers, have to listen for every user interaction
 			ret.listen('mouseup', trackSelection).listen('keyup', trackSelection);
 		}
-		ret.listen('focus', function(){
+		ret.listen(focusEvent, function(){
 			// restore the correct selection when the element comes into focus (mouse clicks change the position of the selection)
 			// Note that Firefox will not fire the focus event until the window/tab is active even if el.focus() is called
 			// https://bugzilla.mozilla.org/show_bug.cgi?id=566671
@@ -172,12 +183,31 @@ Range.prototype = {
 			this.dispatch({type: 'input', data: text, bounds: bounds});
 			return this; // allow for chaining
 		}else{
-			return this._nativeGetText(this._nativeRange(this.bounds()));
+			return this._nativeGetText(this._nativeRange(this.bounds())).replace(/\r/g, ''); // need to correct for IE's CrLf weirdness
 		}
 	},
 	insertEOL: function (){
 		this._nativeEOL();
 		this._bounds = [this._bounds[0]+1, this._bounds[0]+1]; // move past the EOL marker
+		return this;
+	},
+	sendkeys: function (text){
+		var self = this;
+		this.data().sendkeysOriginalText = this.text();
+		this.data().sendkeysBounds = undefined;
+		function simplechar (rng, c){
+			if (/^{[^}]*}$/.test(c)) c = c.slice(1,-1);	// deal with unknown {key}s
+			for (var i =0; i < c.length; ++i){
+				var x = c.charCodeAt(i);
+				rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
+			}
+			rng.text(c, 'end');
+		}
+		text.replace(/{[^}]*}|[^{]+/g, function(part){
+			(bililiteRange.sendkeys[part] || simplechar)(self, part, simplechar);
+		});
+		this.bounds(this.data().sendkeysBounds);
+		this.dispatch({type: 'sendkeys', which: text});
 		return this;
 	},
 	top: function(){
@@ -216,7 +246,7 @@ Range.prototype = {
 			this.dispatch ({type: 'input', data: text});
 			return this;
 		}else{
-			return this._el[this._textProp].replace(/\r/g, ''); // need to correct for IE's CrLf weirdness;
+			return this._el[this._textProp].replace(/\r/g, ''); // need to correct for IE's CrLf weirdness
 		}
 	},
 	element: function() { return this._el },
@@ -291,6 +321,56 @@ bililiteRange.bounds = {
 	}
 };
 
+// sendkeys functions
+bililiteRange.sendkeys = {
+	'{enter}': function (rng){
+		var x = '\n'.charCodeAt(0);
+		rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
+		rng.insertEOL();
+	},
+	'{tab}': function (rng, c, simplechar){
+		simplechar(rng, '\t'); // useful for inserting what would be whitespace
+	},
+	'{newline}': function (rng, c, simplechar){
+		simplechar(rng, '\n'); // useful for inserting what would be whitespace (and if I don't want to use insertEOL, which does some fancy things)
+	},
+	'{backspace}': function (rng){
+		var b = rng.bounds();
+		if (b[0] == b[1]) rng.bounds([b[0]-1, b[0]]); // no characters selected; it's just an insertion point. Remove the previous character
+		rng.text('', 'end'); // delete the characters and update the selection
+	},
+	'{del}': function (rng){
+		var b = rng.bounds();
+		if (b[0] == b[1]) rng.bounds([b[0], b[0]+1]); // no characters selected; it's just an insertion point. Remove the next character
+		rng.text('', 'end'); // delete the characters and update the selection
+	},
+	'{rightarrow}':  function (rng){
+		var b = rng.bounds();
+		if (b[0] == b[1]) ++b[1]; // no characters selected; it's just an insertion point. Move to the right
+		rng.bounds([b[1], b[1]]);
+	},
+	'{leftarrow}': function (rng){
+		var b = rng.bounds();
+		if (b[0] == b[1]) --b[0]; // no characters selected; it's just an insertion point. Move to the left
+		rng.bounds([b[0], b[0]]);
+	},
+	'{selectall}' : function (rng){
+		rng.bounds('all');
+	},
+	'{selection}': function (rng){
+		// insert the characters without the sendkeys processing
+		var s = rng.data().sendkeysOriginalText;
+		for (var i =0; i < s.length; ++i){
+			var x = s.charCodeAt(i);
+			rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
+		}
+		rng.text(s, 'end');
+	},
+	'{mark}' : function (rng){
+		rng.data().sendkeysBounds = rng.bounds();
+	}
+};
+
 function IERange(){}
 IERange.prototype = new Range();
 IERange.prototype._nativeRange = function (bounds){
@@ -305,7 +385,7 @@ IERange.prototype._nativeRange = function (bounds){
 	if (bounds){
 		if (bounds[1] < 0) bounds[1] = 0; // IE tends to run elements out of bounds
 		if (bounds[0] > this.length()) bounds[0] = this.length();
-		if (bounds[1] < rng.text.replace(/\r/g, '').length){ // correct for IE's CrLf wierdness
+		if (bounds[1] < rng.text.replace(/\r/g, '').length){ // correct for IE's CrLf weirdness
 			// block-display elements have an invisible, uncounted end of element marker, so we move an extra one and use the current length of the range
 			rng.moveEnd ('character', -1);
 			rng.moveEnd ('character', bounds[1]-rng.text.replace(/\r/g, '').length);
@@ -334,7 +414,7 @@ IERange.prototype._nativeSelection = function (){
 	}
 };
 IERange.prototype._nativeGetText = function (rng){
-	return rng.text.replace(/\r/g, ''); // correct for IE's CrLf weirdness
+	return rng.text;
 };
 IERange.prototype._nativeSetText = function (text, rng){
 	rng.text = text;
@@ -362,7 +442,7 @@ IERange.prototype._nativeWrap = function(n, rng) {
 // IE internals
 function iestart(rng, constraint){
 	// returns the position (in character) of the start of rng within constraint. If it's not in constraint, returns 0 if it's before, length if it's after
-	var len = constraint.text.replace(/\r/g, '').length; // correct for IE's CrLf wierdness
+	var len = constraint.text.replace(/\r/g, '').length; // correct for IE's CrLf weirdness
 	if (rng.compareEndPoints ('StartToStart', constraint) <= 0) return 0; // at or before the beginning
 	if (rng.compareEndPoints ('StartToEnd', constraint) >= 0) return len;
 	for (var i = 0; rng.compareEndPoints ('StartToStart', constraint) > 0; ++i, rng.moveStart('character', -1));
@@ -370,7 +450,7 @@ function iestart(rng, constraint){
 }
 function ieend (rng, constraint){
 	// returns the position (in character) of the end of rng within constraint. If it's not in constraint, returns 0 if it's before, length if it's after
-	var len = constraint.text.replace(/\r/g, '').length; // correct for IE's CrLf wierdness
+	var len = constraint.text.replace(/\r/g, '').length; // correct for IE's CrLf weirdness
 	if (rng.compareEndPoints ('EndToEnd', constraint) >= 0) return len; // at or after the end
 	if (rng.compareEndPoints ('EndToStart', constraint) <= 0) return 0;
 	for (var i = 0; rng.compareEndPoints ('EndToStart', constraint) > 0; ++i, rng.moveEnd('character', -1));
@@ -433,22 +513,23 @@ W3CRange.prototype._nativeSelect = function (rng){
 	this._win.getSelection().addRange (rng);
 };
 W3CRange.prototype._nativeSelection = function (){
-		// returns [start, end] for the selection constrained to be in element
-		var rng = this._nativeRange(); // range of the element to constrain to
-		if (this._win.getSelection().rangeCount == 0) return [this.length(), this.length()]; // append to the end
-		var sel = this._win.getSelection().getRangeAt(0);
-		return [
-			w3cstart(sel, rng),
-			w3cend (sel, rng)
-		];
+	// returns [start, end] for the selection constrained to be in element
+	var rng = this._nativeRange(); // range of the element to constrain to
+	if (this._win.getSelection().rangeCount == 0) return [this.length(), this.length()]; // append to the end
+	var sel = this._win.getSelection().getRangeAt(0);
+	return [
+		w3cstart(sel, rng),
+		w3cend (sel, rng)
+	];
 	}
 W3CRange.prototype._nativeGetText = function (rng){
-	return rng.toString();
+	return String.prototype.slice.apply(this._el.textContent, this.bounds());
+	// return rng.toString(); // this fails in IE11 since it insists on inserting \r's before \n's in Ranges. node.textContent works as expected
 };
 W3CRange.prototype._nativeSetText = function (text, rng){
 	rng.deleteContents();
 	rng.insertNode (this._doc.createTextNode(text));
-	this._el.normalize(); // merge the text with the surrounding text
+	if (canNormalize) this._el.normalize(); // merge the text with the surrounding text
 };
 W3CRange.prototype._nativeEOL = function(){
 	var rng = this._nativeRange(this.bounds());
@@ -500,10 +581,11 @@ function w3cmoveBoundary (rng, n, bStart, el){
 	}
 	while (node){
 		if (node.nodeType == 3){
-			if (n <= node.nodeValue.length){
+			var length = node.nodeValue.length;
+			if (n <= length){
 				rng[bStart ? 'setStart' : 'setEnd'](node, n);
 				// special case: if we end next to a <br>, include that node.
-				if (n == node.nodeValue.length){
+				if (n == length){
 					// skip past zero-length text nodes
 					for (var next = nextnode (node, el); next && next.nodeType==3 && next.nodeValue.length == 0; next = nextnode(next, el)){
 						rng[bStart ? 'setStartAfter' : 'setEndAfter'](next);
@@ -513,7 +595,7 @@ function w3cmoveBoundary (rng, n, bStart, el){
 				return;
 			}else{
 				rng[bStart ? 'setStartAfter' : 'setEndAfter'](node); // skip past this one
-				n -= node.nodeValue.length; // and eat these characters
+				n -= length; // and eat these characters
 			}
 		}
 		node = nextnode (node, el);
@@ -534,14 +616,14 @@ function w3cstart(rng, constraint){
 	if (rng.compareBoundaryPoints (END_TO_START, constraint) >= 0) return constraint.toString().length;
 	rng = rng.cloneRange(); // don't change the original
 	rng.setEnd (constraint.endContainer, constraint.endOffset); // they now end at the same place
-	return constraint.toString().length - rng.toString().length;
+	return constraint.toString().replace(/\r/g, '').length - rng.toString().replace(/\r/g, '').length;
 }
 function w3cend (rng, constraint){
 	if (rng.compareBoundaryPoints (END_TO_END, constraint) >= 0) return constraint.toString().length; // at or after the end
 	if (rng.compareBoundaryPoints (START_TO_END, constraint) <= 0) return 0;
 	rng = rng.cloneRange(); // don't change the original
 	rng.setStart (constraint.startContainer, constraint.startOffset); // they now start at the same place
-	return rng.toString().length;
+	return rng.toString().replace(/\r/g, '').length;
 }
 
 function NothingRange(){}

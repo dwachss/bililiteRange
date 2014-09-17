@@ -126,7 +126,7 @@ bililiteRange.extend({
 			n =  parseInt(n);
 			if (isNaN(n)) return this;
 			// if n is too large,set the bounds to the end; if too small, to the beginning
-			if (n > this.all().split('\n').length) return this.bounds([Number.MAX_VALUE,Number.MAX_VALUE]);
+			if (n > this.all().split('\n').length) return this.bounds('end');
 			if (n < 1) return this.bounds([0,0]);
 			// move to the given line number, at same character number as the initial bounds.
 			var start = this.bounds();
@@ -138,7 +138,7 @@ bililiteRange.extend({
 		}else{
 			// just count newlines before this.bounds
 			// If we are on the boundary between lines (i.e. after the newline), this counts the next line
-			return bililiteRange(this._el).bounds([0, this.bounds()[0]]).text().split('\n').length;
+			return this.all().slice(0, this.bounds()[0]).split('\n').length;
 		}
 	},
 	

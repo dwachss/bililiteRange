@@ -5,7 +5,7 @@
 // messages are returned in range.exMessage
 
 // documentation: http://bililite.com/blog/2014/02/05/new-bililiterange-plugin-ex
-// Version 1.0
+// Version 1.1
 //  depends: bililiteRange.js, bililiteRange.util.js
 
 // Copyright (c) 2013 Daniel Wachsstock
@@ -72,7 +72,7 @@ lines: function(i, j){
 		var totallines = this.all().split('\n').length;
 		if (i > totallines) return this.bounds('end');
 		var start = this.line(i).bounds('BOL').bounds()[0];
-		var end = this.line(j).bounds('EOL').bounds()[1]+1; // the +1 is to include the newline at the end of the line. 
+		var end = this.line(j).bounds('EOL').bounds()[1]+1; // the +1 is to include the newline at the end of the line
 		return this.bounds([start, end]);
 	}else{
 		// if we end on a newline, don't count it
@@ -183,6 +183,8 @@ function splitCommands(commandLine, splitter){
 	commands.push(commandLine); // the rest of the line
 	return commands;
 }
+
+bililiteRange.ex.splitCommands = splitCommands;
 
 /*********************** parsing individual commands *********************************/
 // create a regular expression to cover all possible address indicators.
@@ -422,7 +424,8 @@ var commands = bililiteRange.ex.commands = {
 
 	append: function (parameter, variant){
 		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
-		this.bounds('nonewline').bounds('endbounds').newline(parameter, 'end', !variant != !this.data().autoindent);
+		this.bounds('nonewline').bounds('endbounds');
+		this.newline(parameter, 'end', !variant != !this.data().autoindent);
 	},
 
 	c: 'change',
@@ -559,7 +562,7 @@ var commands = bililiteRange.ex.commands = {
 		}else{
 			var self = this;
 			splitCommands(parameter, ' ').forEach(function(command){
-				var match = /(no)?(\w+)(\?|=(\S+)|)/.exec(command);
+				var match = /(no)?([^=?]+)(\?|=(.+)|)/.exec(command);
 				if (!match && command.trim()) throw new Error('Bad syntax in set: '+command);
 				var func = match[2];
 				if (match[1]){

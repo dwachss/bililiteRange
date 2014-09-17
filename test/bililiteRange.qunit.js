@@ -1,3 +1,8 @@
+multitest("Testing bililiteRange selection", function (rng, el, text, i){
+	rng.all(text);
+	el.focus();
+	equal (rng.bounds('selection').length(), text.length, "initial selection is empty");
+});
 multitest("Testing bililiteRange", function (rng, el, text, i){
 	rng.all('');
 	equal (rng.text(), '' , "element should be empty" );
@@ -64,3 +69,11 @@ multitest ('Testing monitored data', function (rng, el, text, i){
 	});
 	rng.data()['monitored~value'] = 1;
 }, true);
+multitest ('Testing bililiteRange wrap', function (rng, el, text, i){
+	try {
+		rng.all(text).bounds([1,2]).wrap(document.createElement('em'));
+		equal (el.innerHTML, text.slice(0,1)+'<em>'+text.slice(1,2)+'</em>'+text.slice(2), 'wrap');
+	}catch(e){
+		ok(el.nodeName == 'INPUT' || el.nodeName == 'TEXTAREA', 'wrap throws in text-only elements');
+	}
+});
