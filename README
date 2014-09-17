@@ -6,7 +6,7 @@ The basic function is in bililiteRange.js, with the documentation at http://bili
 The other files are assorted javascript libraries that use bililiteRange:
 
 bililiteRange.ex.js: Implements the ex line-editor ( http://ex-vi.sourceforge.net/ex.html ). Depends on the util and undo libraries below. Documentation at
-http://bililite.com/blog/2014/02/25/new-bililiterange-plugin-ex/
+http://bililite.com/blog/2014/04/03/new-bililiterange-plugin-ex/
 
 bililiteRange.fancytext.js: Uses bililiteRange to allow using the Prism syntax highlighter (prismjs.com) to create a simple syntax-highlighting text editor. Documentation at
 http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
