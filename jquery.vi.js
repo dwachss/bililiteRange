@@ -36,6 +36,13 @@ $.fn.vi = function(status, toolbar, exrc){
 	$(toolbar).click (function(evt){
 		$(evt.target).trigger('vi-click', [self]);
 		return false;
+	}).keydown({keys: /\w/}, function (evt){
+		// numbers/letters to activate the toolbar buttons (can tab/shift-tab over then enter, as normal)
+		self.each(function(){
+			bililiteRange(this).ex ('toolbar '+parseInt(evt.hotkeys, 36));
+			evt.preventDefault();
+			return false;
+		});
 	});
 	this.each(function(){
 		var rng = bililiteRange(this);
@@ -275,7 +282,6 @@ $.exmap([
 		}else{
 			exmapparam.name = parameter;
 		}
-		// TODO: assign keys
 		$.exmap(exmapparam);
 	}
 },{
@@ -300,6 +306,14 @@ $.exmap([
 		});
 	}
 },{
+	name: 'read',
+	command: function (parameter, variant){
+		var rng = this;
+		$.get(parameter, function (text) {
+			rng.text(text, 'end').select().element().focus();
+		});
+	}
+},{
 	name: 'repeat',
 	command: function (parameter, variant){
 		var state = this.data();
@@ -317,6 +331,22 @@ $.exmap([
 	name: 'sendkeys',
 	command: function (parameter, variant){
 		this.sendkeys(parameter).element().focus();
+	}
+},{
+	name: 'toolbar',
+	command: function (parameter, variant){
+		var which = parseInt(parameter);
+		var target = $(this.element());
+		var toolbar = target.data('vi.toolbar');
+		if (isNumeric (which)){
+			var button = $('button', toolbar).eq(which);
+			button.trigger ('vi-click', [target]);
+			// TODO: refactor this with the keydown handler
+			button.addClass('highlight')
+			setTimeout(function(){ button.removeClass('highlight') }, 400);
+		}else{
+			$('button', toolbar).eq(0).focus();
+		}
 	}
 },{
 	name: 'vi',
