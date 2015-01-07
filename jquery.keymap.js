@@ -41,14 +41,14 @@ if ( !Array.prototype.forEach ) {
 
 // depends on jQuery to normalize the keydown event 
 (function($){
-	// polyfill for the key and code fields of the event, and sets a new field "keys" that incorporates 
+	// polyfill for the key and code fields of the event, and sets a new field "keymap" that incorporates 
 	// the modifier keys, as in Microsoft's sendkeys function: + for shift, ^ for control, % for alt
 	// Shifted keys with a different form do not get the +; thus ^a is control-a; ^A is control-shift-a
-	// returns the value of keys
+	// returns the value of keymap
 	// NOTE: modifier keys are intentionally ignored and return undefined
 	$.keymap = function (evt){
 		var key = evt.key, c = evt.which, shift = evt.shiftKey, ctrl = evt.ctrlKey, alt = evt.altKey;
-		if (evt.keys !== undefined) return evt.keys; // event has already been handled
+		if (evt.keymap !== undefined) return evt.keymap; // event has already been handled
 		if (key !== undefined){
 			// key is implemented; just use what they got
 			if (/^(?:shift|control|meta|alt)$/i.test(evt.key)) return;
@@ -64,14 +64,14 @@ if ( !Array.prototype.forEach ) {
 		}
 		if (key === undefined) return;
 		if ($.keymap.shiftedchars.indexOf(key) !== -1) shift = false; // already have the key shifted
-		var keys = key; 
-		if (alt) keys = '%' + keys;
-		if (ctrl) keys = '^' + keys;
-		if (shift) keys = '+' + keys;
-		keys = $.keymap.normalize(keys);
+		var keymap = key; 
+		if (alt) keymap = '%' + keymap;
+		if (ctrl) keymap = '^' + keymap;
+		if (shift) keymap = '+' + keymap;
+		keymap = $.keymap.normalize(keymap);
 		evt.key = key;
-		evt.keys = keys;
-		return keys;
+		evt.keymap = keymap;
+		return keymap;
 	}
 
 	// normalize capitalization	
@@ -121,16 +121,14 @@ if ( !Array.prototype.forEach ) {
 				
 		'^\\+(\\w)$': function (match, p1) {return p1.toUpperCase()}, // uppercase shifted letters
 
-		// two exceptions to the standard:
+		// one exceptions to the standard:
 		// I use Spacebar for space, not ' ', since that is used as a separator below
 		' ': 'Spacebar',
-		// and special modifier characters need to be marked 
-		'(.)([+^%])$': '$1{$2}',
 
-		'[+^%]+': function (match) { // normalize the order of shift-ctrl-alt
-			return (/\+/.test(match) ? '+' : '') +
-				(/\^/.test(match) ? '^' : '') +
-				(/%/.test(match) ? '%' : '')
+		'([+^%]+)(.)': function (match, p1, p2) { // normalize the order of shift-ctrl-alt
+			return (/\+/.test(p1) ? '+' : '') +
+				(/\^/.test(p1) ? '^' : '') +
+				(/%/.test(p1) ? '%' : '') + p2;
 		},
 	};
 	for (alias in aliasgenerator){
@@ -153,6 +151,7 @@ if ( !Array.prototype.forEach ) {
 	
 	
 	$.keymap.normal = {
+		 32	: ' ',
 		  8	: 'Backspace',
 		 20	: 'CapsLock',
 		 46	: 'Delete',
@@ -162,8 +161,8 @@ if ( !Array.prototype.forEach ) {
 		144	: 'NumLock',
 		  9	: 'Tab'
 	};
-	'Spacebar PageUp PageDown End Home ArrowLeft ArrowUp ArrowRight ArrowDown'.
-		split(' ').forEach(function(c,i) {$.keymap.normal[i+32] = c});
+	'PageUp PageDown End Home ArrowLeft ArrowUp ArrowRight ArrowDown'.
+		split(' ').forEach(function(c,i) {$.keymap.normal[i+33] = c});
 	"0123456789"
 		.split('').forEach(function(c,i) {$.keymap.normal[i+48] = c});
 	$.keymap.normal[59] = ';'; // Firefox only!
@@ -203,7 +202,7 @@ if ( !Array.prototype.forEach ) {
 		191: '?'
 	};
 		
-	"ABCDEFGHIJKLMNOPQRSTUVXWYZ"
+	"ABCDEFGHIJKLMNOPQRSTUVWYZ"
 		.split('').forEach(function(c,i) {$.keymap.shift[i+65] = c});
 
 	// characters that represent already-shifted keys, so should not have the + added.
@@ -225,9 +224,34 @@ if ( !Array.prototype.forEach ) {
 		return nss[keys] || (nss[keys] = 'hotkeys'+ (++nsIndex));
 	}
 	
+	// function to set up the "key" field in keydown and keyup events
+	function polyfill (evt, original){
+		// do the original filtering
+		if (evt.which == null && original != null) {
+			event.which = original.charCode != null ? original.charCode : original.keyCode;
+		}
+		// don't take it for granted that the caller got this right
+		if (evt.keymap !== undefined) evt.keymap = $.keymap.normalize (evt.keymap);
+		var keymap = $.keymap(evt);
+		if (keymap == undefined) return evt;
+		var key = keymap.replace (/^([+^%]+)(.+)/, function (match, p1, p2){
+			if (/\+/.test(p1) || $.keymap.shiftedchars.indexOf(p2) !== -1) evt.shiftKey = true;
+			if (/\^/.test(p1)) evt.ctrlKey = true;
+			if (/%/.test(p1)) evt.altKey = true;
+			return p2;
+		});
+		if (key == 'Spacebar') key = ' '; // restore the standard
+		evt.key = key;
+		return evt;
+	}
+
 	["keydown","keyup"].forEach(function(type){
-		$.event.fixHooks[type] = { props: "char charCode key keyCode hotkeys".split(" ") };
+		$.event.fixHooks[type] = {
+			props: "char charCode code key keyCode keys hotkeys".split(" "),
+			filter: polyfill
+		};
 		$.event.special[type] = $.event.special[type] || {};
+		$.event.special[type].trigger = polyfill;
 		$.event.special[type].add = function(handleObj){
 			if (!handleObj.data) return;
 			var keys = handleObj.data.keys;
