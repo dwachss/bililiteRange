@@ -370,6 +370,13 @@ bililiteRange.sendkeys = {
 		rng.data().sendkeysBounds = rng.bounds();
 	}
 };
+// Synonyms from the proposed DOM standard (http://www.w3.org/TR/DOM-Level-3-Events-key/)
+bililiteRange.sendkeys['{Enter}'] = bililiteRange.sendkeys['{enter}'];
+bililiteRange.sendkeys['{Tab}'] = bililiteRange.sendkeys['{tab}'];
+bililiteRange.sendkeys['{Backspace}'] = bililiteRange.sendkeys['{backspace}'];
+bililiteRange.sendkeys['{Delete}'] = bililiteRange.sendkeys['{del}'];
+bililiteRange.sendkeys['{ArrowRight}'] = bililiteRange.sendkeys['{rightarrow}'];
+bililiteRange.sendkeys['{ArrowLeft}'] = bililiteRange.sendkeys['{leftarrow}'];
 
 function IERange(){}
 IERange.prototype = new Range();

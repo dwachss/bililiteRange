@@ -87,6 +87,8 @@ if ( !Array.prototype.forEach ) {
 		// VIM notation (and jquery.hotkeys numeric keypad notation)
 		'^<(.*)>$': '$1', // strip the brackets
 		'\\b(?:k|num_)(\\w+)': '$1', // we do not distinguish the numeric keypad
+		//sendkeys notation; strip brackets
+		'{(\\w+)}': '$1',
 		// the sendkeys aliases
 		bksp: 'Backspace',
 		bs: 'Backspace',
