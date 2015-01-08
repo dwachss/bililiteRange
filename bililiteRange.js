@@ -1,6 +1,6 @@
 // Cross-broswer implementation of text ranges and selections
 // documentation: http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
-// Version: 2.5.1
+// Version: 2.6
 // Copyright (c) 2013 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
@@ -203,7 +203,7 @@ Range.prototype = {
 			}
 			rng.text(c, 'end');
 		}
-		text.replace(/{[^}]*}|[^{]+/g, function(part){
+		text.replace(/{[^}]*}|[^{]+|{/g, function(part){
 			(bililiteRange.sendkeys[part] || simplechar)(self, part, simplechar);
 		});
 		this.bounds(this.data().sendkeysBounds);
