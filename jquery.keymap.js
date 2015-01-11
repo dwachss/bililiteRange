@@ -129,11 +129,15 @@ if ( !Array.prototype.forEach ) {
 		bksp: 'Backspace',
 		bs: 'Backspace',
 		del: 'Delete',
-		down: 'ArrowDown',
 		esc: 'Escape',
+		down: 'ArrowDown',
 		left: 'ArrowLeft',
 		right: 'ArrowRight',
 		up: 'ArrowUp',
+		downarrow: 'ArrowDown',
+		leftarrow: 'ArrowLeft',
+		rightarrow: 'ArrowRight',
+		uparrow: 'ArrowUp',
 		add: '+',
 		subtract: '-',
 		multiply: '*',
@@ -166,7 +170,8 @@ if ( !Array.prototype.forEach ) {
 		'([+^%~]+)(.)': function (match, p1, p2) { // normalize the order of shift-ctrl-alt
 			return (/\+/.test(p1) ? '+' : '') +
 				(/\^/.test(p1) ? '^' : '') +
-				(/%/.test(p1) ? '%' : '') + p2;
+				(/%/.test(p1) ? '%' : '') +
+				(/~/.test(p1) ? '~' : '') + p2;
 		},
 	};
 	for (alias in aliasgenerator){
