@@ -39,39 +39,75 @@ if ( !Array.prototype.forEach ) {
   }
 }
 
-// depends on jQuery to normalize the keydown event 
 (function($){
-	// polyfill for the key and code fields of the event, and sets a new field "keymap" that incorporates 
+	// polyfill for the key field of the event, and sets a new field "keymap" that incorporates 
 	// the modifier keys, as in Microsoft's sendkeys function: + for shift, ^ for control, % for alt
 	// Shifted keys with a different form do not get the +; thus ^a is control-a; ^A is control-shift-a
 	// returns the value of keymap
-	// NOTE: modifier keys are intentionally ignored and return undefined
+	// NOTE: modifier keys alone are intentionally ignored and return undefined
+	// NOTE: assumes only unmodified and shifted keys are printable; this is false for a lot of non-English keyboards
+	// that use alt, altGr and CapsLock modifiers. Until KeyboardEvent.getModifierState (https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent.getModifierState)
+	// is implemented consistently, I suspect that will be impossible.
+	// NOTE: ignores the meta key (I only have a Windows machine on which to test this)
+	
+	// original keymap plugin returned the mapped keys
 	$.keymap = function (evt){
-		var key = evt.key, c = evt.which, shift = evt.shiftKey, ctrl = evt.ctrlKey, alt = evt.altKey;
-		if (evt.keymap !== undefined) return evt.keymap; // event has already been handled
-		if (key !== undefined){
-			// key is implemented; just use what they got
-			if (/^(?:shift|control|meta|alt)$/i.test(evt.key)) return;
-			// IE (of course!) is different: shifted control characters use the unshifted key code.
-			var i = $.keymap.unshiftedchars.indexOf(key);
-			if (shift && i !== -1){
-				key = $.keymap.shiftedchars[i];
-				shift = false;
+		return $.keymap.normalize(evt).keymap;
+	}
+
+	// this is the meat of the plugin.
+	$.keymap.normalize = function (evt){
+		if (evt.keymap == null){
+			var key = evt.key,
+				shift = evt.shiftKey, ctrl = evt.ctrlKey, alt = evt.altKey, meta = evt.metaKey,
+				altGr = ctrl && alt; // this seems to be the standard for the alt-graphics key, http://stackoverflow.com/questions/17857404/why-does-alt-gr-have-the-same-keycode-as-ctrl
+			if (key != null){
+				// key is implemented; just use what they got
+
+				if (/^(?:shift|control|meta|alt)$/i.test(key)) return evt; // ignore modifier keys alone
+
+				// IE (of course!) is different: shifted control characters use the unshifted key code.
+				var i = keymaps.normal.indexOf(key);
+				if (shift && i !== -1) key = keymaps.shift.charAt(i); // fix it
+				// shift-altGr is not a problem, since that would require meta-alt-ctrl-shift, and Windows doesn't do meta
+			}else{
+				// need to use the character map
+				var c = evt.which != null ? evt.which : evt.charCode != null ? evt.charCode : evt.keyCode;
+				key = charcodes[c];
+				if (typeof key === 'number'){
+					if (shift && altGr && keymaps.shift_alt.charCodeAt(key) !== 0){
+						key = keymaps.shift_alt.charAt(key);
+					}else if (shift && keymaps.alt.charCodeAt(key) != 0){
+						key = keymaps.alt.charAt(key);
+					}else if (shift && keymaps.shift.charCodeAt(key) != 0){
+						key = keymaps.shift.charAt(key);
+					}else{
+						key = keymaps.normal.charAt(key);
+					}
+				}
 			}
-			if ($.keymap.shiftedchars.indexOf(key) !== -1) shift = false; // already have the key shifted
-		}else{
-			key = shift ? $.keymap.shift[c] : $.keymap.normal[c];
+			if (key == null) return evt; // not a known key
+			if (keymaps.shift_alt.indexOf(key) !== -1) shift = alt = ctrl = false;  // already have the key shifted; don't mark the keymap with a +
+			if (keymaps.shift.indexOf(key) !== -1) shift = false;
+			if (keymaps.alt.indexOf(key) !== -1) alt = ctrl = false;
+			evt.keymap = key; 
+			if (meta) evt.keymap = '~' + evt.keymap;
+			if (alt) evt.keymap = '%' + evt.keymap;
+			if (ctrl) evt.keymap = '^' + evt.keymap;
+			if (shift) evt.keymap = '+' + evt.keymap;
 		}
-		if (key === undefined) return;
-		if ($.keymap.shiftedchars.indexOf(key) !== -1) shift = false; // already have the key shifted
-		var keymap = key; 
-		if (alt) keymap = '%' + keymap;
-		if (ctrl) keymap = '^' + keymap;
-		if (shift) keymap = '+' + keymap;
-		keymap = $.keymap.normalize(keymap);
-		evt.key = key;
-		evt.keymap = keymap;
-		return keymap;
+		evt.keymap = $.keymap.normalizeString(evt.keymap); // this may be inefficiently normalizing the string multiple times if we reuse the event
+		// now renormalize the key itself
+		evt.shiftKey = evt.ctrlKey = evt.altKey = false;
+		evt.key = evt.keymap.replace (/^([+^%~]*)(.+)/, function (match, p1, p2){
+			if (/\+/.test(p1) || keymaps.shift.indexOf(p2) !== -1 || keymaps.shift_alt.indexOf(p2) !== -1) evt.shiftKey = true; // TODO: deal with altGr
+			if (/\^/.test(p1) || keymaps.alt.indexOf(p2) !== -1 || keymaps.shift_alt.indexOf(p2) !== -1) evt.ctrlKey = true;
+			if (/%/.test(p1) || keymaps.alt.indexOf(p2) !== -1 || keymaps.shift_alt.indexOf(p2) !== -1) evt.altKey = true;
+			if (/~/.test(p1)) evt.metaKey = true;
+			return p2;
+		});
+		if (evt.key == 'Spacebar') evt.key = ' '; // restore the standard
+		return evt;
 	}
 
 	// normalize capitalization	
@@ -105,7 +141,7 @@ if ( !Array.prototype.forEach ) {
 		// hotkeys plugin (https://github.com/jeresig/jquery.hotkeys/blob/master/jquery.hotkeys.js), and modifiers from VIM
 		's(hift)?[+-]': '+',
 		'c(trl)?[+-]': '^',
-		'm(eta)?[+-]': '%', // needs to be before a(lt)- so the met[a-] doesn't match!
+		'm(eta)?[+-]': '~', // needs to be before a(lt)- so the met[a-] doesn't match!
 		'a(lt)?[+-]': '%',
 		decimal: '.',
 		// VIM notation (http://polarhome.com/vim/manual/v71/intro.html#key-notation)
@@ -127,7 +163,7 @@ if ( !Array.prototype.forEach ) {
 		// I use Spacebar for space, not ' ', since that is used as a separator below
 		' ': 'Spacebar',
 
-		'([+^%]+)(.)': function (match, p1, p2) { // normalize the order of shift-ctrl-alt
+		'([+^%~]+)(.)': function (match, p1, p2) { // normalize the order of shift-ctrl-alt
 			return (/\+/.test(p1) ? '+' : '') +
 				(/\^/.test(p1) ? '^' : '') +
 				(/%/.test(p1) ? '%' : '') + p2;
@@ -141,18 +177,17 @@ if ( !Array.prototype.forEach ) {
 		aliases.push({alias: new RegExp(alias, 'i'), key: key});
 	}
 				
-	$.keymap.normalize = function(c){
-		aliases.forEach(function(alias) { c=c.replace(alias.alias, alias.key) });
-		return c;
+	$.keymap.normalizeString = function(s){
+		aliases.forEach(function(alias) { s=s.replace(alias.alias, alias.key) });
+		return s;
 	}
 	
 	$.keymap.normalizeList = function(str){
 		// normalize a list of space-delimited characters.
-		return $.trim($.map(str.split(/\s+/), $.keymap.normalize).join(' '));
+		return $.trim($.map(str.split(/\s+/), $.keymap.normalizeString).join(' '));
 	}
 	
-	
-	$.keymap.normal = {
+	var charcodes = {
 		 32	: ' ',
 		  8	: 'Backspace',
 		 20	: 'CapsLock',
@@ -164,57 +199,61 @@ if ( !Array.prototype.forEach ) {
 		  9	: 'Tab'
 	};
 	'PageUp PageDown End Home ArrowLeft ArrowUp ArrowRight ArrowDown'.
-		split(' ').forEach(function(c,i) {$.keymap.normal[i+33] = c});
-	"0123456789"
-		.split('').forEach(function(c,i) {$.keymap.normal[i+48] = c});
-	$.keymap.normal[59] = ';'; // Firefox only!
-	"abcdefghijklmnopqrstuvwxyz"
-		.split('').forEach(function(c,i) {$.keymap.normal[i+65] = c});
+		split(' ').forEach(function(c,i) {charcodes[i+33] = c});
 	"0123456789*+,-./". // numeric keypad keys
-		split('').forEach(function(c,i) {$.keymap.normal[i+96] = c});
+		split('').forEach(function(c,i) {charcodes[i+96] = c});
 	for(i=1;i<=12;++i)
-		$.keymap.normal[i+111] = 'F'+i; // function keys
-	';=,-./`'
-		.split('').forEach(function(c,i) {$.keymap.normal[i+186] = c});
-	"[\\]'"
-		.split('').forEach(function(c,i) {$.keymap.normal[i+219] = c});
+		charcodes[i+111] = 'F'+i; // function keys
 	
-	$.keymap.shift = {
-		192: '~',
-		 49: '!',
-		 50: '@',
-		 51: '#',
-		 52: '$',
-		 53: '%',
-		 54: '^',
-		 55: '&',
-		 56: '*',
-		 57: '(',
-		 59: ':', // Firefox only!
-		 48: ')',
-		189: '_',
-		187: '+',
-		219: '{',
-		220: '|',
-		221: '}',
-		186: ':',
-		222: '"',
-		188: '<',
-		190: '>',
-		191: '?'
-	};
-		
-	"ABCDEFGHIJKLMNOPQRSTUVWYZ"
-		.split('').forEach(function(c,i) {$.keymap.shift[i+65] = c});
+	// the numeric codes in order for the keyboard I'm using (from Virtualkeyboard; standard 101 keyboard
+	// but '\' key to the right of '=', not ']' )
+	[
+		194,49,50,51,52,53,54,55,56,57,48,189,187,220,
+		81,87,69,82,84,89,85,73,79,80,219,221,
+		65,83,68,70,71,72,74,75,76,186,222,
+		90,88,67,86,66,78,77,188,190,191
+	].forEach(function (code, i){
+		charcodes[code] = i;
+	});
+	// note that there seems to be an inconsistency in Firefox wherein the key with code 189 for everyone else
+	// has code 59. Odd.
+	charcodes[59] = charcodes[189]
+	
+	var blankstring = Array(48).join(String.fromCharCode(0)); // a string of 47 null characters, for building key maps (there are 47 printing keys)
 
-	// characters that represent already-shifted keys, so should not have the + added.
-	$.keymap.shiftedchars = '';
-	$.keymap.unshiftedchars = '';
-	for (c in $.keymap.shift){
-		$.keymap.shiftedchars += $.keymap.shift[c];
-		$.keymap.unshiftedchars += $.keymap.normal[c];
-	}
+	var keymaps;
 	
+	$.keymap.setlayout = function (layouts){
+		// uses the layout format from VirtualKeyboard.
+		// Each element is a string representing the keyboard left to right, top to bottom
+		// or an object of substrings, each indexed by the starting index
+		keymaps = { normal: blankstring, shift: blankstring, alt: blankstring, shift_alt: blankstring }
+		for (layout in layouts){
+			if (typeof layouts[layout] === 'string'){
+				keymaps[layout] = layouts[layout];
+			}else{
+				for (i in layouts[layout]){
+					i = parseInt(i);
+					keymaps[layout] =
+						keymaps[layout].slice(0,i) +
+						layouts[layout][i] +
+						keymaps[layout].substring(i+layouts[layout][i].length);
+				}
+			}
+		}
+		// add uppercase keys; assumes normal and shift exist
+		var shifts = keymaps.shift.split('');
+		keymaps.normal.split('').forEach(function (c, i){
+			if (shifts[i].charCodeAt(0) === 0 && c.toUpperCase() !== c) shifts[i] = c.toUpperCase();
+		});
+		keymaps.shift = shifts.join('');
+	};
+			
+	$.keymap.setlayout ({
+		normal:'`1234567890-=\\qwertyuiop[]asdfghjkl;\'zxcvbnm,./',
+		shift:{0:'~!@#$%^&*()_+|',24:'{}',35:':"',44:'<>?'}
+	});
+		
 	// based on John Resig's hotkeys (https://github.com/jeresig/jquery.hotkeys)
 	// $.event.special documentation at http://learn.jquery.com/events/event-extensions/
 	// use with $(element).on('keydown, {keys: '%1', allowDefault: true}, function(){});
@@ -226,34 +265,14 @@ if ( !Array.prototype.forEach ) {
 		return nss[keys] || (nss[keys] = 'hotkeys'+ (++nsIndex));
 	}
 	
-	// function to set up the "key" field in keydown and keyup events
-	function polyfill (evt, original){
-		// do the original filtering
-		if (evt.which == null && original != null) {
-			event.which = original.charCode != null ? original.charCode : original.keyCode;
-		}
-		// don't take it for granted that the caller got this right
-		if (evt.keymap !== undefined) evt.keymap = $.keymap.normalize (evt.keymap);
-		var keymap = $.keymap(evt);
-		if (keymap == undefined) return evt;
-		var key = keymap.replace (/^([+^%]+)(.+)/, function (match, p1, p2){
-			if (/\+/.test(p1) || $.keymap.shiftedchars.indexOf(p2) !== -1) evt.shiftKey = true;
-			if (/\^/.test(p1)) evt.ctrlKey = true;
-			if (/%/.test(p1)) evt.altKey = true;
-			return p2;
-		});
-		if (key == 'Spacebar') key = ' '; // restore the standard
-		evt.key = key;
-		return evt;
-	}
-
+	// modify keyboard events to use {keys: '^a %b'} notation. Note that the field should really be 'keymaps'
 	["keydown","keyup"].forEach(function(type){
 		$.event.fixHooks[type] = {
 			props: "char charCode code key keyCode keys hotkeys".split(" "),
-			filter: polyfill
+			filter: $.keymap.normalize
 		};
 		$.event.special[type] = $.event.special[type] || {};
-		$.event.special[type].trigger = polyfill;
+		$.event.special[type].trigger = $.keymap.normalize;
 		$.event.special[type].add = function(handleObj){
 			if (!handleObj.data) return;
 			var keys = handleObj.data.keys;
