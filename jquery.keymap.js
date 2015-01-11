@@ -264,22 +264,27 @@ if ( !Array.prototype.forEach ) {
 	// use with $(element).on('keydown, {keys: '%1', allowDefault: true}, function(){});
 	
 	// first, create an index of namespaces to identify each keystroke list
+	// we do this to be able to remove a handler; $(el).off('keydown', {keys: 'x'}, handler) won't
+	// work since we change the handler function. So we fake each $().on as
+	// $(el).on ('keydown.hotkeys123', function() {if (keymap==keys) handler.call})
+	// and $(el).off('keydown', {keys...}) as $(el).off('keydown.hotkeys123')
 	var nss = {};
 	var nsIndex = 0;
 	function hotkeysnamespace(keys){
 		return nss[keys] || (nss[keys] = 'hotkeys'+ (++nsIndex));
 	}
 	
-	// modify keyboard events to use {keys: '^a %b'} notation. Note that the field should really be 'keymaps'
+	// modify keyboard events to use {keys: '^a %b'} notation. Note that the field should really be 'keymaps',
+	// since we allow the modifer notation described above
 	["keydown","keyup"].forEach(function(type){
 		$.event.fixHooks[type] = {
-			props: "char charCode code key keyCode keys hotkeys".split(" "),
+			props: "char charCode code key keyCode keymap hotkeys".split(" "),
 			filter: $.keymap.normalize
 		};
 		$.event.special[type] = $.event.special[type] || {};
 		$.event.special[type].trigger = $.keymap.normalize;
 		$.event.special[type].add = function(handleObj){
-			if (!handleObj.data) return;
+			if (!handleObj.data || !handleObj.data.keys) return;
 			var keys = handleObj.data.keys;
 			// Use the keys as a sort of namespace for the event. This is a hack for removing the handler later.
 			handleObj.namespace = handleObj.namespace.split('.').
