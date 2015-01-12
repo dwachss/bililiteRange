@@ -1,6 +1,3 @@
-// mapping for standard US keyboards. Replace the $.keymap.normal and $.keymap.shift to match your keyboard.
-// Assumes that control and alt modified keys are nonprinting!
-//
 // Updated to use the 2014 proposed W3C DOM events:
 // http://www.w3.org/TR/DOM-Level-3-Events/
 // http://www.w3.org/TR/DOM-Level-3-Events-key/
