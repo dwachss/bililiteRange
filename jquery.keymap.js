@@ -27,7 +27,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-// requires Array.prototype.forEach, so lets me nice to IE8
+// requires Array.prototype.forEach, so lets be nice to IE8
 if ( !Array.prototype.forEach ) {
   Array.prototype.forEach = function(fn, scope) {
     for(var i = 0, len = this.length; i < len; ++i) {
@@ -74,7 +74,7 @@ if ( !Array.prototype.forEach ) {
 				if (typeof key === 'number'){
 					if (shift && altGr && keymaps.shift_alt.charCodeAt(key) !== 0){
 						key = keymaps.shift_alt.charAt(key);
-					}else if (shift && keymaps.alt.charCodeAt(key) != 0){
+					}else if (altGr && keymaps.alt.charCodeAt(key) != 0){
 						key = keymaps.alt.charAt(key);
 					}else if (shift && keymaps.shift.charCodeAt(key) != 0){
 						key = keymaps.shift.charAt(key);
@@ -210,7 +210,7 @@ if ( !Array.prototype.forEach ) {
 	// the numeric codes in order for the keyboard I'm using (from Virtualkeyboard; standard 101 keyboard
 	// but '\' key to the right of '=', not ']' )
 	[
-		194,49,50,51,52,53,54,55,56,57,48,189,187,220,
+		192,49,50,51,52,53,54,55,56,57,48,189,187,220,
 		81,87,69,82,84,89,85,73,79,80,219,221,
 		65,83,68,70,71,72,74,75,76,186,222,
 		90,88,67,86,66,78,77,188,190,191
