@@ -42,10 +42,10 @@ if ( !Array.prototype.forEach ) {
 	// Shifted keys with a different form do not get the +; thus ^a is control-a; ^A is control-shift-a
 	// returns the value of keymap
 	// NOTE: modifier keys alone are intentionally ignored and return undefined
-	// NOTE: assumes only unmodified and shifted keys are printable; this is false for a lot of non-English keyboards
-	// that use alt, altGr and CapsLock modifiers. Until KeyboardEvent.getModifierState (https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent.getModifierState)
+	// NOTE: assumes only unmodified and shifted and AltGr'd keys are printable; this is false for a lot of non-English keyboards
+	// that use the CapsLock modifiers. Until KeyboardEvent.getModifierState (https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent.getModifierState)
 	// is implemented consistently, I suspect that will be impossible.
-	// NOTE: ignores the meta key (I only have a Windows machine on which to test this)
+	// NOTE: tries to implement the meta key but I'm not sure if it works (I only have a Windows machine on which to test this)
 	
 	// original keymap plugin returned the mapped keys
 	$.keymap = function (evt){
@@ -117,6 +117,9 @@ if ( !Array.prototype.forEach ) {
 		
 	// various other key notations that I want to use
 	var aliasgenerator = {
+		// new notation for Menu button
+		apps: 'ContextMenu',
+		menu: 'ContextMenu',
 		// VIM notation (and jquery.hotkeys numeric keypad notation)
 		'^<(.*)>$': '$1', // strip the brackets
 		'\\b(?:k|num_)(\\w+)': '$1', // we do not distinguish the numeric keypad
@@ -193,6 +196,7 @@ if ( !Array.prototype.forEach ) {
 		 32	: ' ',
 		  8	: 'Backspace',
 		 20	: 'CapsLock',
+		 93 : 'ContextMenu',
 		 46	: 'Delete',
 		 13	: 'Enter',
 		 27	: 'Escape',
