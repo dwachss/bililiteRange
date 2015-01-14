@@ -21,9 +21,8 @@ jquery.jsvk.js: A jQuery plugin to use Ilya Lebedev's JavaScript VirtualKeyboard
 bililiteRange for character insertion. Documentation at 
 http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/
 
-jquery.keymap.js: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to turn keyup codes into understandable characters. Documentation at
-http://bililite.com/blog/2013/02/22/parsing-keydown-events/ . Also includes a "hotkeys" plugin that allows keystroke handlers for specific keys, like $(el).on('keydown', {keys: '^A'}, function(){}) . Documentation at
-http://bililite.com/blog/2013/03/20/hotkeys-with-keymap/
+jquery.keymap.js: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to turn keydown codes into understandable characters. Also includes a "hotkeys" plugin that allows keystroke handlers for specific keys, like $(el).on('keydown', {keys: '^A'}, function(){}) . Documentation at
+http://bililite.com/blog/2015/01/12/rethinking-keymap/
 
 jquery.livesearch.js: jQuery plugin to do "live" searching for a regular expression; highlights  the text found and scrolls to it as you type. Documentation at
 http://bililite.com/blog/2013/03/07/new-jquery-plugin-livesearch/
@@ -32,7 +31,7 @@ jquery.savemonitor.js: jQuery plugin to track when an element changes and when i
 http://bililite.com/blog/2014/01/16/new-jquery-plugin-savemonitor/
 
 jquery.sendkeys.js: jQuery plugin to simulate keypresses. Documentation at 
-http://bililite.com/blog/2011/01/23/improved-sendkeys/
+http://bililite.com/blog/2015/01/14/rethinking-fn-sendkeys/
 
 jquery.status.js: jQuery plugin to display messages and get user input. Documentation at
 http://bililite.com/blog/2013/12/12/new-jquery-plugin-status/

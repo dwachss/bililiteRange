@@ -324,8 +324,7 @@ bililiteRange.bounds = {
 // sendkeys functions
 bililiteRange.sendkeys = {
 	'{enter}': function (rng){
-		var x = '\n'.charCodeAt(0);
-		rng.dispatch({type: 'keypress', keyCode: x, which: x, charCode: x});
+		simplechar(rng, '\n');
 		rng.insertEOL();
 	},
 	'{tab}': function (rng, c, simplechar){
@@ -372,7 +371,6 @@ bililiteRange.sendkeys = {
 };
 // Synonyms from the proposed DOM standard (http://www.w3.org/TR/DOM-Level-3-Events-key/)
 bililiteRange.sendkeys['{Enter}'] = bililiteRange.sendkeys['{enter}'];
-bililiteRange.sendkeys['{Tab}'] = bililiteRange.sendkeys['{tab}'];
 bililiteRange.sendkeys['{Backspace}'] = bililiteRange.sendkeys['{backspace}'];
 bililiteRange.sendkeys['{Delete}'] = bililiteRange.sendkeys['{del}'];
 bililiteRange.sendkeys['{ArrowRight}'] = bililiteRange.sendkeys['{rightarrow}'];
