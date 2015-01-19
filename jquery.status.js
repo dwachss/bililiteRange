@@ -1,6 +1,6 @@
 // create a "status bar" to display messages and accept line input
 
-// version 1.3
+// version 1.4
 // Documentation at http://bililite.com/blog/2013/12/11/new-jquery-plugin-statusbar/
 
 // Copyright (c) 2013 Daniel Wachsstock
@@ -57,11 +57,18 @@ $.fn.status = function(message, classname, opts){
 
 	if (message) return this.each(function(){
 		// just show the message, newest message first
-		var span = $('<span>').addClass(classname).text(message).hide().prependTo(this);
-		show(span);
-		hide(span);
+		if (this instanceof Node){
+			var span = $('<span>').addClass(classname).text(message).hide().prependTo(this);
+			show(span);
+			hide(span);			
+		}else{
+			// if we aren't using $().status on a real DOM node, assume we are using $(console).status
+			// can hack this with any ({log: function()..., error: function()...}).status
+			this[classname == opts.failureClass ? 'error' : 'log'](message);
+		}
 	});
 	
+	var container = self[0]; // only ask for input on one element;
 	var result = new Promise(function(resolve, reject){
 		if (opts.prompt === false){
 			// no input needed
@@ -69,11 +76,22 @@ $.fn.status = function(message, classname, opts){
 			return;
 		}
 
-		// insert a <label>Prompt <input /></label>
-		$('label', self).remove(); // remove any old elements
-		// appending at the end makes full-length input elements possible, as in http://stackoverflow.com/questions/773517/style-input-element-to-fill-remaining-width-of-its-container
-		var input = $('<label>').hide().appendTo(self);
 		var text = typeof opts.initialText == 'string' ? opts.initialText : '';
+		if (!(container instanceof Node)){
+			// not a real element; have to use the modal dialog
+			var ret = (('prompt' in container) ? container : window).prompt(opts.prompt, text);
+			if (ret != null){
+				resolve(opts.run(ret));
+			}else{
+				reject(new Error(opts.cancelMessage));
+			}
+			return;
+		}
+		
+		// If we get here, then the message container is a real DOM Node. Insert a <label>Prompt <input /></label>
+		$('label', container).remove(); // remove any old elements
+		// appending at the end makes full-length input elements possible, as in http://stackoverflow.com/questions/773517/style-input-element-to-fill-remaining-width-of-its-container
+		var input = $('<label>').hide().appendTo(container);
 		// hate to have a nonsemantic wrapper, but we need it to do the full-length trick
 		$('<input>').val(text).wrap('<span>').parent().appendTo(input);
 		if (opts.initialText === true && 'placeholder' in $('input', input)[0]){
@@ -109,9 +127,9 @@ $.fn.status = function(message, classname, opts){
 	});
 	
 	result.then(function(message) {
-		if (message) self.status(message, opts.successClass, opts);
+		if (message) $(self).status(message, opts.successClass, opts);
 	},function(err){
-		if (err.message) self.status(err.message, opts.failureClass, opts);
+		if (err.message) $(self).status(err.message, opts.failureClass, opts);
 	});
 	
 	return opts.returnPromise ? result : this; // chain
