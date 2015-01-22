@@ -3,7 +3,7 @@
 // version 1.4
 // Documentation at http://bililite.com/blog/2013/12/11/new-jquery-plugin-statusbar/
 
-// Copyright (c) 2013 Daniel Wachsstock
+// Copyright (c) 2015 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
 // obtaining a copy of this software and associated documentation
@@ -79,12 +79,16 @@ $.fn.status = function(message, classname, opts){
 		var text = typeof opts.initialText == 'string' ? opts.initialText : '';
 		if (!(container instanceof Node)){
 			// not a real element; have to use the modal dialog
-			var ret = (('prompt' in container) ? container : window).prompt(opts.prompt, text);
-			if (ret != null){
-				resolve(opts.run(ret));
-			}else{
-				reject(new Error(opts.cancelMessage));
-			}
+			var ret = Promise.resolve((('prompt' in container) ? container : window).prompt(opts.prompt, text));
+			ret.then(function (text){
+				if (text != null){ // window.prompt returns (in most browsers) null for cancel
+					resolve(opts.run(text));
+				}else{
+					reject({message: opts.cancelMessage});
+				}
+			}).catch(function(err){
+				reject (err);
+			});
 			return;
 		}
 		
