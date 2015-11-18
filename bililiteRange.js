@@ -159,7 +159,7 @@ Range.prototype = {
 	},
 	select: function(){
 		var b = this._el.bililiteRangeSelection = this.bounds();
-		if (this._el == document.activeElement){
+		if (this._el === this._doc.activeElement){
 			// only actually select if this element is active!
 			this._nativeSelect(this._nativeRange(b));
 		}
@@ -312,7 +312,7 @@ bililiteRange.bounds = {
 	start: function () { return [0,0] },
 	end: function () { return [this.length(), this.length()] },
 	selection: function(){
-		if (this._el == document.activeElement){
+		if (this._el === this._doc.activeElement){
 			this.bounds ('all'); // first select the whole thing for constraining
 			return this._nativeSelection();
 		}else{
