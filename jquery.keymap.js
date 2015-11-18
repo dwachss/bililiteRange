@@ -196,7 +196,7 @@ if ( !Array.prototype.forEach ) {
 		 32	: ' ',
 		  8	: 'Backspace',
 		 20	: 'CapsLock',
-		 93 : 'ContextMenu',
+		 93	: 'ContextMenu',
 		 46	: 'Delete',
 		 13	: 'Enter',
 		 27	: 'Escape',

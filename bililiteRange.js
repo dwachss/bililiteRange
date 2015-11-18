@@ -324,7 +324,7 @@ bililiteRange.bounds = {
 // sendkeys functions
 bililiteRange.sendkeys = {
 	'{enter}': function (rng){
-		simplechar(rng, '\n');
+		rng.dispatch({type: 'keypress', keyCode: '\n', which: '\n', charCode: '\n'});
 		rng.insertEOL();
 	},
 	'{tab}': function (rng, c, simplechar){
