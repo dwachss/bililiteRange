@@ -117,7 +117,7 @@ bililiteRange.extend({
 		newtext = unindent(oldtext, n, tabSize, true);
 		line.text(newtext);
 		var diffStart = newtext.length-oldtext.length;
-		return this.bounds([b[0]+diffStart, b[1]+diffInternal+diffStart]);
+		return this.bounds([Math.max(line.bounds()[0], b[0]+diffStart), b[1]+diffInternal+diffStart]);
 	},
 			
 	line:function(n){
