@@ -109,14 +109,15 @@ bililiteRange.extend({
 		tabSize = tabSize || this.data().tabSize || 8; // 8 is the browser default
 		// remove internal tabs
 		var oldtext = this.text(), newtext = unindent(oldtext, n, tabSize, false), b = this.bounds();
-		this.text(newtext).bounds([b[0], b[1]+newtext.length-oldtext.length]);
+		var diffInternal = newtext.length-oldtext.length;
+		this.text(newtext).bounds([b[0], b[1]+diffInternal]);
 		// remove initial tabs
 		var line = this.clone().bounds('line');
 		oldtext = line.text();
 		newtext = unindent(oldtext, n, tabSize, true);
 		line.text(newtext);
-		var diff = newtext.length-oldtext.length;
-		return this.bounds([b[0]+diff, b[1]+diff]);
+		var diffStart = newtext.length-oldtext.length;
+		return this.bounds([b[0]+diffStart, b[1]+diffInternal+diffStart]);
 	},
 			
 	line:function(n){
