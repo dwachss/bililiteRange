@@ -62,12 +62,23 @@ bililiteRange.fn.text = function (text, select, autoindent){
 	return oldtext.call (this, text, select);
 }
 
+function re_from_to(re, from, to, textlen) {
+  var endinglen = textlen - to;
+  var source = re.source;
+  if(endinglen > 0) {
+    // parens around source needed in case it has top level "|"
+    source = '(?:' + source + ')(?=[\\s\\S]{'+endinglen+'})';
+  }
+  re = new RegExp(source, 'g'+(re.ignoreCase ? 'i' : '') + (re.multiline ? 'm' : ''));
+  re.lastIndex = from;
+  return re;
+}
+
 bililiteRange.extend({
 	
 	find: function(re, nowrap, backwards){
 		// little hack: can put the "nowrap" as a flag on the RegExp itself, analagous to ignoreCase and multiline; overrides the parameter
 		if (re.nowrap !== undefined) nowrap = re.nowrap;
-		re = globalize(re);
 		var bounds = this.bounds();
 		if (!backwards){
 			var findprimitive = 'findprimitive';
@@ -188,32 +199,27 @@ bililiteRange.extend({
 	},
 	
 	findprimitive: function(re, bounds){
-		// search for re within the bounds given. Return the result of the RegExp.exec call  or false if not found.
-		// re needs to be global for this to work!
+		// search for re within the bounds given.
 		var text = this.all();
-		re.lastIndex = bounds[0];
-		var match = re.exec(text);
-		if (!match || match.index+match[0].length > bounds[1]) return false;
-		return match;
+		re = re_from_to(re, bounds[0], bounds[1], text.length);
+		return re.exec(text);
 	},
 	
 	findprimitiveback: function (re, bounds){
 		// no way to search backwards; have to search forward until we fail
 		var match = false;
-		do {
+		var text = this.all();
+		re = re_from_to(re, bounds[0], bounds[1], text.length);
+		while(true) {
 			var lastmatch = match;
-			match = this.findprimitive(re, bounds);
-			bounds[0] = match.index+1;
-		}while (match);
-		return lastmatch;
+			match = re.exec(text);
+			if(!match) return lastmatch;
+			// march forward cautiously, finding even overlapping matches
+			re.lastIndex = match.index+1;
+		}
 	}
 });
 
-// utilities
-function globalize (re){
-	// make a RegExp global, to allow multiple searches
-	return new RegExp(re.source, 'g'+(re.ignoreCase ? 'i' : '') + (re.multiline ? 'm' : ''));
-}
 function matchIs(match, bounds){
 	// check if the match that we just found is the same as the existing bounds, since we shouldn't count that
 	// this way, "Find Next" won't keep coming back to the same string.
