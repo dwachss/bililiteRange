@@ -338,7 +338,7 @@ $.exmap([
 		var which = parseInt(parameter);
 		var target = $(this.element());
 		var toolbar = target.data('vi.toolbar');
-		if (isNumeric (which)){
+		if ($.isNumeric (which)){
 			var button = $('button', toolbar).eq(which);
 			button.trigger ('vi-click', [target]);
 			// TODO: refactor this with the keydown handler
