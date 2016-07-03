@@ -1,6 +1,8 @@
 // Turn a textarea element into a pre element that can use a highlighter
 // Designed for use with Prism (prismjs.com)
-// usage: editor = bililiteRange.fancytext(element, Prism.highlightElement, threshold);
+// usage: editor = bililiteRange.fancytext(element, function(e, cb) {
+//                   Prism.highlightElement(e, true, cb);
+//                 }, threshold);
 // the element should have the appropriate class=language-* for Prism.
 // Version: 1.0
 // Documentation: http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
