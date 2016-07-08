@@ -85,16 +85,18 @@ bililiteRange.fancyTextAsync = function(editor, highlighter, threshold){
 		rng.listen('input', debounce(highlightAsync, threshold));
 	}
 	rng.listen('paste', function(evt){
-		// Firefox changes newlines to br's on paste!
-		// Chrome pastes cr's! Nothing is easy.
-		rng.bounds('selection').
-			text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), 'end').
-			select();
-		evt.preventDefault();
+    if (!evt.defaultPrevented) {
+  		// Firefox changes newlines to br's on paste!
+  		// Chrome pastes cr's! Nothing is easy.
+  		rng.bounds('selection').
+  			text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), 'end').
+  			select();
+  		evt.preventDefault();
+    }
 	});
 	rng.listen('keydown', function(evt){
 		// avoid the fancy element-creation with newlines
-		if (evt.keyCode == 13){
+		if (evt.keyCode == 13 && evt.defaultPrevented){
 			rng.bounds('selection').text('\n','end', rng.data().autoindent).select();
 			evt.preventDefault();
 		}

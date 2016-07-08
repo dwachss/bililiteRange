@@ -1,6 +1,6 @@
 // Turn a textarea element into a pre element that can use a highlighter
 // Designed for use with Prism (prismjs.com)
-// usage: editor = bililiteRange.fancytext(element, Prism.highlightElement, threshold); 
+// usage: editor = bililiteRange.fancytext(element, Prism.highlightElement, threshold);
 // the element should have the appropriate class=language-* for Prism.
 // Version: 1.0
 // Documentation: http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
@@ -41,7 +41,7 @@ bililiteRange.fancyText = function(editor, highlighter, threshold){
 		editor.parentNode.replaceChild(replacement, editor);
 		editor = replacement;
 	}
-	// for large texts, it can be too slow to run the highlighter on every input event. 
+	// for large texts, it can be too slow to run the highlighter on every input event.
 	// use the code from http://unscriptable.com/2009/03/20/debouncing-javascript-methods/
 	// to limit it to once every threshold milliseconds
 	function debounce (func, threshold){
@@ -55,7 +55,7 @@ bililiteRange.fancyText = function(editor, highlighter, threshold){
 			}, threshold);
 		};
 	}
-	
+
 	var rng = bililiteRange(editor);
 	function highlight(){
 		rng.bounds('selection');
@@ -70,20 +70,22 @@ bililiteRange.fancyText = function(editor, highlighter, threshold){
 		rng.listen('input', debounce(highlight, threshold));
 	}
 	rng.listen('paste', function(evt){
-		// Firefox changes newlines to br's on paste!
-		// Chrome pastes cr's! Nothing is easy.
-		rng.bounds('selection').
-			text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), 'end').
-			select();
-		evt.preventDefault();
+    if (!evt.defaultPrevented) {
+			// Firefox changes newlines to br's on paste!
+			// Chrome pastes cr's! Nothing is easy.
+			rng.bounds('selection').
+				text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), 'end').
+				select();
+			evt.preventDefault();
+		}
 	});
 	rng.listen('keydown', function(evt){
 		// avoid the fancy element-creation with newlines
-		if (evt.keyCode == 13){
+		if (evt.keyCode == 13 && !evt.defaultPrevented){
 			rng.bounds('selection').text('\n','end', rng.data().autoindent).select();
 			evt.preventDefault();
 		}
 	});
-	
+
 	return editor;
 };
