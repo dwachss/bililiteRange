@@ -1,6 +1,8 @@
 // Turn a textarea element into a pre element that can use a highlighter
 // Designed for use with Prism (prismjs.com)
-// usage: editor = bililiteRange.fancytext(element, Prism.highlightElement, threshold);
+// usage: editor = bililiteRange.fancytext(element, function(e, cb) {
+//                   Prism.highlightElement(e, true, cb);
+//                 }, threshold);
 // the element should have the appropriate class=language-* for Prism.
 // Version: 1.0
 // Documentation: http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
@@ -29,7 +31,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-bililiteRange.fancyText = function(editor, highlighter, threshold){
+bililiteRange.fancyTextAsync = function(editor, highlighter, threshold){
+  var highlightQueue = [];
 	if (editor.tagName.toLowerCase() == 'textarea'){
 		// turn the editor into an editable <pre>, since that is what Prism works on
 		var replacement = document.createElement('pre');
@@ -62,26 +65,38 @@ bililiteRange.fancyText = function(editor, highlighter, threshold){
 		// handle what Lea Verou calls "Dirty fix to #2"--seems to be Chrome issue with missing newlines
 		// from https://github.com/LeaVerou/dabblet/issues/2
 		if (!/\n$/.test(editor.textContent)) editor.textContent += '\n';
-		highlighter(editor);
-		rng.select();
+		highlighter(editor, function() {
+			rng.select();
+      highlightQueue.shift();
+      if (highlightQueue.length > 0) {
+        // process next highlight request in queue
+        highlightQueue[0]();
+      }
+		});
 	}
+  function highlightAsync() {
+    highlightQueue.push(highlight);
+    if (highlightQueue.length == 1) {
+      highlightQueue[0]();
+    } // else highlight is already running
+  }
 	if (highlighter){
-		highlight();
-		rng.listen('input', debounce(highlight, threshold));
+		highlightAsync();
+		rng.listen('input', debounce(highlightAsync, threshold));
 	}
 	rng.listen('paste', function(evt){
     if (!evt.defaultPrevented) {
-			// Firefox changes newlines to br's on paste!
-			// Chrome pastes cr's! Nothing is easy.
-			rng.bounds('selection').
-				text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), 'end').
-				select();
-			evt.preventDefault();
-		}
+  		// Firefox changes newlines to br's on paste!
+  		// Chrome pastes cr's! Nothing is easy.
+  		rng.bounds('selection').
+  			text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), 'end').
+  			select();
+  		evt.preventDefault();
+    }
 	});
 	rng.listen('keydown', function(evt){
 		// avoid the fancy element-creation with newlines
-		if (evt.keyCode == 13 && !evt.defaultPrevented){
+		if (evt.keyCode == 13 && evt.defaultPrevented){
 			rng.bounds('selection').text('\n','end', rng.data().autoindent).select();
 			evt.preventDefault();
 		}
