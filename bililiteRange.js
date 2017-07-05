@@ -130,7 +130,11 @@ function textProp(el){
 	// returns the property that contains the text of the element
 	// note that for <body> elements the text attribute represents the obsolete text color, not the textContent.
 	// we document that these routines do not work for <body> elements so that should not be relevant
-	if (typeof el.value != 'undefined') return 'value';
+
+	// Bugfix for https://github.com/dwachss/bililiteRange/issues/18 
+	// Adding typeof check for el.value in case for li elements
+	if (typeof el.value === 'string') return 'value';
+
 	if (typeof el.text != 'undefined') return 'text';
 	if (typeof el.textContent != 'undefined') return 'textContent';
 	return 'innerText';
