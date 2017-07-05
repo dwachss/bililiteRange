@@ -132,9 +132,8 @@ function textProp(el){
 	// we document that these routines do not work for <body> elements so that should not be relevant
 
 	// Bugfix for https://github.com/dwachss/bililiteRange/issues/18 
-	// Adding typeof check for el.value in case for li elements
+	// Adding typeof check of string for el.value in case for li elements
 	if (typeof el.value === 'string') return 'value';
-
 	if (typeof el.text != 'undefined') return 'text';
 	if (typeof el.textContent != 'undefined') return 'textContent';
 	return 'innerText';
