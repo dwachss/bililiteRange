@@ -581,6 +581,8 @@ function nextnode (node, root){
 	return null;
 }
 function w3cmoveBoundary (rng, n, bStart, el){
+	  var reBlank = /^\s*$/; // for finding new line nodes 
+	
 	// move the boundary (bStart == true ? start : end) n characters forward, up to the end of element el. Forward only!
 	// if the start is moved after the end, then an exception is raised
 	if (n <= 0) return;
@@ -592,7 +594,7 @@ function w3cmoveBoundary (rng, n, bStart, el){
 	while (node){
 		if (node.nodeType == 3){
 			var length = node.nodeValue.length;
-			if (n <= length && node.nodeValue.indexOf("\n") === -1 ){
+			if (n <= length && !reBlank.test(node.nodeValue) ){
 				rng[bStart ? 'setStart' : 'setEnd'](node, n);
 				// special case: if we end next to a <br>, include that node.
 				if (n == length){
