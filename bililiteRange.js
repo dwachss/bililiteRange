@@ -592,7 +592,7 @@ function w3cmoveBoundary (rng, n, bStart, el){
 	while (node){
 		if (node.nodeType == 3){
 			var length = node.nodeValue.length;
-			if (n <= length && test.indexOf("↵") === -1 ){
+			if (n <= length && node.nodeValue.indexOf("↵") === -1 ){
 				rng[bStart ? 'setStart' : 'setEnd'](node, n);
 				// special case: if we end next to a <br>, include that node.
 				if (n == length){
