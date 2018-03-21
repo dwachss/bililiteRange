@@ -116,12 +116,34 @@ bililiteRange = function(el, debug){
 		// give IE8 a chance. Note that this still fails in IE11, which has has oninput on contenteditable elements but does not 
 		// dispatch input events. See http://connect.microsoft.com/IE/feedback/details/794285/ie10-11-input-event-does-not-fire-on-div-with-contenteditable-set
 		// TODO: revisit this when I have IE11 running on my development machine
+		// TODO: FIXED
+		
 		var inputhack = function() {ret.dispatch({type: 'input', bubbles: true}) };
-		ret.listen('keyup', inputhack);
-		ret.listen('cut', inputhack);
-		ret.listen('paste', inputhack);
-		ret.listen('drop', inputhack);
-		el.oninput = 'patched';
+		
+		if(typeof window.setTimeout == 'object'){ /* IE 8 sees `setTimeout` as an `object` and not a `function` */
+			
+			ret.listen('keyup', inputhack);
+			ret.listen('cut', inputhack);
+			ret.listen('paste', inputhack);
+			ret.listen('drop', inputhack);
+			el.oninput = 'patched';
+			
+		}
+	}else{
+		
+		/* 
+			IE9/IE11 supports the `textinput` event (even on contenteditable elements)
+
+			See http://help.dottoro.com/ljhiwalm.php 
+		*/
+		
+		/* Detect IE 9/11, See: https://stackoverflow.com/questions/21825157/internet-explorer-11-detection  */
+		
+		if((!(window.FileReader) || !!window.MSInputMethodContext) && !!document.documentMode){ 
+			
+			ret.listen('textinput', function(){ ret.dispatch({type: 'input', bubbles: true}); });
+			
+		}
 	}
 	return ret;
 }

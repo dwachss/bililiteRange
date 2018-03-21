@@ -76,7 +76,7 @@ function restore (state, dir, rng){
 }
 
 function setuplisteners (rng){
-	rng.listen('input', function(){
+	var _callback = function(){
 		var state = getundostate(rng), el = rng.element(), lastevent = state.lastevent;
 		delete state.lastevent;
 		switch (lastevent){
@@ -88,7 +88,11 @@ function setuplisteners (rng){
 				if (state.penultimateevent == 'keypress') rng.data().undos = state.undo;
 		}
 		(new undostate(rng)).penultimateevent = lastevent; // record so we can check for keypress sequences
-	}).listen('keypress', function(evt){
+	};
+	
+	rng.listen('input', _callback) /* `input` event is for IE >= 10 */
+		.listen('textinput', _callback) /* `textinput` event is for IE 9 */
+		.listen('keypress', function(evt){
 		// key presses replace each other, which means that undo will undo all of them, unless the previous event was not a keypress (meaning we are starting a
 		// new series of typing) or we type a carriage return, which starts a new series of typing, or the new keypress is in a different place than the old one
 		if (evt.which < 32) return; // nonprinting characters; Firefox tends to send them all. We want them all undone individually
