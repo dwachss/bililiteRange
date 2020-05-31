@@ -156,15 +156,18 @@ bililiteRange.extend({
 				var newtext = self.all();
 				if (newtext == self._oldtext) return; // no change
 				if (!ev.bounds){
-					// "real" input events don't tell us the bounds (and until they really support DOM 3 events, not even the text.
+					// "real" input events don't tell us the bounds (and until they really support DOM 3 events, not even the text).
 					// we have to start from scratch.
+					// At least in Chrome, the data field is present but read-only.
 					var change = diff (self._oldtext, newtext);
 					ev.bounds = change.bounds; // save it for future events
-					ev.data = change.data;
+					ev.data = change.data; // this may fail
+					ev.bililiteData = change.data; // so include a fake field
 				}
+				if (ev.data !== null) ev.bililiteData = ev.data; // hack it back
 				start = ev.bounds[0];
 				oldend = ev.bounds[1];
-				newend = ev.bounds[0]+ev.data.length;
+				newend = ev.bounds[0] + ev.bililiteData.length;
 				self._oldtext = newtext;
 				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
 				if (self._bounds[0] <= start){
