@@ -39,10 +39,8 @@
 			shift = evt.shiftKey, ctrl = evt.ctrlKey, alt = evt.altKey, meta = evt.metaKey;
 			// key is implemented; just use what they got
 		if (!key || /^(?:shift|control|meta|alt)$/i.test(key)) return evt; // ignore undefined or modifier keys alone
-		if (key == ' ' || key == 'Spacebar' ) key = 'Space';
-		if (/^(Up|Down|Left|Right)$/.test(key)) key = 'Arrow'+key; // IE just has to be different
-		if (!code && /^[a-zA-Z]$/.test(key)) code = 'Key'+key; // IE doesn't implement code
-		if ((ctrl || alt || meta) && /^Key[A-Z]$/.test(code)){
+		if (key == ' ') key = 'Space'; // we use spaces to delimit keystrokes, so this needs to be changed
+		if ((ctrl || alt || meta) && /^Key[a-zA-Z]$/.test(code)){
 			key = code.charAt(code.length-1)[shift ? 'toUpperCase' : 'toLowerCase']();
 		}
 		evt.keymap = key;
