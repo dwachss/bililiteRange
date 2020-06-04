@@ -74,9 +74,7 @@ bililiteRange.extend({
 
 
 // create special events that let us check for vi-specific elements and modes
-
-$.event.fixHooks['bililiteRangeData'] = { props:['detail'] }; // make sure it's copied over
-$.event.fixHooks['vi-data'] = { props:['detail'] };
+$.event.addProp ('detail');  // make sure it's copied over
 $.event.special['vi-data'] = {
 	delegateType: 'bililiteRangeData',
 	bindType: 'bililiteRangeData',
