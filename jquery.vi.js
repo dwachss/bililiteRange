@@ -96,7 +96,8 @@ $.event.special['vi-keydown'] = {
 		var desiredmode = evt.data && evt.data.mode;
 		if (desiredmode && mode != desiredmode) return;
 		evt.rng = bililiteRange(evt.target);
-		return evt.handleObj.handler.apply(this, arguments);
+		// jquery.keymap.js has a special handler for keydown. Use it.
+		return $.event.special.keydown.handle.apply(this, arguments);
 	}
 };
 
