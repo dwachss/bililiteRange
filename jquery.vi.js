@@ -375,7 +375,7 @@ $.exmap([
 				file: state.file
 			}).then(
 				function() { return state.file+' Saved' },
-				function() { return new Error(state.file+' Not saved') }
+				function() { throw new Error(state.file+' Not saved') }
 			)},
 			returnPromise: true
 		}));

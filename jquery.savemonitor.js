@@ -1,5 +1,5 @@
 // Abstracts the idea of a "dirty" (changed but not saved) and "clean" (saved) file
-// documentation: http://bililite.com/blog/2014/01/16/new-jquery-plugin-savemonitor/
+// documentation: http://bililite.com/blog/2014/01/17/new-jquery-plugin-savemonitor/
 // Version 1.0
 //  depends: jQuery, Promise
 
@@ -82,7 +82,7 @@ function Savemonitor(){
 Savemonitor.prototype = {
 	clean: function (resolver){
 		this.setter('pending')();
-		Promise.cast(resolver).then(this.setter('clean'), this.setter('failed'));
+		Promise.resolve(resolver).then(this.setter('clean'), this.setter('failed'));
 	},
 	
 	dirty: function (){
