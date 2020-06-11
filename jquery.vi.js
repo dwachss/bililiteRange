@@ -36,10 +36,12 @@ $.fn.vi = function(status, toolbar, exrc){
 	$(toolbar).click (function(evt){
 		$(evt.target).trigger('vi-click', [self]);
 		return false;
-	}).keydown({keys: /\w/}, function (evt){
+	}).keydown(function (evt){
 		// numbers/letters to activate the toolbar buttons (can tab/shift-tab over then enter, as normal)
+		// Use the code rather than the key, so this can be used with other keyboard layouts
+		if (!/^(Key|Digit|Numpad)[0-9A-Z]$/.test(evt.code)) return;
 		self.each(function(){
-			bililiteRange(this).ex ('toolbar '+parseInt(evt.hotkeys, 36));
+			bililiteRange(this).ex ('toolbar '+parseInt(evt.code.charAt(evt.code.length-1), 36));
 			evt.preventDefault();
 			return false;
 		});
