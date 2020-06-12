@@ -1,9 +1,9 @@
-// create a "status bar" to display messages and accept line input
+// create a "status bar" to display messages
 
-// version 1.4
+// version 2.0
 // Documentation at http://bililite.com/blog/2013/12/11/new-jquery-plugin-statusbar/
 
-// Copyright (c) 2015 Daniel Wachsstock
+// Copyright (c) 2020 Daniel Wachsstock
 // MIT license:
 // Permission is hereby granted, free of charge, to any person
 // obtaining a copy of this software and associated documentation
@@ -28,117 +28,47 @@
 
 (function($){
 
-var defaults = {
-	show: $.fn.show,
-	hide: function() {return this.fadeOut(5000)},
-	returnPromise: false,
-	run: $.noop, // function to which to pass the text to resolve result
-	prompt: false,
-	initialText: false,
-	successClass: 'success',
-	failureClass: 'failure',
-	cancelMessage: 'User Canceled'
-};
+$.fn.status = function(message, {
+		display = function() {return this.show().fadeOut(5000)},
+		successClass = 'success',
+		failureClass = 'failure'
+	}={}){
 
-$.fn.status = function(message, classname, opts){
-	if (typeof message != 'string'){
-		// shift arguments
-		opts = message;
-		message = undefined;
-	}else if (typeof classname != 'string'){
-		opts = classname;
-		classname = '';
-	}
+	//
+	message = Promise.resolve(message).then (
+		result => { if (result instanceof Error) throw result; return result } // Errors should be catch'ed, not then'ed 
+	);
+	this.data('status.promise', message);
 
-	opts = $.extend({}, defaults, opts)
-	var self = this;
-	function show($el) {opts.show.call($el);};
-	function hide($el) {opts.hide.call($el); $el.promise().done(function() {$el.remove()})};
+	function displayMessage(container, text, which){
+		const span = $('<span>').addClass(which).text(text).hide().prependTo(container);
+		display.call(span);
+		span.promise().done( ()=> span.remove() );
+	};
 
-	if (message) return this.each(function(){
-		// just show the message, newest message first
-		if (this instanceof Node){
-			var span = $('<span>').addClass(classname).text(message).hide().prependTo(this);
-			show(span);
-			hide(span);			
-		}else{
-			// if we aren't using $().status on a real DOM node, assume we are using $(console).status
-			// can hack this with any ({log: function()..., error: function()...}).status
-			this[classname == opts.failureClass ? 'error' : 'log'](message);
-		}
-	});
-	
-	var container = self[0]; // only ask for input on one element;
-	var result = new Promise(function(resolve, reject){
-		if (opts.prompt === false){
-			// no input needed
-			resolve(opts.run());
-			return;
-		}
-
-		var text = typeof opts.initialText == 'string' ? opts.initialText : '';
-		if (!(container instanceof Node)){
-			// not a real element; have to use the modal dialog
-			var ret = Promise.resolve((('prompt' in container) ? container : window).prompt(opts.prompt, text));
-			ret.then(function (text){
-				if (text != null){ // window.prompt returns (in most browsers) null for cancel
-					resolve(opts.run(text));
-				}else{
-					reject({message: opts.cancelMessage});
-				}
-			}).catch(function(err){
-				reject (err);
-			});
-			return;
-		}
-		
-		// If we get here, then the message container is a real DOM Node. Insert a <label>Prompt <input /></label>
-		$('label', container).remove(); // remove any old elements
-		// appending at the end makes full-length input elements possible, as in http://stackoverflow.com/questions/773517/style-input-element-to-fill-remaining-width-of-its-container
-		var input = $('<label>').hide().appendTo(container);
-		// hate to have a nonsemantic wrapper, but we need it to do the full-length trick
-		$('<input>').val(text).wrap('<span>').parent().appendTo(input);
-		if (opts.initialText === true && 'placeholder' in $('input', input)[0]){
-			$('input', input).attr('placeholder', opts.prompt);
-		}else{
-			$('<strong>').text(opts.prompt).prependTo(input);
-		}
-		show(input);
-
-		var history = self.data('statusbar.history') || []; // a stack of past commands
-		self.data('statusbar.history', history);
-
-		$('input',input).on('keyup', function (evt){
-			if (evt.which == 13){ // enter
-				history.push(this.value);
-				// Promises fail here! The event handler catches the error before the Promise handler does!
-				try {	resolve (opts.run(this.value)) }
-				catch (e) { reject(e) }
-				hide(input);
-				return false;
-			}else if (evt.which == 27){ // esc
-				reject(new Error(opts.cancelMessage));
-				hide(input);
-				return false;
-			}else if (evt.which == 38){ // up arrow
-				this.value = history.pop();
-				$(this).trigger('input'); // always need to alert when the text changes
+	return this.each( function(){
+		message.then( text => {			
+			if (this instanceof Node){
+				displayMessage (this, text, successClass);
+			}else{
+				// if we aren't using $().status on a real DOM node, assume we are using $(console or something similar).status
+				this.log(text);
 			}
-		}).on('keypress', function (evt){
-			if (evt.which == 13) evt.preventDefault(); // don't pass the return to enclosing forms
+		}).catch( err => {
+			if (this instanceof Node){
+				displayMessage (this, err.message, failureClass);
+			}else{
+				this.error(err.message);
+			}
 		});
-		$('input',input)[0].focus(); // focus the input box so input can start		
 	});
-	
-	result.then(function(message) {
-		if (message) $(self).status(message, opts.successClass, opts);
-	},function(err){
-		if (err.message) $(self).status(err.message, opts.failureClass, opts);
-	});
-	
-	return opts.returnPromise ? result : this; // chain
 };
 
-$.fn.status.defaults = defaults; // expose defaults
+// monkey patch promise to allow retrieving the promise
+const oldPromise = $.fn.promise;
+$.fn.promise = function (type){
+	if (type !== 'status') return oldPromise.apply (this, arguments);
+	return this.data('status.promise');
+};
 
 })(jQuery);

@@ -107,4 +107,7 @@ function deletehighlight(rng){
 	}
 }
 
+// expose this for manual removal
+$.fn.livesearch.deletehighlight = deletehighlight;
+
 })(jQuery);

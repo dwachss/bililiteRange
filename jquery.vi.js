@@ -1,7 +1,7 @@
 // moving toward an implementation of vi for jQuery
 // (http://pubs.opengroup.org/onlinepubs/9699919799/utilities/vi.html)
 
-// depends:  bililiteRange.ex.js and all its depends,  jquery.keymap.js, jquery.savemonitor.js, jquery.status.js, jquery.livesearch.js
+// depends:  bililiteRange.ex.js and all its depends,  jquery.keymap.js, jquery.savemonitor.js, jquery.status.js, jquery.prompt.js, jquery.livesearch.js
 // documentation: to be created
 // Version 0.9
 
@@ -162,9 +162,9 @@ $.exmap = function(opts, defaults){
 		};
 	}
 	function run(event){
-		$($.data(event.rng.element(), 'vi.status')).status({
-			run: executeCommand(event.rng, opts.command, '%%')
-		});
+		$($.data(event.rng.element(), 'vi.status')).status(
+			() => executeCommand(event.rng, opts.command, '%%')
+		);
 		event.preventDefault();
 	}
 	var button = $(); // make sure it exists
@@ -371,16 +371,17 @@ $.exmap([
 	command: function(parameter, variant){
 		var rng = this, state = this.data(), el = this.element();
 		if (parameter) state.file = parameter;
-		state.monitor.clean($.data(el, 'vi.status').status({
-			run: function() { return $.post(state.directory, {
-				buffer: rng.all(),
-				file: state.file
-			}).then(
-				function() { return state.file+' Saved' },
-				function() { throw new Error(state.file+' Not saved') }
-			)},
-			returnPromise: true
-		}));
+		state.monitor.clean(
+			$.data(el, 'vi.status').status(
+				() => $.post(state.directory, {
+					buffer: rng.all(),
+					file: state.file
+				}).then(
+					function() { return state.file+' Saved' },
+					function() { throw new Error(state.file+' Not saved') }
+				)
+			).promise('status')
+		);
 	}
 },{
 	keys: '^z', // not really part of vi, but too ingrained in my fingers
@@ -398,14 +399,11 @@ $.exmap([
 {
 	keys: ':',
 	command: function (){
-		var el = this.element();
-		$.data(el, 'vi.status').status({
-			prompt: ':',
-			run: executeCommand(this),
-			returnPromise: true
-		}).then( // make sure we return focus to the text! It would be nice to have a finally method
-			function(e) {el.focus()},
-			function(e) {el.focus()}
+		var el = this.element(), $statusbar = $.data(el, 'vi.status');
+		$statusbar.status(
+			$statusbar.prompt(':').then( (text) => executeCommand(text) )
+		).promise('status').finally( // make sure we return focus to the text
+			() => el.focus()
 		);
 	}
 },{
@@ -480,19 +478,17 @@ $.exmap([
 	keys: '/',
 	name: 'livesearch',
 	command: function(parameter, variant){
-		var rng = this, el = this.element(), $status = $.data(el, 'vi.status');
-		$status.status({
-			prompt: variant ? '?' : '/',
-			run: function(text){
-				rng.bounds('selection').find(new RegExp(text), undefined, variant).select().scrollIntoView();
-				if (!rng.match) throw new Error(text+' not found');
-			},
-			returnPromise: true
-		}).then( // make sure we return focus to the text! It would be nice to have a finally method
-			function(e) {el.focus()},
-			function(e) {el.focus()}
-		);
-		$status.off('.search').on('input.search focus.search focusout.search', 'input', $(el).livesearch(variant));
+		var rng = this, el = this.element(), $statusbar = $.data(el, 'vi.status');
+		$statusbar.off('.search').on('input.search focus.search focusout.search', 'input', $(el).livesearch(variant));
+		$statusbar.prompt(variant ? '?' : '/').
+			then( text => {
+				$.fn.livesearch.deletehighlight(rng); // Firefix isn't seeing the focusout event below when it is removed
+				rng.find(new RegExp(text)).select();
+				if (!rng.match){
+					throw new Error(text+' not found');
+				}
+				// not returning anything; no message shown
+			}).finally( () => el.focus() );
 	}
 },{
 	keys: '?',
