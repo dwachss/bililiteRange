@@ -163,7 +163,7 @@ $.exmap = function(opts, defaults){
 	}
 	function run(event){
 		$($.data(event.rng.element(), 'vi.status')).status(
-			() => executeCommand(event.rng, opts.command, '%%')
+			executeCommand(event.rng, opts.command, '%%')
 		);
 		event.preventDefault();
 	}
@@ -373,7 +373,7 @@ $.exmap([
 		if (parameter) state.file = parameter;
 		state.monitor.clean(
 			$.data(el, 'vi.status').status(
-				() => $.post(state.directory, {
+				$.post(state.directory, {
 					buffer: rng.all(),
 					file: state.file
 				}).then(
@@ -401,7 +401,7 @@ $.exmap([
 	command: function (){
 		var el = this.element(), $statusbar = $.data(el, 'vi.status');
 		$statusbar.status(
-			$statusbar.prompt(':').then( (text) => executeCommand(text) )
+			$statusbar.prompt(':').then( executeCommand (this) )
 		).promise('status').finally( // make sure we return focus to the text
 			() => el.focus()
 		);
