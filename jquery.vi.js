@@ -1,7 +1,7 @@
 // moving toward an implementation of vi for jQuery
 // (http://pubs.opengroup.org/onlinepubs/9699919799/utilities/vi.html)
 
-// depends:  bililiteRange.ex.js and all its depends,  jquery.keymap.js, jquery.savemonitor.js, jquery.status.js, jquery.prompt.js, jquery.livesearch.js
+// depends:  bililiteRange.ex.js and all its depends,  jquery.keymap.js, jquery.savemonitor.js, jquery.status.js, jquery.livesearch.js
 // documentation: to be created
 // Version 0.9
 
@@ -116,7 +116,7 @@ $.event.special['vi-click'] = {
 	}
 };
 
-function executeCommand (rng, command, defaultAddress){
+function commandExecutor (rng, command, defaultAddress){
 	// returns a function that will run command (if not defined, then will run whatever command is passed in when executed)
 	return function (text){
 		var data = rng.data();
@@ -163,7 +163,7 @@ $.exmap = function(opts, defaults){
 	}
 	function run(event){
 		$($.data(event.rng.element(), 'vi.status')).status(
-			executeCommand(event.rng, opts.command, '%%')
+			commandExecutor(event.rng, opts.command, '%%')
 		);
 		event.preventDefault();
 	}
@@ -288,7 +288,7 @@ $.exmap([
 },{
 	name: 'console',
 	command: function (parameter, variant){
-		console.log(executeCommand(this)(parameter));
+		console.log(commandExecutor(this)(parameter));
 	}
 },{
 	name: 'map',
@@ -319,7 +319,7 @@ $.exmap([
 	command: function (parameter, variant){
 		var state = this.data();
 		for (var i = state.count || 1; i > 0; --i){
-			var result = executeCommand(this, parameter, '%%')();
+			var result = commandExecutor(this, parameter, '%%')();
 		}
 		return result;
 	}
@@ -369,18 +369,16 @@ $.exmap([
 },{
 	name: 'write',
 	command: function(parameter, variant){
-		var rng = this, state = this.data(), el = this.element();
+		var rng = this, state = this.data(), el = this.element(), $statusbar = $.data(el, 'vi.status');
 		if (parameter) state.file = parameter;
 		state.monitor.clean(
-			$.data(el, 'vi.status').status(
-				$.post(state.directory, {
-					buffer: rng.all(),
-					file: state.file
-				}).then(
-					function() { return state.file+' Saved' },
-					function() { throw new Error(state.file+' Not saved') }
-				)
-			).promise('status')
+			$.post(state.directory, {
+				buffer: rng.all(),
+				file: state.file
+			}).then(
+				function() { return state.file+' Saved' },
+				function() { throw new Error(state.file+' Not saved') }
+			).then(...$statusbar.statusDisplayer())			
 		);
 	}
 },{
@@ -400,11 +398,11 @@ $.exmap([
 	keys: ':',
 	command: function (){
 		var el = this.element(), $statusbar = $.data(el, 'vi.status');
-		$statusbar.status(
-			$statusbar.prompt(':').then( executeCommand (this) )
-		).promise('status').finally( // make sure we return focus to the text
-			() => el.focus()
-		);
+		$statusbar.
+			prompt(':').
+			then( commandExecutor (this) ).
+			then(...$statusbar.statusDisplayer()).
+			finally( () => el.focus() );
 	}
 },{
 	keys: 'a',
@@ -482,7 +480,7 @@ $.exmap([
 		$statusbar.off('.search').on('input.search focus.search focusout.search', 'input', $(el).livesearch(variant));
 		$statusbar.prompt(variant ? '?' : '/').
 			then( text => {
-				$.fn.livesearch.deletehighlight(rng); // Firefix isn't seeing the focusout event below when it is removed
+				$.fn.livesearch.deletehighlight(rng); // Firefox isn't seeing the focusout event below when it is removed
 				rng.find(new RegExp(text)).select();
 				if (!rng.match){
 					throw new Error(text+' not found');
