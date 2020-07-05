@@ -3,38 +3,35 @@
 <head>
   <meta charset="utf-8">
   <title>Editor Unit Testing</title>
-  <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-1.13.0.css">
+  <link rel="stylesheet" href="https://code.jquery.com/qunit/qunit-2.10.0.css">
 </head>
 <body>
 <div id="qunit"></div>
 <div id="qunit-fixture"></div>
-<p>The testing fails in large part in IE8; definitely in the "wontfix" category.
-The focus/blur code in FF requires the tab to be active 
-(not the console), see 
-<a href="https://bugzilla.mozilla.org/show_bug.cgi?id=566671">bugzilla.mozilla.org/show_bug.cgi?id=566671</a>.</p>
-<script src="http://code.jquery.com/jquery-1.10.2.min.js" ></script>
-<script src="http://code.jquery.com/qunit/qunit-1.13.0.js"></script>
-<script src="http://bililite.com/inc/promise-0.1.0.min.js" ></script>
+<script src="http://code.jquery.com/jquery-3.5.1.js" ></script>
+<script src="https://code.jquery.com/qunit/qunit-2.10.0.js"></script>
 <script>
 var elements = ['div', 'textarea', 'input'];
 var text = 'one\ntwo\n\tthree';
 var oneline = text.replace(/\n/g, '');
 function multitest (message, fn, async){
 	elements.forEach(function(name, i){
-		window[async ? 'asyncTest' : 'test'](message+' on '+name, function(){
+		QUnit.test(message+' on '+name, function(assert){
+			let done = async ? assert.async() : $.noop ;
 			var $el = $('<'+name+'>').css({
 				overflow: 'auto',
 				whiteSpace: 'pre',
 				height: '40px',
-				width: '200px',
+				width: '200px'
 			}).attr('contenteditable', '');
 			$( "#qunit-fixture" ).append($el);
 			var el = $el[0];
 			var rng = bililiteRange(el);
-			fn (rng, el, name == 'input' ? oneline : text, i);
+			fn (rng, el, name == 'input' ? oneline : text, i, assert, done);
 		});
 	});
 }
+
 function async (fn){
 	// a lot of my routines depend on catching the input events, which are asynchronous. Force the testing to be so, as well
 	return function(){
@@ -42,6 +39,7 @@ function async (fn){
 		setTimeout( function() { fn.apply(self, args) }, 0);
 	}
 }
+
 </script>
 <script src="../bililiteRange.js"></script>
 <script src="bililiteRange.qunit.js"></script>
