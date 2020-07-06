@@ -159,7 +159,7 @@ bililiteRange.extend({
 					// "real" input events don't tell us the bounds (and until they really support DOM 3 events, not even the text).
 					// we have to start from scratch.
 					// At least in Chrome, the data field is present but read-only.
-					var change = diff (self._oldtext, newtext);
+					var change = diffx (self._oldtext, newtext);
 					ev.bounds = change.bounds; // save it for future events
 					ev.data = change.data; // this may fail
 					ev.bililiteData = change.data; // so include a fake field
@@ -227,7 +227,7 @@ function matchIs(match, bounds){
 	return match && match.index == bounds[0] && match[0].length == bounds[1]-bounds[0];
 }
 
-function diff (oldtext, newtext){
+function diffx (oldtext, newtext){
 	// Try to find the changed text , assuming it was a continuous change
 	// This is wrong for drag and drop, which only fires one input event for both removal and insertion
 	var oldlen = oldtext.length;
@@ -245,7 +245,7 @@ function diff (oldtext, newtext){
 	var newend = newlen-i;
 	return {bounds: [start, oldend], data: newtext.slice(start, newend)}
 };
-bililiteRange.diff = diff; // expose
+bililiteRange.diffx = diffx; // expose
 
 function indent(text, tabs){
 	return text.replace(/\n/g, '\n'+tabs);

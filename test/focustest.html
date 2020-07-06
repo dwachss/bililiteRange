@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>bililiteRange focus/blur testing</title>
+<script src=../bililiteRange.js></script>
+</head>
+<body>
+<p>Testing whether the selection is retained on blur and refocus with tab in and out but set to the mouse position with clicks.
+I don't know how to automate that. Just select and tab back and forth.
+<textarea tabindex=0 style=width:90%>Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+Donec venenatis libero eu tincidunt auctor. Etiam porttitor neque nec vestibulum pretium. 
+Fusce nisl neque, feugiat ut sem eu, feugiat sollicitudin ex.</textarea>
+<div tabindex=0 contenteditable>Vestibulum ante ipsum primis in faucibus orci luctus et 
+ultrices posuere cubilia curae; Donec quis justo ut nunc elementum aliquet id vel risus.
+Maecenas nibh mauris, mattis ac consequat fermentum, euismod in lacus. Nulla dapibus ultricies vehicula.</div>
+
+<script>
+const r1 = bililiteRange(document.querySelector('textarea'));
+const r2 = bililiteRange(document.querySelector('div'));
+r1.listen('input');
+r2.listen('input');
+</script>
+</body>
+</html>

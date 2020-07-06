@@ -27,19 +27,51 @@ bililiteRange = function(el, debug){
 	
 	// selection tracking. We want clicks to set the selection to the clicked location but tabbing in or element.focus() should restore
 	// the selection to what it was.
-	// There's no good way to do this. I just assume that a mousedown within 100 ms of the focus event must have caused the focus, and
+	// There's no good way to do this. I just assume that a mousedown (or a drag and drop
+	// into the element) within 100 ms of the focus event must have caused the focus, and
 	// therefore we should not restore the selection.
 	if (! ('bililiteRangeSelection' in el)){
-		el.addEventListener('mousedown', evt =>{
-			el.mousedowntime = evt.timeStamp;
+		// track the selection.
+		el.bililiteRangeSelection = [0,0];
+		ret.listen('focusout', () => el.bililiteRangeSelection = ret._nativeSelection() );
+		
+		ret.listen('mousedown', evt => {
+			el.mousetime = evt.timeStamp;
 		})
-		el.addEventListener('focus', evt => {
-			if ('mousedowntime' in el && evt.timeStamp - el.mousedowntime < 100) return;
+		ret.listen('drop', evt => {
+			el.mousetime = evt.timeStamp;
+		})
+		ret.listen('focus', evt => {
+			if ('mousetime' in el && evt.timeStamp - el.mousetime < 100) return;
 			ret._nativeSelect(ret._nativeRange(el.bililiteRangeSelection))
 		})
-		// now we need to track the selection.
-		el.bililiteRangeSelection = [0,0];
-		el.addEventListener('focusout', () => el.bililiteRangeSelection = ret._nativeSelection() );
+	}
+
+	if (! ('bililiteRangeOldText' in el)){
+		// DOM 3 input events, https://www.w3.org/TR/input-events-1/
+		// have a data field with the text inserted, but thatisn't enough to fully describe the change;
+		// we need to know the old text (or at least its length)
+		// and *where* the new text was inserted.
+		// So we enhance input events with that information. 
+		// the "newText" should always be the same as the ;data' field, if it is defined
+		ret.listen ('beforeinput', () => el.bililiteRangeOldText = ret.all() );
+		ret.listen('input', evt => {
+			const newText = ret.all();
+			if (!evt.bililiteRange){
+				if (el.bililiteRangeOldText == newText){
+					// no change. Assume that whatever happened, happened at the selection point.
+					let data = evt.data || ''; // if the browser tells us something, use that information
+					evt.bililiteRange = {
+						unchanged: true,
+						start: ret.clone().bounds('selection')[1] - data.length,
+						originalText: data,
+						newText: data
+					};
+				}else{
+					evt.bililiteRange = diff (el.bililiteRangeOldText, newText);
+				}
+			}
+		});
 	}
 	
 	return ret;
@@ -58,11 +90,34 @@ function textProp(el){
 	return 'innerText';
 }
 
+function diff (oldText, newText){
+	// Try to find the changed text, assuming it was a continuous change
+	const oldlen = oldText.length;
+	const	newlen = newText.length;
+	for (var i = 0; i < newlen && i < oldlen; ++i){
+		if (newText.charAt(i) != oldText.charAt(i)) break;
+	}
+	const start = i;
+	for (i = 0; i < newlen && i < oldlen; ++i){
+		let newpos = newlen-i-1, oldpos = oldlen-i-1;
+		if (newpos < start || oldpos < start) break;
+		if (newText.charAt(newpos) != oldText.charAt(oldpos)) break;
+	}
+	const oldend = oldlen-i;
+	const newend = newlen-i;
+	return {
+		start: start,
+		originalText: oldText.slice(start, oldend),
+		newText: newText.slice(start, newend)
+	}
+};
+bililiteRange.diff = diff; // expose
+
 // base class
 function Range(){}
 Range.prototype = {
 	length: function() {
-		return this._el[this._textProp].replace(/\r/g, '').length; // need to correct for IE's CrLf weirdness
+		return this._el[this._textProp].length;
 	},
 	bounds: function(s){
 		if (bililiteRange.bounds[s]){
@@ -104,13 +159,20 @@ Range.prototype = {
 		this.dispatch({type: 'select', bubbles: true});
 		return this; // allow for chaining
 	},
-	text: function(text, select){
+	text: function(text, select, inputType = 'insertText'){
 		if (arguments.length){
 			var bounds = this.bounds(), el = this._el;
-			// signal the input per DOM 3 input events, http://www.w3.org/TR/DOM-Level-3-Events/#h4_events-inputevents
-			// we add another field, bounds, which are the bounds of the original text before being changed.
-			this.dispatch({type: 'beforeinput', bubbles: true,
-			               data: text, bounds: bounds});
+			this.dispatch({
+				type: 'beforeinput',
+				inputType: inputType,
+				bubbles: true,
+			  data: text,
+				bililiteRange: {
+					originalText: this.text(),
+					newText: text,
+					start: this[0]
+				}
+			});
 			this._nativeSetText(text, this._nativeRange(bounds));
 			if (select == 'start'){
 				this.bounds ([bounds[0], bounds[0]]);
@@ -119,11 +181,20 @@ Range.prototype = {
 			}else if (select == 'all'){
 				this.bounds ([bounds[0], bounds[0]+text.length]);
 			}
-			this.dispatch({type: 'input', bubbles: true,
-			               data: text, bounds: bounds});
+			this.dispatch({
+				type: 'input',
+				inputType: inputType,
+				bubbles: true,
+			  data: text,
+				bililiteRange: {
+					originalText: this.text(),
+					newText: text,
+					start: this[0]
+				}
+			});
 			return this; // allow for chaining
 		}else{
-			return this._nativeGetText(this._nativeRange(this.bounds())).replace(/\r/g, ''); // need to correct for IE's CrLf weirdness
+			return this._nativeGetText(this._nativeRange(this.bounds()));
 		}
 	},
 	insertEOL: function (){
@@ -182,7 +253,7 @@ Range.prototype = {
 			this.dispatch ({type: 'input', bubbles: true, data: text});
 			return this;
 		}else{
-			return this._el[this._textProp].replace(/\r/g, ''); // need to correct for IE's CrLf weirdness
+			return this._el[this._textProp];
 		}
 	},
 	element: function() { return this._el },
@@ -193,11 +264,11 @@ Range.prototype = {
 		setTimeout( () => this._el.dispatchEvent(event), 0);
 		return this;
 	},
-	listen: function (type, func){
+	listen: function (type, func = console.log){
 		this._el.addEventListener(type, func);
 		return this;
 	},
-	dontlisten: function (type, func){
+	dontlisten: function (type, func = console.log){
 		this._el.removeEventListener(type, func);
 		return this;
 	}
@@ -227,7 +298,6 @@ bililiteRange.bounds = {
 // sendkeys functions
 bililiteRange.sendkeys = {
 	'{enter}': function (rng){
-		rng.dispatch({type: 'keypress', bubbles: true, keyCode: '\n', which: '\n', charCode: '\n'});
 		rng.insertEOL();
 	},
 	'{tab}': function (rng, c, simplechar){
@@ -262,10 +332,6 @@ bililiteRange.sendkeys = {
 	'{selection}': function (rng){
 		// insert the characters without the sendkeys processing
 		var s = rng.data().sendkeysOriginalText;
-		for (var i =0; i < s.length; ++i){
-			var x = s.charCodeAt(i);
-			rng.dispatch({type: 'keypress', bubbles: true, keyCode: x, which: x, charCode: x});
-		}
 		rng.text(s, 'end');
 	},
 	'{mark}' : function (rng){
@@ -437,14 +503,14 @@ function w3cstart(rng, constraint){
 	if (rng.compareBoundaryPoints (END_TO_START, constraint) >= 0) return constraint.toString().length;
 	rng = rng.cloneRange(); // don't change the original
 	rng.setEnd (constraint.endContainer, constraint.endOffset); // they now end at the same place
-	return constraint.toString().replace(/\r/g, '').length - rng.toString().replace(/\r/g, '').length;
+	return constraint.toString().length - rng.toString().length;
 }
 function w3cend (rng, constraint){
 	if (rng.compareBoundaryPoints (END_TO_END, constraint) >= 0) return constraint.toString().length; // at or after the end
 	if (rng.compareBoundaryPoints (START_TO_END, constraint) <= 0) return 0;
 	rng = rng.cloneRange(); // don't change the original
 	rng.setStart (constraint.startContainer, constraint.startOffset); // they now start at the same place
-	return rng.toString().replace(/\r/g, '').length;
+	return rng.toString().length;
 }
 
 function NothingRange(){}
