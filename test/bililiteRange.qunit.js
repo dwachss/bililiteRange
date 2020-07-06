@@ -12,15 +12,31 @@ multitest("Testing bililiteRange", function (rng, el, text, i, assert){
 	rng.select();
 	rng.bounds('selection');
 	assert.deepEqual (rng.bounds(), b, 'selection recorded');
-	rng.element().blur();
-	rng.element().focus();
-	rng.bounds('selection');
-	assert.deepEqual (rng.bounds(), b, 'selection retained');
 	if (el.nodeName.toLowerCase() == 'input') return; // insertEOL irrelevant on input elements
 	b = [1,1];
 	rng.bounds(b).insertEOL();
 	assert.equal (rng.length(), text.length+1, 'EOL inserted');
 	assert.deepEqual (rng.bounds(), [b[0]+1, b[0]+1], 'EOL moved bounds');
+});
+multitest("Testing bililiteRange blur/focus selection", function (rng, el, text, i, assert){
+	rng.all(text);
+	var b = [1, 10];
+	rng.bounds(b);
+	rng.select();
+	document.querySelector('#qunit-header a').focus();
+	rng.element().focus();
+	rng.bounds('selection');
+	assert.deepEqual (rng.bounds(), b, 'selection retained');
+});
+multitest("Testing bililiteRange bounds array notation", function (rng, el, text, i, assert){
+	rng.all(text).bounds('all'); // assumes text.length > 2!
+	var oldbounds = rng.bounds();
+	var b = [1, 2];
+	rng[0] = b[0];
+	assert.deepEqual (rng.bounds(), [b[0], oldbounds[1]], 'bounds start set');
+	rng[1] = b[1];
+	assert.deepEqual (rng.bounds(), b, 'bounds end set');
+	assert.ok (rng[0] == b[0] && rng[1] == b[1], 'bounds in array style gettable');
 });
 multitest("Testing bililiteRange selection", function (rng, el, text, i, assert){
 	rng.all(text);
