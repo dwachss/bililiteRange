@@ -55,17 +55,10 @@ bililiteRange = function(el, debug){
 		ret.listen('input', evt => {
 			const newText = ret.all();
 			if (!evt.bililiteRange){
-				if (el.bililiteRangeOldText == newText){
-					// no change. Assume that whatever happened, happened at the selection point.
-					let data = evt.data || ''; // if the browser tells us something, use that information
-					evt.bililiteRange = {
-						unchanged: true,
-						start: ret.clone().bounds('selection')[1] - data.length,
-						originalText: data,
-						newText: data
-					};
-				}else{
-					evt.bililiteRange = diff (el.bililiteRangeOldText, newText);
+				evt.bililiteRange = diff (el.bililiteRangeOldText, newText);
+				if (evt.bililiteRange.unchanged){
+					// no change. Assume that whatever happened, happened at the selection point (and use whatever data the browser gives us).
+					evt.bililiteRange.start = ret.clone().bounds('selection')[1] - (evt.data || '').length,
 				}
 			}
 		});
@@ -76,6 +69,15 @@ bililiteRange = function(el, debug){
 
 function diff (oldText, newText){
 	// Try to find the changed text, assuming it was a continuous change
+	if (oldText == newText){
+		return {
+			unchanged: true,
+			start: 0,
+			oldText,
+			newText
+		}
+	}
+
 	const oldlen = oldText.length;
 	const	newlen = newText.length;
 	for (var i = 0; i < newlen && i < oldlen; ++i){
@@ -91,7 +93,7 @@ function diff (oldText, newText){
 	const newend = newlen-i;
 	return {
 		start,
-		originalText: oldText.slice(start, oldend),
+		oldText: oldText.slice(start, oldend),
 		newText: newText.slice(start, newend)
 	}
 };

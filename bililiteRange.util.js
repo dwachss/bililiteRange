@@ -146,51 +146,37 @@ bililiteRange.extend({
 	},
 	
 	live: function(on){
-		var self = this;
 		if (arguments.length == 0 || on){
-			this._oldtext = self.all(); // resync the text if it should be necessary
 			if (this._inputHandler) return this; // don't double-bind
-			this._inputHandler = function(ev){
+			this._inputHandler = evt => {
 				// first find the change.
 				var start, oldend, newend;
-				var newtext = self.all();
-				if (newtext == self._oldtext) return; // no change
-				if (!ev.bounds){
-					// "real" input events don't tell us the bounds (and until they really support DOM 3 events, not even the text).
-					// we have to start from scratch.
-					// At least in Chrome, the data field is present but read-only.
-					var change = diffx (self._oldtext, newtext);
-					ev.bounds = change.bounds; // save it for future events
-					ev.data = change.data; // this may fail
-					ev.bililiteData = change.data; // so include a fake field
-				}
-				if (ev.data !== null) ev.bililiteData = ev.data; // hack it back
-				start = ev.bounds[0];
-				oldend = ev.bounds[1];
-				newend = ev.bounds[0] + ev.bililiteData.length;
-				self._oldtext = newtext;
+				if (evt.bililite.unchanged) return;
+				start = evt.bililite.start;
+				oldend = start + ev.bililite.oldText.length;
+				newend = start + ev.bililite.newText.length;
 				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
-				if (self._bounds[0] <= start){
+				if (this[0] <= start){
 					// no change
-				}else if (self._bounds[0] > oldend){
-					self._bounds[0] += newend - oldend;
+				}else if (this[0] > oldend){
+					this[0] += newend - oldend;
 				}else{
-					self._bounds[0] = newend;
+					this[0] = newend;
 				}
-				if (self._bounds[1] < start){
+				if (this[1] < start){
 					// no change
-				}else if (self._bounds[1] >= oldend){
-					self._bounds[1] += newend - oldend;
+				}else if (this[1] >= oldend){
+					this[1] += newend - oldend;
 				}else{
-					self._bounds[1] = start;
+					this[1] = start;
 				}
 			};
-			self.listen('input', self._inputHandler);
+			this.listen('input', this._inputHandler);
 		}else{
-			self.dontlisten('input', self._inputHandler);
-			delete self._inputHandler;
+			this.dontlisten('input', this._inputHandler);
+			delete this._inputHandler;
 		}
-	return this;
+		return this;
 	},
 	
 	findprimitive: function(re, bounds){
@@ -268,7 +254,7 @@ function unindent(str, count, tabwidth, start){
 	if (!isFinite(tabwidth) || tabwidth < 1) tabwidth = 4;
 	if (isNaN(count) || count < 0) count = 1;
 	if (!isFinite(count)) count = '';
-	var re = new RegExp((start ? '(^)' : '(\\n)') + '(?:\t| {'+tabwidth+'}){1,'+count+'}', 'g');
+	var re = new RegExp((start ? '(^)' : '(\\n)') + `(?:\t| {${tabwidth}}){1,${count|}`, 'g');
 	return str.replace(re, '$1');
 }
 
