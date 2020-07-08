@@ -58,7 +58,7 @@ bililiteRange = function(el, debug){
 				evt.bililiteRange = diff (el.bililiteRangeOldText, newText);
 				if (evt.bililiteRange.unchanged){
 					// no change. Assume that whatever happened, happened at the selection point (and use whatever data the browser gives us).
-					evt.bililiteRange.start = ret.clone().bounds('selection')[1] - (evt.data || '').length,
+					evt.bililiteRange.start = ret.clone().bounds('selection')[1] - (evt.data || '').length;
 				}
 			}
 		});
@@ -100,16 +100,16 @@ function diff (oldText, newText){
 bililiteRange.diff = diff; // expose
 
 // convenience function for defining input events
-function inputEventInit(type, originalText, newText, start, inputType){
+function inputEventInit(type, oldText, newText, start, inputType){
 	return {
 		type,
 		inputType,
 		data: newText,
 		bubbles: true,
 		bililiteRange: {
-			unchanged: (originalText == newText),
+			unchanged: (oldText == newText),
 			start,
-			originalText,
+			oldText,
 			newText
 		}
 	};
@@ -596,7 +596,7 @@ bililiteRange.data = function (name, newdesc = {}){
 			this.sourceRange.dispatch({ type: attr, bubbles: true, detail: value });
 			try{
 				this.sourceRange.element().setAttribute (attr, value); // illegal attribute names will throw. Ignore it			
-			}
+			} finally { /* ignore */ }
 		}
 	}
 	Object.defineProperty(Data.prototype, name, desc);

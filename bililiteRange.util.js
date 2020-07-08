@@ -145,33 +145,35 @@ bililiteRange.extend({
 		}
 	},
 	
-	live: function(on){
-		if (arguments.length == 0 || on){
+	live: function(on = true){
+		if (on){
 			if (this._inputHandler) return this; // don't double-bind
 			this._inputHandler = evt => {
-				// first find the change.
 				var start, oldend, newend;
-				if (evt.bililite.unchanged) return;
-				start = evt.bililite.start;
-				oldend = start + ev.bililite.oldText.length;
-				newend = start + ev.bililite.newText.length;
+				if (evt.bililiteRange.unchanged) return;
+				start = evt.bililiteRange.start;
+				oldend = start + evt.bililiteRange.oldText.length;
+				newend = start + evt.bililiteRange.newText.length;
 				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
-				if (this[0] <= start){
+				let [b0, b1] = this.bounds();
+				if (b0 <= start){
 					// no change
-				}else if (this[0] > oldend){
-					this[0] += newend - oldend;
+				}else if (b0 > oldend){
+					b0  += newend - oldend;
 				}else{
-					this[0] = newend;
+					b0  = newend;
 				}
-				if (this[1] < start){
+				if (b1 < start){
 					// no change
-				}else if (this[1] >= oldend){
-					this[1] += newend - oldend;
+				}else if (b1 >= oldend){
+					b1 += newend - oldend;
 				}else{
-					this[1] = start;
+					b1 = start;
 				}
+				this.bounds([b0, b1]);
 			};
-			this.listen('input', this._inputHandler);
+			// we only want to listen to changes that happened *after* we went live, so start listening asynchronously
+			setTimeout ( () => this.listen('input', this._inputHandler), 0);
 		}else{
 			this.dontlisten('input', this._inputHandler);
 			delete this._inputHandler;
@@ -254,7 +256,7 @@ function unindent(str, count, tabwidth, start){
 	if (!isFinite(tabwidth) || tabwidth < 1) tabwidth = 4;
 	if (isNaN(count) || count < 0) count = 1;
 	if (!isFinite(count)) count = '';
-	var re = new RegExp((start ? '(^)' : '(\\n)') + `(?:\t| {${tabwidth}}){1,${count|}`, 'g');
+	var re = new RegExp((start ? '(^)' : '(\\n)') + `(?:\t| {${tabwidth}}){1,${count}}`, 'g');
 	return str.replace(re, '$1');
 }
 
