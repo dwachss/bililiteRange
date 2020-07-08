@@ -22,7 +22,6 @@ bililiteRange = function(el, debug){
 	// determine parent document, as implemented by John McLear <john@mclear.co.uk>
 	ret._doc = el.ownerDocument;
 	ret._win = 'defaultView' in ret._doc ? ret._doc.defaultView : ret._doc.parentWindow;
-	ret._textProp = textProp(el);
 	ret._bounds = [0, ret.length()];
 	
 	// selection tracking. We want clicks to set the selection to the clicked location but tabbing in or element.focus() should restore
@@ -30,7 +29,7 @@ bililiteRange = function(el, debug){
 	// There's no good way to do this. I just assume that a mousedown (or a drag and drop
 	// into the element) within 100 ms of the focus event must have caused the focus, and
 	// therefore we should not restore the selection.
-	if (! ('bililiteRangeSelection' in el)){
+	if (! ('bililiteRangeSelection' in el)){ // we haven't processed this element yet
 		// track the selection.
 		el.bililiteRangeSelection = [0,0];
 		ret.listen('focusout', () => el.bililiteRangeSelection = ret._nativeSelection() );
@@ -45,15 +44,13 @@ bililiteRange = function(el, debug){
 			if ('mousetime' in el && evt.timeStamp - el.mousetime < 100) return;
 			ret._nativeSelect(ret._nativeRange(el.bililiteRangeSelection))
 		})
-	}
 
-	if (! ('bililiteRangeOldText' in el)){
 		// DOM 3 input events, https://www.w3.org/TR/input-events-1/
 		// have a data field with the text inserted, but thatisn't enough to fully describe the change;
 		// we need to know the old text (or at least its length)
 		// and *where* the new text was inserted.
 		// So we enhance input events with that information. 
-		// the "newText" should always be the same as the ;data' field, if it is defined
+		// the "newText" should always be the same as the 'data' field, if it is defined
 		ret.listen ('beforeinput', () => el.bililiteRangeOldText = ret.all() );
 		ret.listen('input', evt => {
 			const newText = ret.all();
@@ -77,19 +74,6 @@ bililiteRange = function(el, debug){
 	return ret;
 }
 
-function textProp(el){
-	// returns the property that contains the text of the element
-	// note that for <body> elements the text attribute represents the obsolete text color, not the textContent.
-	// we document that these routines do not work for <body> elements so that should not be relevant
-
-	// Bugfix for https://github.com/dwachss/bililiteRange/issues/18 
-	// Adding typeof check of string for el.value in case for li elements
-	if (typeof el.value === 'string') return 'value';
-	if (typeof el.text != 'undefined') return 'text';
-	if (typeof el.textContent != 'undefined') return 'textContent';
-	return 'innerText';
-}
-
 function diff (oldText, newText){
 	// Try to find the changed text, assuming it was a continuous change
 	const oldlen = oldText.length;
@@ -106,12 +90,28 @@ function diff (oldText, newText){
 	const oldend = oldlen-i;
 	const newend = newlen-i;
 	return {
-		start: start,
+		start,
 		originalText: oldText.slice(start, oldend),
 		newText: newText.slice(start, newend)
 	}
 };
 bililiteRange.diff = diff; // expose
+
+// convenience function for defining input events
+function inputEventInit(type, originalText, newText, start, inputType){
+	return {
+		type,
+		inputType,
+		data: newText,
+		bubbles: true,
+		bililiteRange: {
+			unchanged: (originalText == newText),
+			start,
+			originalText,
+			newText
+		}
+	};
+}
 
 // base class
 function Range(){}
@@ -161,37 +161,19 @@ Range.prototype = {
 	},
 	text: function(text, select, inputType = 'insertText'){
 		if (arguments.length){
-			var bounds = this.bounds(), el = this._el;
-			this.dispatch({
-				type: 'beforeinput',
-				inputType: inputType,
-				bubbles: true,
-			  data: text,
-				bililiteRange: {
-					originalText: this.text(),
-					newText: text,
-					start: this[0]
-				}
-			});
+			let bounds = this.bounds(), el = this._el;
+			let eventparams = [this.text(), text, this[0], inputType];
+			this.dispatch (inputEventInit('beforeinput',...eventparams));
 			this._nativeSetText(text, this._nativeRange(bounds));
 			if (select == 'start'){
-				this.bounds ([bounds[0], bounds[0]]);
+				this[1] = this[0];
 			}else if (select == 'end'){
-				this.bounds ([bounds[0]+text.length, bounds[0]+text.length]);
+				this[0] += text.length;
+				this[1] = this[0];
 			}else if (select == 'all'){
-				this.bounds ([bounds[0], bounds[0]+text.length]);
+				this[1] = this[0]+text.length;
 			}
-			this.dispatch({
-				type: 'input',
-				inputType: inputType,
-				bubbles: true,
-			  data: text,
-				bililiteRange: {
-					originalText: this.text(),
-					newText: text,
-					start: this[0]
-				}
-			});
+			this.dispatch (inputEventInit('input',...eventparams));
 			return this; // allow for chaining
 		}else{
 			return this._nativeGetText(this._nativeRange(this.bounds()));
@@ -348,6 +330,7 @@ bililiteRange.sendkeys['{ArrowLeft}'] = bililiteRange.sendkeys['{leftarrow}'];
 // an input element in a standards document. "Native Range" is just the bounds array
 function InputRange(){}
 InputRange.prototype = new Range();
+InputRange.prototype._textProp = 'value';
 InputRange.prototype._nativeRange = function(bounds) {
 	return bounds || [0, this.length()];
 };
@@ -386,6 +369,7 @@ InputRange.prototype._nativeWrap = function() {throw new Error("Cannot wrap in a
 
 function W3CRange(){}
 W3CRange.prototype = new Range();
+W3CRange.prototype._textProp = 'textContent';
 W3CRange.prototype._nativeRange = function (bounds){
 	var rng = this._doc.createRange();
 	rng.selectNodeContents(this._el);
@@ -513,7 +497,15 @@ function w3cend (rng, constraint){
 	return rng.toString().length;
 }
 
-function NothingRange(){}
+function NothingRange(){
+	// Bugfix for https://github.com/dwachss/bililiteRange/issues/18 
+	// Adding typeof check of string for el.value in case for li elements
+	if (typeof this._el.value === 'string'){
+		this._textProp = 'value';
+	}else{
+		this._textProp = 'textContent';
+	}
+}
 NothingRange.prototype = new Range();
 NothingRange.prototype._nativeRange = function(bounds) {
 	return bounds || [0,this.length()];
@@ -550,13 +542,14 @@ bililiteRange.fn.data = function(){
 	return data[index];
 }
 var Data = function(rng) {
-	// we use JSON.stringify to display the data values. To make some of those non-enumerable, we have to use properties
 	Object.defineProperty(this, 'values', {
 		value: {}
 	});
 	Object.defineProperty(this, 'sourceRange', {
 		value: rng
 	});
+	// JSON.stringify(rng.data()) only shows properties that were defined with
+	// bililiteRange.data ('propertyname') that were actually set for rng.
 	Object.defineProperty(this, 'toJSON', {
 		value: function(){
 			var ret = {};
@@ -564,7 +557,7 @@ var Data = function(rng) {
 			return ret;
 		}
 	});
-	// to display all the properties (not just those changed), use JSON.stringify(state.all)
+	// to display all the properties (not just those changed), use JSON.stringify(rng.data().all)
 	Object.defineProperty(this, 'all', {
 		get: function(){
 			var ret = {};
@@ -575,15 +568,14 @@ var Data = function(rng) {
 }
 
 Data.prototype = {};
-Object.defineProperty(Data.prototype, 'values', {
+Object.defineProperty(Data.prototype, 'values', { // default values of data properties
 	value: {}
 });
 Object.defineProperty(Data.prototype, 'monitored', {
 	value: {}
 });
 
-bililiteRange.data = function (name, newdesc){
-	newdesc = newdesc || {};
+bililiteRange.data = function (name, newdesc = {}){
 	var desc = Object.getOwnPropertyDescriptor(Data.prototype, name) || {};
 	if ('enumerable' in newdesc) desc.enumerable = !!newdesc.enumerable;
 	if (!('enumerable' in desc)) desc.enumerable = true; // default
@@ -594,13 +586,16 @@ bililiteRange.data = function (name, newdesc){
 		if (name in this.values) return this.values[name];
 		return Data.prototype.values[name];
 	};
+	let attr = `data-${name}`;
 	desc.set = function (value){
 		this.values[name] = value;
-		if (Data.prototype.monitored[name]) this.sourceRange.dispatch({
-			type: 'bililiteRangeData',
-			bubbles: true,
-			detail: {name: name, value: value}
-		});
+		if (Data.prototype.monitored[name]){
+			// signal in two ways
+			this.sourceRange.dispatch({ type: attr, bubbles: true, detail: value });
+			try{
+				this.sourceRange.element().setAttribute (attr, value); // illegal attribute names will throw. Ignore it			
+			}
+		}
 	}
 	Object.defineProperty(Data.prototype, name, desc);
 }

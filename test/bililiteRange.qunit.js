@@ -76,14 +76,14 @@ multitest("Testing bililiteRange data", function (rng, el, text, i, assert){
 multitest ('Testing monitored data', function (rng, el, text, i, assert, done){
 	assert.expect(4);
 	assert.equal(rng.data().sourceRange, rng, 'sourceRange set');
-	bililiteRange.data('monitored~value', {monitored: true});
-	assert.ok(rng.data().monitored['monitored~value'], 'monitor created');
-	rng.listen('bililiteRangeData', function(evt){
-		assert.equal (evt.detail.name, 'monitored~value');
-		assert.equal (evt.detail.value, 1);
+	bililiteRange.data('monitoredValue', {monitored: true});
+	assert.ok(rng.data().monitored['monitoredValue'], 'monitor created');
+	rng.listen('data-monitoredValue', function(evt){
+		assert.equal (evt.detail, 1, 'monitor event triggered');
 		done();
 	});
-	rng.data()['monitored~value'] = 1;
+	rng.data()['monitoredValue'] = 1;
+	assert.equal (rng.element().getAttribute('data-monitoredValue'), '1', 'monitor attribute set');
 }, true);
 multitest ('Testing bililiteRange wrap', function (rng, el, text, i, assert){
 	try {
