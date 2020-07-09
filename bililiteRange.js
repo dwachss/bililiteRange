@@ -1,15 +1,13 @@
 
 (function(){
 
-bililiteRange = function(el, debug){
+bililiteRange = function(el){
 	var ret;
-	if (debug){
-		ret = new NothingRange(); // Easier to force it to use the no-selection type than to try to find an old browser
-	}else if (el.setSelectionRange){
+	if (el.setSelectionRange){
 		// Element is an input or textarea 
 		// note that some input elements do not allow selections
 		try{
-			el.selectionStart; // even getting the selection in such an element will throw
+			el.selectionStart = el.selectionStart;
 			ret = new InputRange();
 		}catch(e){
 			ret = new NothingRange();
@@ -62,6 +60,25 @@ bililiteRange = function(el, debug){
 				}
 			}
 		});
+		
+		// we need to insert newlines rather than create new elements, so character-based calculations work
+		ret.listen('paste', evt => {
+			if (!evt.defaultPrevented) {
+				ret.bounds('selection').
+					text(evt.clipboardData.getData("text/plain"), 'end', 'insertFromPaste').
+					select();
+				evt.preventDefault();
+			}
+		});
+		ret.listen('keydown', function(evt){
+			if (!evt.defaultPrevented) {
+				if (evt.keyCode == 13 && !evt.defaultPrevented){
+					ret.bounds('selection').text('\n','end', 'insertParagraph', ret.data().autoindent).select();
+					evt.preventDefault();
+				}
+			}
+		});
+
 	}
 	
 	return ret;
@@ -181,11 +198,6 @@ Range.prototype = {
 			return this._nativeGetText(this._nativeRange(this.bounds()));
 		}
 	},
-	insertEOL: function (){
-		this._nativeEOL();
-		this._bounds = [this._bounds[0]+1, this._bounds[0]+1]; // move past the EOL marker
-		return this;
-	},
 	sendkeys: function (text){
 		var self = this;
 		this.data().sendkeysOriginalText = this.text();
@@ -243,6 +255,8 @@ Range.prototype = {
 	element: function() { return this._el },
 	dispatch: function(opts = {}){
 		var event = new Event (opts.type, opts);
+		event.target = this._el;
+		event.view = this._win;
 		for (prop in opts) try { event[prop] = opts[prop] } catch(e){}; // ignore read-only errors for properties that were copied in the previous line
 		// dispatch event asynchronously (in the sense of on the next turn of the event loop; still should be fired in order of dispatch
 		setTimeout( () => this._el.dispatchEvent(event), 0);
@@ -281,14 +295,11 @@ bililiteRange.bounds = {
 
 // sendkeys functions
 bililiteRange.sendkeys = {
-	'{enter}': function (rng){
-		rng.insertEOL();
-	},
 	'{tab}': function (rng, c, simplechar){
 		simplechar(rng, '\t'); // useful for inserting what would be whitespace
 	},
 	'{newline}': function (rng, c, simplechar){
-		simplechar(rng, '\n'); // useful for inserting what would be whitespace (and if I don't want to use insertEOL, which does some fancy things)
+		rng.text('\n', 'end', 'insertParagraph');
 	},
 	'{backspace}': function (rng){
 		var b = rng.bounds();
@@ -323,7 +334,7 @@ bililiteRange.sendkeys = {
 	}
 };
 // Synonyms from the proposed DOM standard (http://www.w3.org/TR/DOM-Level-3-Events-key/)
-bililiteRange.sendkeys['{Enter}'] = bililiteRange.sendkeys['{enter}'];
+bililiteRange.sendkeys['{Enter}'] = bililiteRange.sendkeys['{enter}'] = bililiteRange.sendkeys['{newline}'];
 bililiteRange.sendkeys['{Backspace}'] = bililiteRange.sendkeys['{backspace}'];
 bililiteRange.sendkeys['{Delete}'] = bililiteRange.sendkeys['{del}'];
 bililiteRange.sendkeys['{ArrowRight}'] = bililiteRange.sendkeys['{rightarrow}'];
@@ -499,16 +510,9 @@ function w3cend (rng, constraint){
 	return rng.toString().length;
 }
 
-function NothingRange(){
-	// Bugfix for https://github.com/dwachss/bililiteRange/issues/18 
-	// Adding typeof check of string for el.value in case for li elements
-	if (typeof this._el.value === 'string'){
-		this._textProp = 'value';
-	}else{
-		this._textProp = 'textContent';
-	}
-}
+function NothingRange(){}
 NothingRange.prototype = new Range();
+NothingRange.prototype._textProp = 'value';
 NothingRange.prototype._nativeRange = function(bounds) {
 	return bounds || [0,this.length()];
 };

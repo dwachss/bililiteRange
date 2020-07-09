@@ -12,13 +12,9 @@ multitest("Testing bililiteRange", function (rng, el, text, i, assert){
 	rng.select();
 	rng.bounds('selection');
 	assert.deepEqual (rng.bounds(), b, 'selection recorded');
-	if (el.nodeName.toLowerCase() == 'input') return; // insertEOL irrelevant on input elements
-	b = [1,1];
-	rng.bounds(b).insertEOL();
-	assert.equal (rng.length(), text.length+1, 'EOL inserted');
-	assert.deepEqual (rng.bounds(), [b[0]+1, b[0]+1], 'EOL moved bounds');
 });
 multitest("Testing bililiteRange blur/focus selection", function (rng, el, text, i, assert){
+	if (i == 3) return assert.expect(0); // no selection on NothingRange
 	rng.all(text);
 	var b = [1, 10];
 	rng.bounds(b);

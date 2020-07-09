@@ -1,21 +1,26 @@
 multitest("Testing bililiteRange utilities", function (rng, el, text, i, assert){
 	if (el.nodeName.toLowerCase() == 'input'){
 		// no lines
-		text = 'onetwo\tthree';
+		text = '2020-07-04';
 		var line = 1;
 		var bounds = [text.length, text.length];
 	}else{
-		text = 'one\ntwo\n\tthree'; // hard wire it here since we are counting lines
+		text = 'one\n007\n\tthree'; // hard wire it here since we are counting lines
 		line = 2;
 		bounds = [7,7];
 	}
 	rng.all(text).bounds('start');
-	rng.find(/two/);
+	rng.find(/07/);
 	assert.equal(rng.line(), line, 'find correct line');
 	rng.bounds('EOL');
 	assert.deepEqual(rng.bounds(), bounds, 'bounds (EOL)');
 });
-multitest("Testing bililiteRange live", function (rng, el, text, i,assert, done){
+multitest("Testing bililiteRange live", function (rng, el, text, i, assert, done){
+	if (i == 3) {
+		assert.expect(0);
+		done();
+		return; // can't change text on date inputs
+	}
 	assert.expect (2);
 	rng.all(text).bounds([7,7]).text('foo', 'all').live();
 	rng.clone().bounds('start').text('bar'); // insert text before the original range

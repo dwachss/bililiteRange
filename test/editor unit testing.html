@@ -11,9 +11,8 @@
 <script src="http://code.jquery.com/jquery-3.5.1.js" ></script>
 <script src="https://code.jquery.com/qunit/qunit-2.10.0.js"></script>
 <script>
-var elements = ['div', 'textarea', 'input'];
-var text = 'one\ntwo\n\tthree';
-var oneline = text.replace(/\n/g, '');
+var elements = ['div', 'textarea', 'input', 'input type=date'];
+var texts = ['one\ntwo\n\tthree','one\ntwo\n\tthree', 'onetwothree', '2020-07-04'];
 function multitest (message, fn, async){
 	elements.forEach(function(name, i){
 		QUnit.test(message+' on '+name, function(assert){
@@ -27,7 +26,7 @@ function multitest (message, fn, async){
 			$( "#qunit-fixture" ).append($el);
 			var el = $el[0];
 			var rng = bililiteRange(el);
-			fn (rng, el, name == 'input' ? oneline : text, i, assert, done);
+			fn (rng, el, texts[i], i, assert, done);
 		});
 	});
 }
