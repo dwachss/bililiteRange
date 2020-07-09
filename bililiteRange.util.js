@@ -1,30 +1,3 @@
-// Text range utilities
-// documentation: http://bililite.com/blog/2013/02/08/bililiterange-plugins/
-// depends on bililiteRange.js (http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/)
-// Version: 1.3
-// Copyright (c) 2013 Daniel Wachsstock
-// MIT license:
-// Permission is hereby granted, free of charge, to any person
-// obtaining a copy of this software and associated documentation
-// files (the "Software"), to deal in the Software without
-// restriction, including without limitation the rights to use,
-// copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following
-// conditions:
-
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-// OTHER DEALINGS IN THE SOFTWARE.
-
 if (bililiteRange) (function(){
 
 bililiteRange.bounds.EOL = function(){
@@ -43,23 +16,23 @@ bililiteRange.bounds.BOL = function(){
 };
 bililiteRange.bounds.line = function(){
 	this.bounds('BOL');
-	var start = this.bounds()[0];
+	var start = this[0];
 	this.bounds('EOL');
-	return [start, this.bounds()[1]];
+	return [start, this[1]];
 };
 bililiteRange.bounds.startbounds = function(){
-	return [this.bounds()[0], this.bounds()[0]];
+	return [this[0], this[0]];
 };
 bililiteRange.bounds.endbounds = function(){
-	return [this.bounds()[1], this.bounds()[1]];
+	return [this[1], this[1]];
 };
 
 // add autoindent option
 var oldtext = bililiteRange.fn.text;
-bililiteRange.fn.text = function (text, select, autoindent){
+bililiteRange.fn.text = function (text, select, inputType, autoindent){
 	if (!arguments.length) return oldtext.call (this);
 	if (autoindent) text = indent(text, this.indentation());
-	return oldtext.call (this, text, select);
+	return oldtext.apply (this, arguments);
 }
 
 bililiteRange.extend({
@@ -134,14 +107,14 @@ bililiteRange.extend({
 			// move to the given line number, at same character number as the initial bounds.
 			var start = this.bounds();
 			this.bounds('BOL');
-			var c = start[0] - this.bounds()[0]; // character number
+			var c = start[0] - this[0]; // character number
 			// so find n-1 newlines to get to the correct line, then c characters over (if we don't have that many, go to the end of the line)
 			var re = new RegExp('(.*\\n){'+(n-1)+'}(.{'+c+'}|.*$)', 'm');
 			return this.bounds('all').find(re).bounds('endbounds');
 		}else{
 			// just count newlines before this.bounds
 			// If we are on the boundary between lines (i.e. after the newline), this counts the next line
-			return this.all().slice(0, this.bounds()[0]).split('\n').length;
+			return this.all().slice(0, this[0]).split('\n').length;
 		}
 	},
 	
@@ -214,26 +187,6 @@ function matchIs(match, bounds){
 	// I think this is the way that Word does it
 	return match && match.index == bounds[0] && match[0].length == bounds[1]-bounds[0];
 }
-
-function diffx (oldtext, newtext){
-	// Try to find the changed text , assuming it was a continuous change
-	// This is wrong for drag and drop, which only fires one input event for both removal and insertion
-	var oldlen = oldtext.length;
-	var	newlen = newtext.length;
-	for (var i = 0; i < newlen && i < oldlen; ++i){
-		if (newtext.charAt(i) != oldtext.charAt(i)) break;
-	}
-	var start = i;
-	for (i = 0; i < newlen && i < oldlen; ++i){
-		var newpos = newlen-i-1, oldpos = oldlen-i-1;
-		if (newpos < start || oldpos < start) break;
-		if (newtext.charAt(newpos) != oldtext.charAt(oldpos)) break;
-	}
-	var oldend = oldlen-i;
-	var newend = newlen-i;
-	return {bounds: [start, oldend], data: newtext.slice(start, newend)}
-};
-bililiteRange.diffx = diffx; // expose
 
 function indent(text, tabs){
 	return text.replace(/\n/g, '\n'+tabs);

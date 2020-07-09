@@ -89,7 +89,7 @@ newline: function(line, select, autoindent){
 	line = line.replace(/\n$/, '');
 	if (b[0] > 0 && text.charAt(b[0]-1) != '\n') line = '\n'+line;
 	if (b[1] < text.length && text.charAt(b[1]) != '\n') line += '\n';
-	return this.text(line, select, autoindent);
+	return this.text(line, select, null, autoindent);
 }
 
 });

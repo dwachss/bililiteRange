@@ -36,7 +36,7 @@ multitest("Testing autoindent", function (rng, el, text, i, assert){
 	text = '\t\tone';
 	rng.all(text).bounds('end');
 	var insert = '\nnew\n lines\n';
-	rng.text(insert, 'all', true);
+	rng.text(insert, 'all', null, true);
 	assert.equal (rng.text(), insert.replace(/\n/g, '\n\t\t'), 'text autoindented');
 	rng.all('one\n\ttwo\nthree').find(/two/).indent('\t');
 	assert.equal(rng.all(), 'one\n\t\ttwo\nthree', 'text indented');
