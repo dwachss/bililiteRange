@@ -82,14 +82,14 @@ lines: function(i, j){
 },
 
 newline: function(line, select, autoindent){
-	//insert text in a line by itself. Note that it's a newline, not a <br/> even if that would be appropriate
+	// insert text in a line by itself.
 	var b = this.bounds();
 	var text = this.all();
 	// remove single newlines at the end of line, since we presumably don't want multiple ones
 	line = line.replace(/\n$/, '');
 	if (b[0] > 0 && text.charAt(b[0]-1) != '\n') line = '\n'+line;
 	if (b[1] < text.length && text.charAt(b[1]) != '\n') line += '\n';
-	return this.text(line, select, null, autoindent);
+	return this.text(line, { select, autoindent });
 }
 
 });

@@ -22,7 +22,7 @@ multitest("Testing bililiteRange live", function (rng, el, text, i, assert, done
 		return; // can't change text on date inputs
 	}
 	assert.expect (2);
-	rng.all(text).bounds([7,7]).text('foo', 'all').live();
+	rng.all(text).bounds([7,7]).text('foo', {select: 'all'}).live();
 	rng.clone().bounds('start').text('bar'); // insert text before the original range
 	async(function(){
 		assert.equal(rng.text(), 'foo', 'live range text remains the same');
@@ -41,7 +41,7 @@ multitest("Testing autoindent", function (rng, el, text, i, assert){
 	text = '\t\tone';
 	rng.all(text).bounds('end');
 	var insert = '\nnew\n lines\n';
-	rng.text(insert, 'all', null, true);
+	rng.text(insert, {select: 'all', autoindent: true});
 	assert.equal (rng.text(), insert.replace(/\n/g, '\n\t\t'), 'text autoindented');
 	rng.all('one\n\ttwo\nthree').find(/two/).indent('\t');
 	assert.equal(rng.all(), 'one\n\t\ttwo\nthree', 'text indented');

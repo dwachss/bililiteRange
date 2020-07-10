@@ -1,7 +1,7 @@
 multitest("Testing bililiteRange", function (rng, el, text, i, assert){
 	rng.all('');
 	assert.equal (rng.text(), '' , "element should be empty" );
-	rng.text(text, 'all');
+	rng.text(text, {select: 'all'});
 	assert.equal (rng.text(), text, 'text set');
 	assert.equal (rng.length(), text.length, 'length calculated');
 	var b = [1, 10];

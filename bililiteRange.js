@@ -65,15 +65,15 @@ bililiteRange = function(el){
 		ret.listen('paste', evt => {
 			if (!evt.defaultPrevented) {
 				ret.bounds('selection').
-					text(evt.clipboardData.getData("text/plain"), 'end', 'insertFromPaste').
+					text(evt.clipboardData.getData("text/plain"), {select: 'end', inputType: 'insertFromPaste'}).
 					select();
 				evt.preventDefault();
 			}
 		});
 		ret.listen('keydown', function(evt){
 			if (!evt.defaultPrevented) {
-				if (evt.keyCode == 13 && !evt.defaultPrevented){
-					ret.bounds('selection').text('\n','end', 'insertParagraph', ret.data().autoindent).select();
+				if (evt.key == 'Enter' && !evt.defaultPrevented){
+					ret.bounds('selection').text('\n', {select: 'end', inputType: 'insertLineBreak'}).select();
 					evt.preventDefault();
 				}
 			}
@@ -178,8 +178,8 @@ Range.prototype = {
 		this.dispatch({type: 'select', bubbles: true});
 		return this; // allow for chaining
 	},
-	text: function(text, select, inputType = 'insertText'){
-		if (arguments.length){
+	text: function(text, { select = undefined, inputType = 'insertText'} = {}){
+		if ( text !== undefined ){
 			let bounds = this.bounds(), el = this._el;
 			let eventparams = [this.text(), text, this[0], inputType];
 			this.dispatch (inputEventInit('beforeinput',...eventparams));
@@ -204,7 +204,7 @@ Range.prototype = {
 		this.data().sendkeysBounds = undefined;
 		function simplechar (rng, c){
 			if (/^{[^}]*}$/.test(c)) c = c.slice(1,-1);	// deal with unknown {key}s
-			rng.text(c, 'end');
+			rng.text(c, {select: 'end'});
 		}
 		text.replace(/{[^}]*}|[^{]+|{/g, function(part){
 			(bililiteRange.sendkeys[part] || simplechar)(self, part, simplechar);
@@ -234,7 +234,7 @@ Range.prototype = {
 	},
 	selection: function(text){
 		if (arguments.length){
-			return this.bounds('selection').text(text, 'end').select();
+			return this.bounds('selection').text(text, {select: 'end'}).select();
 		}else{
 			return this.bounds('selection').text();
 		}
@@ -244,9 +244,10 @@ Range.prototype = {
 	},
 	all: function(text){
 		if (arguments.length){
-			this.dispatch ({type: 'beforeinput', bubbles: true, data: text});
+			let eventparams = [this._el[this._textProp], text, 0, 'insertReplacementText'];
+			this.dispatch (inputEventInit('beforeinput',...eventparams));
 			this._el[this._textProp] = text;
-			this.dispatch ({type: 'input', bubbles: true, data: text});
+			this.dispatch (inputEventInit('input',...eventparams));
 			return this;
 		}else{
 			return this._el[this._textProp];
@@ -278,6 +279,17 @@ bililiteRange.extend = function(fns){
 	Object.assign(bililiteRange.prototype, fns);
 };
 
+// TODO: implement bililiteRange.override
+bililiteRange.override = (name, fn) => {
+	const oldfn = bililiteRange.prototype[name];
+	bililiteRange.prototype[name] = function(){
+		this.super = oldfn;
+		const ret = fn.apply(this, arguments);
+		delete this.super;
+		return ret;
+	};
+}
+
 //bounds functions
 bililiteRange.bounds = {
 	all: function() { return [0, this.length()] },
@@ -299,17 +311,17 @@ bililiteRange.sendkeys = {
 		simplechar(rng, '\t'); // useful for inserting what would be whitespace
 	},
 	'{newline}': function (rng, c, simplechar){
-		rng.text('\n', 'end', 'insertParagraph');
+		rng.text('\n', {select: 'end', inputType: 'insertLineBreak'});
 	},
 	'{backspace}': function (rng){
 		var b = rng.bounds();
 		if (b[0] == b[1]) rng.bounds([b[0]-1, b[0]]); // no characters selected; it's just an insertion point. Remove the previous character
-		rng.text('', 'end'); // delete the characters and update the selection
+		rng.text('', {select: 'end'}); // delete the characters and update the selection
 	},
 	'{del}': function (rng){
 		var b = rng.bounds();
 		if (b[0] == b[1]) rng.bounds([b[0], b[0]+1]); // no characters selected; it's just an insertion point. Remove the next character
-		rng.text('', 'end'); // delete the characters and update the selection
+		rng.text('', {select: 'end'}); // delete the characters and update the selection
 	},
 	'{rightarrow}':  function (rng){
 		var b = rng.bounds();
@@ -327,7 +339,7 @@ bililiteRange.sendkeys = {
 	'{selection}': function (rng){
 		// insert the characters without the sendkeys processing
 		var s = rng.data().sendkeysOriginalText;
-		rng.text(s, 'end');
+		rng.text(s, {select: 'end'});
 	},
 	'{mark}' : function (rng){
 		rng.data().sendkeysBounds = rng.bounds();
