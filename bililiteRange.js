@@ -273,9 +273,9 @@ Range.prototype = {
 };
 
 // allow extensions ala jQuery
-bililiteRange.fn = Range.prototype; // to allow monkey patching
+bililiteRange.prototype = Range.prototype;
 bililiteRange.extend = function(fns){
-	for (fn in fns) Range.prototype[fn] = fns[fn];
+	Object.assign(bililiteRange.prototype, fns);
 };
 
 //bounds functions
@@ -539,7 +539,7 @@ NothingRange.prototype._nativeWrap = function() {throw new Error("Wrapping not i
 
 // data for elements, similar to jQuery data, but allows for monitoring with custom events
 var data = []; // to avoid attaching javascript objects to DOM elements, to avoid memory leaks
-bililiteRange.fn.data = function(){
+bililiteRange.prototype.data = function(){
 	var index = this.element().bililiteRangeData;
 	if (index == undefined){
 		index = this.element().bililiteRangeData = data.length;

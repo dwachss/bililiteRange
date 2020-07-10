@@ -32,7 +32,7 @@ if (bililiteRange) (function(){
 
 bililiteRange.data ('undos', {enumerable: false});
 
-bililiteRange.fn.undo = function(n){
+bililiteRange.prototype.undo = function(n){
 	if (arguments.length == 0) n = 1; // default
 	var state = getundostate(this);
 	if (n > 0){

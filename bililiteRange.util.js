@@ -28,8 +28,8 @@ bililiteRange.bounds.endbounds = function(){
 };
 
 // add autoindent option
-var oldtext = bililiteRange.fn.text;
-bililiteRange.fn.text = function (text, select, inputType, autoindent){
+var oldtext = bililiteRange.prototype.text;
+bililiteRange.prototype.text = function (text, select, inputType, autoindent){
 	if (!arguments.length) return oldtext.call (this);
 	if (autoindent) text = indent(text, this.indentation());
 	return oldtext.apply (this, arguments);

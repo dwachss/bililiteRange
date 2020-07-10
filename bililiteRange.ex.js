@@ -100,7 +100,7 @@ bililiteRange.data ('marks', {value: {}, enumerable: false});
 /*********************** the actual ex plugin *********************************/
 bililiteRange.ex = {}; // namespace for exporting utility functions
 
-bililiteRange.fn.ex = function (commandstring, defaultaddress){
+bililiteRange.prototype.ex = function (commandstring, defaultaddress){
 	this.exMessage = '';
 	this.undo(0); // initialize
 	var state = this.data();
