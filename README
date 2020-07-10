@@ -1,40 +1,38 @@
 bililiteRange is a javascript library that abstracts text selection and replacement.
 
-The basic function is in bililiteRange.js, with the documentation at http://bililite.com/blog/2011/01/17/cross-browser-text-ranges-and-selections/
+The basic function is in bililiteRange.js, with the documentation at http://github.bililite.com/bililiteRange.
 
+## Examples
 
-The other files are assorted javascript libraries that use bililiteRange:
+Replace the first character of an element: `bililiteRange(element).bounds([0,1]).text('X')`
 
-bililiteRange.ex.js: Implements the ex line-editor ( http://ex-vi.sourceforge.net/ex.html ). Depends on the util and undo libraries below. Documentation at
-http://bililite.com/blog/2014/04/03/new-bililiterange-plugin-ex/
+Select all of an element: `bililiteRange(element).bounds('all').select()`
 
-bililiteRange.fancytext.js: Uses bililiteRange to allow using the Prism syntax highlighter (prismjs.com) to create a simple syntax-highlighting text editor. Documentation at
-http://bililite.com/blog/2013/12/16/simple-syntax-highlighting-editor-with-prism/
-bililiteRange.fancytextasync.js: Like fancytext but allows stacking multiple highlighters asynchronolously.
+Implement a "backspace" key on an editable element (assuming the element is focused and the selection has been made by the user):
 
-bililiteRange.util.js: Adds useful functions for searching and keeping the ranges up-to-date with  changes in the underlying text. Documentation at 
-http://bililite.com/blog/2013/02/08/bililiterange-plugins/
+````js
+var rng = bililiteRange(element).bounds('selection');
+var bounds = rng.bounds();
+if (bounds[0] == bounds[1]){
+  // no characters selected; it's just an insertion point. Remove the previous character
+  rng.bounds([bounds[0]-1, bounds[1]]);
+}
+rng.text('', 'end'); // delete the characters and replace the selection
+````
 
-bililiteRange.undo.js: Adds an undo/redo stack to editable elements. Documentation at
-http://bililite.com/blog/2013/12/25/bililiterange-undo/
+Implement a "left arrow" key on an editable element:
 
-jquery.jsvk.js: A jQuery plugin to use Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/). Depends on
-bililiteRange for character insertion. Documentation at 
-http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/
+````js
+var rng = bililiteRange(element).bounds('selection');
+var bounds = rng.bounds();
+if (bounds[0] == bounds[1]){
+  // no characters selected; it's just an insertion point. Move to the left
+  rng.bounds([bounds[0]-1, bounds[0]-1]);
+}else{
+  // move the insertion point to the left of the selection
+  rng.bounds([bounds[0], bounds[0]]);
+}
+rng.select();
+````
 
-jquery.keymap.js: Not really part of the bililiteRange family, but I use them together. A jQuery plugin to turn keydown codes into understandable characters. Also includes a "hotkeys" plugin that allows keystroke handlers for specific keys, like $(el).on('keydown', {keys: '^A'}, function(){}) . Documentation at
-http://bililite.com/blog/2015/01/12/rethinking-keymap/
-
-jquery.livesearch.js: jQuery plugin to do "live" searching for a regular expression; highlights  the text found and scrolls to it as you type. Documentation at
-http://bililite.com/blog/2013/03/07/new-jquery-plugin-livesearch/
-
-jquery.savemonitor.js: jQuery plugin to track when an element changes and when it is saved. Documentation at
-http://bililite.com/blog/2014/01/16/new-jquery-plugin-savemonitor/
-
-jquery.sendkeys.js: jQuery plugin to simulate keypresses. Documentation at 
-http://bililite.com/blog/2015/01/14/rethinking-fn-sendkeys/
-
-jquery.status.js: jQuery plugin to display messages and get user input. Documentation at
-http://bililite.com/blog/2013/12/12/new-jquery-plugin-status/
-
-The other files are not mature and are not documented at all.
+I use it for the [Kavanot editor](http://kavanot.name/Introduction/edit).
