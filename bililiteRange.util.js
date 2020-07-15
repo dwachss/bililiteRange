@@ -28,10 +28,10 @@ bililiteRange.bounds.endbounds = function(){
 };
 
 // add autoindent option
-bililiteRange.override ('text', function (text, {autoindent = false} = {}){
+bililiteRange.override ('text', function (text, opts = {}){
 	if ( text === undefined ) return this.super();
-	if (autoindent) arguments[0] = indent(text, this.indentation());
-	return this.super(...arguments);
+	if (opts.autoindent) text = indent(text, this.indentation());
+	return this.super(text, opts);
 });
 
 bililiteRange.extend({

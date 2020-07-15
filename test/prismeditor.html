@@ -1,0 +1,80 @@
+
+<!doctype html5>
+<html>
+<head>
+	<title>Prism Editor</title>
+	<meta charset="utf-8" />
+	<link rel="stylesheet" type="text/css" href="http://bililite.com/blog/wp-content/plugins/syntaxhighlightchooser/prism/prism-dw.css" />
+	<style>
+		pre {
+			word-wrap: normal;
+			height: 400px;
+			width: 600px;
+			border: 1px solid black;
+			padding: 5px;
+			overflow: auto;
+			display: block;
+		}
+	</style>
+</head>
+<body>
+	<pre contenteditable class=language-markup >&lt;!doctype html&gt;
+	&lt;html&gt;
+	&lt;head&gt;
+		&lt;title&gt;&lt;/title&gt;
+		&lt;meta charset=&quot;utf-8&quot; /&gt;
+		&lt;style&gt;
+			/* inline styles work */
+			body {
+				font-size: 18px;
+			}
+		&lt;/style&gt;
+	&lt;/head&gt;
+	&lt;body&gt;
+		&lt;script&gt;
+			// inline script works
+			alert('hello, world');
+		&lt;/script&gt;
+	&lt;/body&gt;
+	&lt;/html&gt;</pre>
+	<label><input type=checkbox id=autoindent checked /> Autoindent</label>
+	<script src="http://bililite.com/blog/wp-content/plugins/syntaxhighlightchooser/prism/prism.js" data-manual></script>
+	<script src="../bililiteRange.js"></script>
+	<script src="../bililiteRange.undo.js"></script>
+	<script src="../bililiteRange.util.js"></script>
+	<script>
+		const editor = document.querySelector('pre');
+		const rng = bililiteRange(editor)
+		Prism.highlightElement(editor);
+		
+		// add the undo's
+		rng.undo(0).data.autoindent = true; // init
+		
+		editor.addEventListener ('keydown', function(evt){
+			// control z
+			if (evt.ctrlKey && evt.which == 90) bililiteRange.undo(evt);
+			// control y
+			if (evt.ctrlKey && evt.which == 89) bililiteRange.redo(evt);
+		});
+		
+		rng.listen('input', evt => {
+			rng.bounds('selection');
+			Prism.highlightElement(editor);
+			rng.select();
+		});
+	
+		var ai = document.getElementById('autoindent');
+		ai.addEventListener('change', function(){
+			rng.data.autoindent = this.checked;
+		});
+		
+		// monkey patch text to use autoindent
+		bililiteRange.override ('text', function (text, opts) {
+			if ( text === undefined ) return this.super();
+			opts = Object.assign ({autoindent: rng.data.autoindent}, opts);
+			return this.super(text, opts);
+		});
+
+	</script>
+</body>
+</html>
