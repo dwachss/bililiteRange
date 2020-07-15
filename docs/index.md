@@ -161,7 +161,7 @@ that creates `this.super` with the old value of `bililiteRange.prototype[name]` 
 forbidden words:
 
 ````js
-bililiteRange.override ('text', (text, opts) => {
+bililiteRange.override ('text', function (text, opts) { // need to use "function", not arrow notation, to use "this"
 	text = censor(text); // left as an exercise for the reader
 	return this.super(text, opts);
 }) 
