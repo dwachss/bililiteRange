@@ -1,5 +1,7 @@
 
 (function(){
+	
+const datakey = Symbol(); // use as the key to modify elements.
 
 bililiteRange = function(el){
 	var ret;
@@ -27,20 +29,23 @@ bililiteRange = function(el){
 	// There's no good way to do this. I just assume that a mousedown (or a drag and drop
 	// into the element) within 100 ms of the focus event must have caused the focus, and
 	// therefore we should not restore the selection.
-	if (! ('bililiteRangeSelection' in el)){ // we haven't processed this element yet
+	if (!(el[datakey])){ // we haven't processed this element yet
+	
+		const data = createDataObject (el);
+	
 		// track the selection.
-		el.bililiteRangeSelection = [0,0];
-		ret.listen('focusout', () => el.bililiteRangeSelection = ret._nativeSelection() );
+		data.selection = [0,0];
+		ret.listen('focusout', () => data.selection = ret._nativeSelection() );
 		
 		ret.listen('mousedown', evt => {
-			el.mousetime = evt.timeStamp;
+			data.mousetime = evt.timeStamp;
 		})
 		ret.listen('drop', evt => {
-			el.mousetime = evt.timeStamp;
+			data.mousetime = evt.timeStamp;
 		})
 		ret.listen('focus', evt => {
-			if ('mousetime' in el && evt.timeStamp - el.mousetime < 100) return;
-			ret._nativeSelect(ret._nativeRange(el.bililiteRangeSelection))
+			if ('mousetime' in data && evt.timeStamp - data.mousetime < 100) return;
+			ret._nativeSelect(ret._nativeRange(data.selection))
 		})
 
 		// DOM 3 input events, https://www.w3.org/TR/input-events-1/
@@ -49,11 +54,12 @@ bililiteRange = function(el){
 		// and *where* the new text was inserted.
 		// So we enhance input events with that information. 
 		// the "newText" should always be the same as the 'data' field, if it is defined
-		ret.listen ('beforeinput', () => el.bililiteRangeOldText = ret.all() );
+		Object.defineProperty (data, 'oldText', {value: ret.all(), writeable: true});
+		ret.listen ('beforeinput', () => data.oldText = ret.all() );
 		ret.listen('input', evt => {
 			const newText = ret.all();
 			if (!evt.bililiteRange){
-				evt.bililiteRange = diff (el.bililiteRangeOldText, newText);
+				evt.bililiteRange = diff (data.oldText, newText);
 				if (evt.bililiteRange.unchanged){
 					// no change. Assume that whatever happened, happened at the selection point (and use whatever data the browser gives us).
 					evt.bililiteRange.start = ret.clone().bounds('selection')[1] - (evt.data || '').length;
@@ -154,7 +160,7 @@ Range.prototype = {
 		}
 		return this; // allow for chaining
 	},
-	 // allow use of range[0]  and range[1] for start and end of bounds 
+	 // allow use of range[0] and range[1] for start and end of bounds 
 	get 0(){
 		return this.bounds()[0];
 	},
@@ -169,8 +175,11 @@ Range.prototype = {
 		this.bounds([this[0], x]);
 		return x;
 	},
+	get data(){
+		return this._el[datakey];
+	},
 	select: function(){
-		var b = this._el.bililiteRangeSelection = this.bounds();
+		var b = this.data.selection = this.bounds();
 		if (this._el === this._doc.activeElement){
 			// only actually select if this element is active!
 			this._nativeSelect(this._nativeRange(b));
@@ -200,8 +209,8 @@ Range.prototype = {
 	},
 	sendkeys: function (text){
 		var self = this;
-		this.data().sendkeysOriginalText = this.text();
-		this.data().sendkeysBounds = undefined;
+		this.data.sendkeysOriginalText = this.text();
+		this.data.sendkeysBounds = undefined;
 		function simplechar (rng, c){
 			if (/^{[^}]*}$/.test(c)) c = c.slice(1,-1);	// deal with unknown {key}s
 			rng.text(c, {select: 'end'});
@@ -209,7 +218,7 @@ Range.prototype = {
 		text.replace(/{[^}]*}|[^{]+|{/g, function(part){
 			(bililiteRange.sendkeys[part] || simplechar)(self, part, simplechar);
 		});
-		this.bounds(this.data().sendkeysBounds);
+		this.bounds(this.data.sendkeysBounds);
 		this.dispatch({type: 'sendkeys', which: text});
 		return this;
 	},
@@ -300,7 +309,7 @@ bililiteRange.bounds = {
 			this.bounds ('all'); // first select the whole thing for constraining
 			return this._nativeSelection();
 		}else{
-			return this._el.bililiteRangeSelection;
+			return this.data.selection;
 		}
 	}
 };
@@ -338,11 +347,11 @@ bililiteRange.sendkeys = {
 	},
 	'{selection}': function (rng){
 		// insert the characters without the sendkeys processing
-		var s = rng.data().sendkeysOriginalText;
+		var s = rng.data.sendkeysOriginalText;
 		rng.text(s, {select: 'end'});
 	},
 	'{mark}' : function (rng){
-		rng.data().sendkeysBounds = rng.bounds();
+		rng.data.sendkeysBounds = rng.bounds();
 	}
 };
 // Synonyms from the proposed DOM standard (http://www.w3.org/TR/DOM-Level-3-Events-key/)
@@ -550,71 +559,59 @@ NothingRange.prototype._nativeWrap = function() {throw new Error("Wrapping not i
 
 
 // data for elements, similar to jQuery data, but allows for monitoring with custom events
-var data = []; // to avoid attaching javascript objects to DOM elements, to avoid memory leaks
-bililiteRange.prototype.data = function(){
-	var index = this.element().bililiteRangeData;
-	if (index == undefined){
-		index = this.element().bililiteRangeData = data.length;
-		data[index] = new Data(this);
-	}
-	return data[index];
+const monitored = new Set();
+
+function createDataObject (el){
+	return el[datakey] = new Proxy(new Data(el), {
+		set(obj, prop, value) {
+			obj[prop] = value;
+			if (monitored.has(prop)){
+				// signal in two ways
+				const attr = `data-${prop}`;
+				obj.sourceElement.dispatchEvent(new CustomEvent(attr, {bubbles: true, detail: value}));
+				try{
+					obj.sourceElement.setAttribute (attr, value); // illegal attribute names will throw. Ignore it			
+				} finally { /* ignore */ }
+			}
+		},
+		
+	});
 }
-var Data = function(rng) {
-	Object.defineProperty(this, 'values', {
-		value: {}
-	});
-	Object.defineProperty(this, 'sourceRange', {
-		value: rng
-	});
-	// JSON.stringify(rng.data()) only shows properties that were defined with
-	// bililiteRange.data ('propertyname') that were actually set for rng.
-	Object.defineProperty(this, 'toJSON', {
-		value: function(){
-			var ret = {};
-			for (var i in Data.prototype) if (i in this.values) ret[i] = this.values[i];
-			return ret;
-		}
-	});
-	// to display all the properties (not just those changed), use JSON.stringify(rng.data().all)
-	Object.defineProperty(this, 'all', {
-		get: function(){
-			var ret = {};
-			for (var i in Data.prototype) ret[i] = this[i];
-			return ret;
-		}
+
+var Data = function(el) {
+	Object.defineProperty(this, 'sourceElement', {
+		value: el
 	});
 }
 
 Data.prototype = {};
-Object.defineProperty(Data.prototype, 'values', { // default values of data properties
-	value: {}
+// for use with ex options. JSON.stringify(range.data) should return only the options that were
+// both defined with bililiteRange.option() *and* actually had a value set on this particular data object.
+// JSON.stringify (range.data.all) should return all the options that were defined.
+Object.defineProperty(Data.prototype, 'toJSON', {
+	value: function(){
+		let ret = {};
+		for (let key in Data.prototype) if (this.hasOwnProperty(key)) ret[key] = this[key];
+		return ret;
+	}
 });
-Object.defineProperty(Data.prototype, 'monitored', {
-	value: {}
+Object.defineProperty(Data.prototype, 'all', {
+	get: function(){
+		let ret = {};
+		for (let key in Data.prototype) ret[key] = this[key];
+		return ret;
+	}
 });
 
-bililiteRange.data = function (name, newdesc = {}){
-	var desc = Object.getOwnPropertyDescriptor(Data.prototype, name) || {};
-	if ('enumerable' in newdesc) desc.enumerable = !!newdesc.enumerable;
-	if (!('enumerable' in desc)) desc.enumerable = true; // default
-	if ('value' in newdesc) Data.prototype.values[name] = newdesc.value;
-	if ('monitored' in newdesc) Data.prototype.monitored[name] = newdesc.monitored;
-	desc.configurable = true;
-	desc.get = function (){
-		if (name in this.values) return this.values[name];
-		return Data.prototype.values[name];
-	};
-	let attr = `data-${name}`;
-	desc.set = function (value){
-		this.values[name] = value;
-		if (Data.prototype.monitored[name]){
-			// signal in two ways
-			this.sourceRange.dispatch({ type: attr, bubbles: true, detail: value });
-			try{
-				this.sourceRange.element().setAttribute (attr, value); // illegal attribute names will throw. Ignore it			
-			} finally { /* ignore */ }
-		}
-	}
+
+
+bililiteRange.createOption = function (name, desc = {}){
+	desc = Object.assign({
+		enumerable: true, // use these as the defaults
+		writable: true,
+		configurable: true
+	}, Object.getOwnPropertyDescriptor(Data.prototype, name), desc);
+	monitored[desc.monitored ? 'add' : 'delete'](name);
 	Object.defineProperty(Data.prototype, name, desc);
 }
 

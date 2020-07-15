@@ -30,7 +30,7 @@
 
 if (bililiteRange) (function(){
 
-bililiteRange.data ('undos', {enumerable: false});
+bililiteRange.createOption ('undos', {enumerable: false});
 
 bililiteRange.prototype.undo = function(n){
 	if (arguments.length == 0) n = 1; // default
@@ -44,7 +44,7 @@ bililiteRange.prototype.undo = function(n){
 };
 
 function getundostate(rng){
-	var undos = rng.data().undos;
+	var undos = rng.data.undos;
 	if (undos) return undos;
 	var state = new undostate (rng);
 	setuplisteners (rng);
@@ -54,7 +54,7 @@ function getundostate(rng){
 function undostate (rng){
 	// inefficiently just stores the whole text rather than trying to figure out a diff
 	this.text = rng.all();
-	var laststate = rng.data().undos;
+	var laststate = rng.data.undos;
 	if (laststate && this.text == laststate.text) return; // is this too inefficient, to compare each time?
 	this.bounds = rng.bounds('selection').bounds(); 
 	this.undo = this; // set up a doubly linked list that never ends (so undo with only one element on the list does nothing) 
@@ -63,7 +63,7 @@ function undostate (rng){
 		this.undo = laststate;
 		laststate.redo = this;
 	}
-	rng.data().undos = this;
+	rng.data.undos = this;
 }
 
 function restore (state, dir, rng){
@@ -71,7 +71,7 @@ function restore (state, dir, rng){
 	rng.dispatch({type: dir}); // signal it
 	state = state[dir];
 	state.lastevent = dir; // mark the undo/redo so we don't add the change in text to the undo stack
-	rng.data().undos = state;
+	rng.data.undos = state;
 	rng.all(state.text).bounds(state.bounds).select(); // restore the old state
 }
 
@@ -85,7 +85,7 @@ function setuplisteners (rng){
 				return; // don't record the current input
 			case 'keypress':
 				// if the last event was also a keypress, drop that one (so we would undo back to the beginning of the typing)
-				if (state.penultimateevent == 'keypress') rng.data().undos = state.undo;
+				if (state.penultimateevent == 'keypress') rng.data.undos = state.undo;
 		}
 		(new undostate(rng)).penultimateevent = lastevent; // record so we can check for keypress sequences
 	};

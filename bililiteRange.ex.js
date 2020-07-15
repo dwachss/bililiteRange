@@ -95,7 +95,7 @@ newline: function(line, select, autoindent){
 });
 
 /*********************** state variables that require some attention *********************************/
-bililiteRange.data ('marks', {value: {}, enumerable: false});
+bililiteRange.createOption ('marks', {value: {}, enumerable: false});
 
 /*********************** the actual ex plugin *********************************/
 bililiteRange.ex = {}; // namespace for exporting utility functions
@@ -103,7 +103,7 @@ bililiteRange.ex = {}; // namespace for exporting utility functions
 bililiteRange.prototype.ex = function (commandstring, defaultaddress){
 	this.exMessage = '';
 	this.undo(0); // initialize
-	var state = this.data();
+	var state = this.data;
 	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
 	defaultaddress = defaultaddress || '.';
 	// set the next-to-last mark
@@ -297,7 +297,7 @@ var lastRE = /(?:)/; // blank RE's refer to this
 function interpretAddresses (rng, addresses){
 	// %% is the current range. If it is used by itself, don't change the range (or use line-based addressing)
 	if (addresses.length == 1 && addresses[0] == "%%") return;
-	var state = rng.data();
+	var state = rng.data;
 	var lines = [];
 	var currLine = rng.line();
 	addresses.forEach(function(s){
@@ -425,7 +425,7 @@ var commands = bililiteRange.ex.commands = {
 	append: function (parameter, variant){
 		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
 		this.bounds('nonewline').bounds('endbounds');
-		this.newline(parameter, 'end', !variant != !this.data().autoindent);
+		this.newline(parameter, 'end', !variant != !this.data.autoindent);
 	},
 
 	c: 'change',
@@ -434,7 +434,7 @@ var commands = bililiteRange.ex.commands = {
 		pushRegister (this.text());
 		var indentation = this.indentation();
 		this.newline(parameter, 'all').bounds('nonewline');
-		if (!variant != !this.data().autoindent) this.indent(indentation);
+		if (!variant != !this.data.autoindent) this.indent(indentation);
 	},
 
 	copy: function (parameter, variant){
@@ -460,7 +460,7 @@ var commands = bililiteRange.ex.commands = {
 	'delete': 'del',
 
 	global: function (parameter, variant){
-		var re = createRE(parameter, this.data().ignorecase);
+		var re = createRE(parameter, this.data.ignorecase);
 		var commands = splitCommands(string(re.rest), '\\n');
 		var line = this.clone();
 		var lines = this.lines();
@@ -488,7 +488,7 @@ var commands = bililiteRange.ex.commands = {
 
 	insert: function (parameter, variant){
 		this.bounds('startbounds').newline(parameter, 'all').bounds('nonewline');
-		if (!variant != !this.data().autoindent) this.indent(this.indentation());
+		if (!variant != !this.data.autoindent) this.indent(this.indentation());
 		this.bounds('endbounds');
 	},
 
@@ -513,7 +513,7 @@ var commands = bililiteRange.ex.commands = {
 	m: 'move',
 
 	mark: function (parameter, variant){
-		this.data().marks[parameter] = this.clone().live();
+		this.data.marks[parameter] = this.clone().live();
 	},
 
 	move: function (parameter, variant){
@@ -556,9 +556,9 @@ var commands = bililiteRange.ex.commands = {
 
 	set: function (parameter, variant){
 		if (!parameter){
-			this.exMessage = JSON.stringify(this.data());
+			this.exMessage = JSON.stringify(this.data);
 		}else if(parameter == 'all'){
-			this.exMessage = JSON.stringify (this.data().all);
+			this.exMessage = JSON.stringify (this.data.all);
 		}else{
 			var self = this;
 			splitCommands(parameter, ' ').forEach(function(command){
@@ -584,7 +584,7 @@ var commands = bililiteRange.ex.commands = {
 	substitute: function (parameter, variant){
 		// we do not use the count parameter (too hard to interpret s/(f)oo/$1 -- is that last 1 a count or part of the replacement?
 		// easy enough to assume it's part of the replacement but that's probably not what we meant)
-		var re = createRE(parameter, this.data().ignorecase);
+		var re = createRE(parameter, this.data.ignorecase);
 		this.text(this.text().replace(re, string(re.rest))).bounds('endbounds');
 	},
 
@@ -641,7 +641,7 @@ var commands = bililiteRange.ex.commands = {
 	'<': function (parameter, variant){
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
-		this.bounds('nonewline').unindent(parameter, this.data().tabSize);
+		this.bounds('nonewline').unindent(parameter, this.data.tabSize);
 	},
 	
 	'!': function (parameter, variant){
@@ -654,10 +654,9 @@ var commands = bililiteRange.ex.commands = {
 /*********************** the options *********************************/
 
 function createOption (name, value){
-	bililiteRange.data(name, {value: value});
+	bililiteRange.createOption(name, {value: value});
 	// now create a command to set the value, based on value's type
-	// ugly constructor name hack from http://stackoverflow.com/questions/19528377/error-in-javascript-constructor-property-ie-8
-	var constructor = value.constructor.name || value.constructor.toString().match(/function (.+)\(/)[1];
+	var constructor = value.constructor.name;
 	bililiteRange.ex.commands[name] = (createOption[constructor] || createOption.generic)(name);
 }
 
@@ -666,16 +665,16 @@ bililiteRange.ex.createOption = createOption;
 createOption.generic = function (name){
 	return function (parameter, variant){
 		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = JSON.stringify(this.data()[name]);
+			this.exMessage = JSON.stringify(this.data[name]);
 		}else{
-			this.data()[name] = parameter;
+			this.data[name] = parameter;
 		}
 	}
 }
 
 createOption.Boolean = function (name){
 	return function (parameter, variant){
-		var state = this.data();
+		var state = this.data;
 		if (parameter=='?'){
 			this.exMessage = state[name] ? 'on' : 'off';
 		}else if (parameter == 'off' || parameter == 'no' || parameter == 'false'){
@@ -691,11 +690,11 @@ createOption.Boolean = function (name){
 createOption.Number = function (name){
 	return function (parameter, variant){
 		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = '['+this.data()[name]+']';
+			this.exMessage = '['+this.data[name]+']';
 		}else{
 			var value = parseInt(parameter);
 			if (isNaN(value)) throw new Error('Invalid value for '+name+': '+parameter);
-			this.data()[name] = value;
+			this.data[name] = value;
 		}
 	}
 }
@@ -703,9 +702,9 @@ createOption.Number = function (name){
 createOption.RegExp = function (name){
 	return function (parameter, variant){
 		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = JSON.stringify(this.data()[name]);
+			this.exMessage = JSON.stringify(this.data[name]);
 		}else{
-			this.data()[name] = createRE(parameter, this.data().ignorecase);
+			this.data[name] = createRE(parameter, this.data.ignorecase);
 		}
 	}
 }

@@ -57,28 +57,27 @@ multitest("Testing bililiteRange event handling", function (rng, el, text, i, as
 	rng.dispatch({type: 'click'});
 }, true);
 multitest("Testing bililiteRange data", function (rng, el, text, i, assert){
-	bililiteRange.data('n', {value: 1});
-	assert.equal (rng.data().n, 1, 'default data added');
-	assert.equal (JSON.stringify(rng.data()), JSON.stringify({}),'default data not stringified');
-	assert.ok (rng.data().all.hasOwnProperty('n'),'all data set');
-	rng.data().n = 2;
-	assert.equal (JSON.stringify(rng.data()), JSON.stringify({n: 2}),'data set and stringified');
-	bililiteRange.data('bool', {value: true, enumerable: false});
-	assert.equal (rng.data().bool, true, 'private data added');
-	rng.data().bool = false;
-	assert.equal (rng.data().bool, false, 'private data changed added');
-	assert.equal (JSON.stringify(rng.data()), JSON.stringify({n: 2}),'privatized data not enumerated');
+	bililiteRange.createOption('n', {value: 1});
+	assert.equal (rng.data.n, 1, 'default data added');
+	assert.equal (JSON.stringify(rng.data), JSON.stringify({}),'default data not stringified');
+	assert.ok (rng.data.all.hasOwnProperty('n'),'all data set');
+	rng.data.n = 2;
+	assert.equal (JSON.stringify(rng.data), JSON.stringify({n: 2}),'data set and stringified');
+	bililiteRange.createOption('bool', {value: true, enumerable: false});
+	assert.equal (rng.data.bool, true, 'private data added');
+	rng.data.bool = false;
+	assert.equal (rng.data.bool, false, 'private data changed added');
+	assert.equal (JSON.stringify(rng.data), JSON.stringify({n: 2}),'privatized data not enumerated');
 });
 multitest ('Testing monitored data', function (rng, el, text, i, assert, done){
-	assert.expect(4);
-	assert.equal(rng.data().sourceRange, rng, 'sourceRange set');
-	bililiteRange.data('monitoredValue', {monitored: true});
-	assert.ok(rng.data().monitored['monitoredValue'], 'monitor created');
+	assert.expect(3);
+	assert.equal(rng.data.sourceElement, rng.element(), 'sourceElement set');
+	bililiteRange.createOption('monitoredValue', {monitored: true});
 	rng.listen('data-monitoredValue', function(evt){
 		assert.equal (evt.detail, 1, 'monitor event triggered');
 		done();
 	});
-	rng.data()['monitoredValue'] = 1;
+	rng.data.monitoredValue = 1;
 	assert.equal (rng.element().getAttribute('data-monitoredValue'), '1', 'monitor attribute set');
 }, true);
 multitest ('Testing bililiteRange wrap', function (rng, el, text, i, assert){
