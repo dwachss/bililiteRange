@@ -190,22 +190,22 @@ Shorthand for `this.element().removeEventListener(s, fn)`.
 ### `bililiteRange.util.js`
 
 Adds useful functions for searching and keeping the ranges up-to-date with changes in the underlying text. 
-Depends on `bililiteRange.js`. [Documentation](util.md)
+Depends on `bililiteRange.js`. See the [documentation](util.md).
 
 ### `bililiteRange.undo.js`
 
 Adds an undo/redo stack to editable elements. Depends on `bililiteRange.js` and my [historystack](https://github.com/dwachss/historystack).
-[Documentation](undo.md)
+See the [documentation](undo.md).
 
 ### `bililiteRange.ex.js`
 
 Implements the [ex line-editor](http://ex-vi.sourceforge.net/ex.html). Depends on `bililiteRange.js`, `bililiteRange.util.js` and
 `bililiteRange.undo.js`. Works better with my [toolbar](https://github.com/dwachss/toolbar) and
-[status](https://github.com/dwachss/status). [Documentation](ex.md)
+[status](https://github.com/dwachss/status). See the [documentation](ex.md).
 
 ### `jquery.sendkeys.js`
 jQuery wrapper for `bililiteRange.prototype.sendkeys`, with a `keydown` handler that allows for synthetic (untrusted) `keydown` events to
-insert text. [Documentation](jquery.sendkeys.md)
+insert text. See the [documentation](jquery.sendkeys.md).
 
 ## Obsolete files
 

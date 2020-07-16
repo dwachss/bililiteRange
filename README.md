@@ -35,4 +35,4 @@ if (bounds[0] == bounds[1]){
 rng.select();
 ````
 
-I use it for the [Kavanot editor](http://kavanot.name/Introduction/edit).
+I use it for the [Kavanot editor](http://kavanot.name/Introduction/edit). There is a [simple demo in the test folder](test/prismeditor.html).
