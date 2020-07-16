@@ -13,10 +13,37 @@ we define for each range `range.data = range.element()[dataKey]`.
 So, for example,
 
 ````js
-let range = bililiteRange( document.querySelector('div.editor'));
+let range = bililiteRange( document.querySelector('div.editor') );
 range.data.hilighter = 'Prism';
 
 // elsewhere in the code
-let range2 = bililiteRange( document.querySelector('div.editor'));
+let range2 = bililiteRange( document.querySelector('div.editor') );
 console.log(range.data.hilighter); // 'Prism'
 ````
+
+## Options
+
+That works well, but I created `bililiteRange` in part to implement the [ex line editor](ex.md), and I want some data to have default
+values that can be changed for each element. So `data` is actually an object with a prototype.
+`bililiteRange.createOption(prop, descriptor)` does `Object.defineProperty(data.prototype, prop, descriptor)`. Now every range has a
+property `prop` with an 
+[object descriptor](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty).
+
+So to set `autoindent`, do `bililiteRange.createOption('autoindent', {value: false})`.
+
+The difference with `Object.defineProperty` is that the defaults are `{
+		enumerable: true,
+		writable: true,
+		configurable: true
+	}` rather than `false`.
+	
+
+## Monitored options
+
+There is one more option that can be added to the property descriptor: `monitored`. `bililiteRange.createOption(prop, {monitored: true})`
+adds a `set` handler for `prop` that, whenever `prop` is set (as in `range.data[prop] = newValue`), that change is signaled in two ways:
+
+1. ``range.dispatch(CustomEvent(`data-${prop}`, {detail: newValue}))`` for use with EventListeners.
+
+2. ``range.element().setAttribute(`data-${prop}`, newValue)`` for use with MutationObservers. Note that attributes have very limited legal
+characters, so this will silently fail if `data-${prop}` is not a legal attribute name.
