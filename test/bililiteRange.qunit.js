@@ -20,7 +20,7 @@ multitest("Testing bililiteRange blur/focus selection", function (rng, el, text,
 	rng.bounds(b);
 	rng.select();
 	document.querySelector('#qunit-header a').focus();
-	rng.element().focus();
+	rng.element.focus();
 	rng.bounds('selection');
 	assert.deepEqual (rng.bounds(), b, 'selection retained');
 });
@@ -71,14 +71,14 @@ multitest("Testing bililiteRange data", function (rng, el, text, i, assert){
 });
 multitest ('Testing monitored data', function (rng, el, text, i, assert, done){
 	assert.expect(3);
-	assert.equal(rng.data.sourceElement, rng.element(), 'sourceElement set');
+	assert.equal(rng.data.sourceElement, rng.element, 'sourceElement set');
 	bililiteRange.createOption('monitoredValue', {monitored: true});
 	rng.listen('data-monitoredValue', function(evt){
 		assert.equal (evt.detail, 1, 'monitor event triggered');
 		done();
 	});
 	rng.data.monitoredValue = 1;
-	assert.equal (rng.element().getAttribute('data-monitoredValue'), '1', 'monitor attribute set');
+	assert.equal (rng.element.getAttribute('data-monitoredValue'), '1', 'monitor attribute set');
 }, true);
 multitest ('Testing bililiteRange wrap', function (rng, el, text, i, assert){
 	try {

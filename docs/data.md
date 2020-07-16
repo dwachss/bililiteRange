@@ -8,7 +8,7 @@ and store all our fields in that, with `element.bililiteRangeData.foo = bar`.
 
 To avoid any possibility of a name conflict, we use a private variable `const dataKey = Symbol()` and actually do
 `element[dataKey].foo`. To expose that (since `dataKey` is not exposed)
-we define for each range `range.data = range.element()[dataKey]`.
+we define for each range `range.data = range.element[dataKey]`.
 
 So, for example,
 
@@ -45,5 +45,41 @@ adds a `set` handler for `prop` that, whenever `prop` is set (as in `range.data[
 
 1. ``range.dispatch(CustomEvent(`data-${prop}`, {detail: newValue}))`` for use with EventListeners.
 
-2. ``range.element().setAttribute(`data-${prop}`, newValue)`` for use with MutationObservers. Note that attributes have very limited legal
+2. ``range.element.setAttribute(`data-${prop}`, newValue)`` for use with MutationObservers. Note that attributes have very limited legal
 characters, so this will silently fail if `data-${prop}` is not a legal attribute name.
+
+## JSON
+
+`bililiteRange.prototype.ex` uses 
+[`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify) to display 
+options. The data object, therefore has a 
+[`toJSON`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#toJSON_behavior) method
+that only returns `data` fields that were defined with `bililiteRange.createOption` *and* are defined on this particular element.
+
+Thus,
+
+```js
+bililiteRange.createOption('foo', {value: 1}); // data created for all bililiteRange's
+bililiteRange.createOption('bar', {value: 2});
+
+const range = bililiteRange(element);
+range.data.baz = 3; // data created for this bililiteRange's element only
+range.data.foo = 7; // modify an option created above.
+
+console.log( JSON.stringify(range.data) ); // {"foo":7}
+console.log( JSON.stringify(range.data.all) ); // {"foo":7,"bar":2}
+```
+
+If you really want to stringify *all* of `range.data`, use `JSON.stringify( Object.assign({}, range.data))` to copy it.
+
+
+## "Reserved" fields
+
+The following are `data` fields used by this package:
+
+`bililiteRange.js`: `mousetime`, `oldText`, `selection`, `sendkeysBounds`, `sendkeysOriginalText`
+
+`bililiteRange.undo.js`: `undos`
+
+`bililiteRange.ex.js`: `autoindent`, `ignorecase`, `marks`, `tabSize`, `wrapscan`
+

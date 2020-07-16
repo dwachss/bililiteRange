@@ -259,7 +259,7 @@ Range.prototype = {
 			return this._el[this._textProp];
 		}
 	},
-	element: function() { return this._el },
+	get element() { return this._el },
 	dispatch: function(opts = {}){
 		var event = new Event (opts.type, opts);
 		event.target = this._el;

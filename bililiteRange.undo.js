@@ -77,7 +77,7 @@ function restore (state, dir, rng){
 
 function setuplisteners (rng){
 	var _callback = function(){
-		var state = getundostate(rng), el = rng.element(), lastevent = state.lastevent;
+		var state = getundostate(rng), el = rng.element, lastevent = state.lastevent;
 		delete state.lastevent;
 		switch (lastevent){
 			//  catch input events that we should not save  (resulting from undo, redo and keypress events that are contiguous)

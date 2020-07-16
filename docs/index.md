@@ -55,7 +55,7 @@ Return a new bililiteRange with the same bounds as this one.
 Returns an object tied to the underlying element, useful for storing element (rather than per range). Similar to
 jQuery's [`data`](https://api.jquery.com/data/). See the documentation for [bililiteRange data](data.md).
 
-### `element()`
+### `element`
 Returns the DOM element that the range was defined on.
 
 ### `scrollIntoView([fn: function])`
@@ -74,7 +74,7 @@ if the element is not active, change the saved selection to the current range, a
 Sets up event listeners so that when the element is activated, the saved selection is restored (except if the element is activated
 by a mouse click, where the click location determines the selection). This means that tabbing into an element restores the previous selection.
 
-Note that this does not set the focus on the element; use `range.element().focus()` to do that. Note also that elements that 
+Note that this does not set the focus on the element; use `range.element.focus()` to do that. Note also that elements that 
 are not editable and do not have a tabindex cannot be focussed.
 
 ### `selection()`
@@ -118,7 +118,7 @@ e.bililiteRange = {
 ### `top()`
 Returns the `offsetTop` for the range--the pixels from the top of the padding box of the element to the beginning of the range.
 Will be negative if the element is scrolled so that the range is above the visible part of the element.
-To scroll the element so that the range is at the top of the element, set `range.element().scrollTop = range.top()`.
+To scroll the element so that the range is at the top of the element, set `range.element.scrollTop = range.top()`.
 See `range.scrollIntoView()` above.
 
 ### `wrap(Node)`
@@ -170,20 +170,20 @@ bililiteRange.override ('text', function (text, opts) { // need to use "function
 ## Events
 
 ### `dispatch(opts)`
-Creates an event of type `opts.type`, then extends it with the rest of `opts`, and dispatches it on `range.element()`. Basically does:
+Creates an event of type `opts.type`, then extends it with the rest of `opts`, and dispatches it on `range.element`. Basically does:
 
 ````js
 let event =  new CustomEvent(opts.type);
 for (let key in opts) event[key] = opts[key];
-this.element().dispatchEvent(event); // but actually does this asynchonously, on the event queue
+this.element.dispatchEvent(event); // but actually does this asynchonously, on the event queue
 ````
 
 ### `listen(s, fn)`
 
-Shorthand for `this.element().addEventListener(s, fn)`.
+Shorthand for `this.element.addEventListener(s, fn)`.
 
 ### `dontlisten(s, fn)`
-Shorthand for `this.element().removeEventListener(s, fn)`.
+Shorthand for `this.element.removeEventListener(s, fn)`.
 
 ## Other files
 
