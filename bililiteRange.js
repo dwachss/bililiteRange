@@ -208,18 +208,15 @@ Range.prototype = {
 		}
 	},
 	sendkeys: function (text){
-		var self = this;
 		this.data.sendkeysOriginalText = this.text();
 		this.data.sendkeysBounds = undefined;
 		function simplechar (rng, c){
 			if (/^{[^}]*}$/.test(c)) c = c.slice(1,-1);	// deal with unknown {key}s
 			rng.text(c, {select: 'end'});
 		}
-		text.replace(/{[^}]*}|[^{]+|{/g, function(part){
-			(bililiteRange.sendkeys[part] || simplechar)(self, part, simplechar);
-		});
+		text.replace(/{[^}]*}|[^{]+|{/g, part => (bililiteRange.sendkeys[part] || simplechar)(this, part, simplechar) );
 		this.bounds(this.data.sendkeysBounds);
-		this.dispatch({type: 'sendkeys', which: text});
+		this.dispatch({type: 'sendkeys', detail: text});
 		return this;
 	},
 	top: function(){
@@ -325,12 +322,12 @@ bililiteRange.sendkeys = {
 	'{backspace}': function (rng){
 		var b = rng.bounds();
 		if (b[0] == b[1]) rng.bounds([b[0]-1, b[0]]); // no characters selected; it's just an insertion point. Remove the previous character
-		rng.text('', {select: 'end'}); // delete the characters and update the selection
+		rng.text('', {select: 'end', inputType: 'deleteContentBackward'}); // delete the characters and update the selection
 	},
 	'{del}': function (rng){
 		var b = rng.bounds();
 		if (b[0] == b[1]) rng.bounds([b[0], b[0]+1]); // no characters selected; it's just an insertion point. Remove the next character
-		rng.text('', {select: 'end'}); // delete the characters and update the selection
+		rng.text('', {select: 'end', inputType: 'deleteContentForward'}); // delete the characters and update the selection
 	},
 	'{rightarrow}':  function (rng){
 		var b = rng.bounds();
@@ -347,8 +344,7 @@ bililiteRange.sendkeys = {
 	},
 	'{selection}': function (rng){
 		// insert the characters without the sendkeys processing
-		var s = rng.data.sendkeysOriginalText;
-		rng.text(s, {select: 'end'});
+		rng.text(rng.data.sendkeysOriginalText, {select: 'end'});
 	},
 	'{mark}' : function (rng){
 		rng.data.sendkeysBounds = rng.bounds();
