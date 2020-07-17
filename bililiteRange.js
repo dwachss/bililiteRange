@@ -54,7 +54,7 @@ bililiteRange = function(el){
 		// and *where* the new text was inserted.
 		// So we enhance input events with that information. 
 		// the "newText" should always be the same as the 'data' field, if it is defined
-		Object.defineProperty (data, 'oldText', {value: ret.all(), writeable: true});
+		data.oldText = ret.all();
 		ret.listen ('beforeinput', () => data.oldText = ret.all() );
 		ret.listen('input', evt => {
 			const newText = ret.all();
@@ -70,7 +70,7 @@ bililiteRange = function(el){
 		// we need to insert newlines rather than create new elements, so character-based calculations work
 		ret.listen('paste', evt => {
 			if (!evt.defaultPrevented) {
-				ret.bounds('selection').
+				ret.clone().bounds('selection').
 					text(evt.clipboardData.getData("text/plain"), {select: 'end', inputType: 'insertFromPaste'}).
 					select();
 				evt.preventDefault();
@@ -79,7 +79,7 @@ bililiteRange = function(el){
 		ret.listen('keydown', function(evt){
 			if (!evt.defaultPrevented) {
 				if (evt.key == 'Enter' && !evt.defaultPrevented){
-					ret.bounds('selection').text('\n', {select: 'end', inputType: 'insertLineBreak'}).select();
+					retret.clone().bounds('selection').text('\n', {select: 'end', inputType: 'insertLineBreak'}).select();
 					evt.preventDefault();
 				}
 			}
@@ -141,8 +141,31 @@ function inputEventInit(type, oldText, newText, start, inputType){
 // base class
 function Range(){}
 Range.prototype = {
-	length: function() {
-		return this._el[this._textProp].length;
+	 // allow use of range[0] and range[1] for start and end of bounds 
+	get 0(){
+		return this.bounds()[0];
+	},
+	set 0(x){
+		this.bounds([x, this[1]]);
+		return x;
+	},
+	get 1(){
+		return this.bounds()[1];
+	},
+	set 1(x){
+		this.bounds([this[0], x]);
+		return x;
+	},
+	all: function(text){
+		if (arguments.length){
+			let eventparams = [this._el[this._textProp], text, 0, 'insertReplacementText'];
+			this.dispatch (inputEventInit('beforeinput',...eventparams));
+			this._el[this._textProp] = text;
+			this.dispatch (inputEventInit('input',...eventparams));
+			return this;
+		}else{
+			return this._el[this._textProp];
+		}
 	},
 	bounds: function(s){
 		if (bililiteRange.bounds[s]){
@@ -160,23 +183,81 @@ Range.prototype = {
 		}
 		return this; // allow for chaining
 	},
-	 // allow use of range[0] and range[1] for start and end of bounds 
-	get 0(){
-		return this.bounds()[0];
-	},
-	set 0(x){
-		this.bounds([x, this[1]]);
-		return x;
-	},
-	get 1(){
-		return this.bounds()[1];
-	},
-	set 1(x){
-		this.bounds([this[0], x]);
-		return x;
+	clone: function(){
+		return bililiteRange(this._el).bounds(this.bounds());
 	},
 	get data(){
 		return this._el[datakey];
+	},
+	dispatch: function(opts = {}){
+		var event = new Event (opts.type, opts);
+		event.target = this._el;
+		event.view = this._win;
+		for (prop in opts) try { event[prop] = opts[prop] } catch(e){}; // ignore read-only errors for properties that were copied in the previous line
+		// dispatch event asynchronously (in the sense of on the next turn of the event loop; still should be fired in order of dispatch
+		setTimeout( () => this._el.dispatchEvent(event) );
+		return this;
+	},
+	dontlisten: function (type, func = console.log){
+		this._el.removeEventListener(type, func);
+		return this;
+	},
+	get element() {
+		return this._el
+	},
+	length: function() {
+		return this._el[this._textProp].length;
+	},
+	live: function(on = true){
+		if (on){
+			if (this._inputHandler) return this; // don't double-bind
+			this._inputHandler = evt => {
+				var start, oldend, newend;
+				if (evt.bililiteRange.unchanged) return;
+				start = evt.bililiteRange.start;
+				oldend = start + evt.bililiteRange.oldText.length;
+				newend = start + evt.bililiteRange.newText.length;
+				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
+				let [b0, b1] = this.bounds();
+				if (b0 <= start){
+					// no change
+				}else if (b0 > oldend){
+					b0  += newend - oldend;
+				}else{
+					b0  = newend;
+				}
+				if (b1 < start){
+					// no change
+				}else if (b1 >= oldend){
+					b1 += newend - oldend;
+				}else{
+					b1 = start;
+				}
+				this.bounds([b0, b1]);
+			};
+			// we only want to listen to changes that happened *after* we went live, so start listening asynchronously
+			setTimeout ( () => this.listen('input', this._inputHandler));
+		}else{
+			this.dontlisten('input', this._inputHandler);
+			delete this._inputHandler;
+		}
+		return this;
+	},
+	listen: function (type, func = console.log){
+		this._el.addEventListener(type, func);
+		return this;
+	},
+	scrollIntoView: function(scroller){
+		var top = this.top();
+		// scroll into position if necessary
+		if (this._el.scrollTop > top || this._el.scrollTop+this._el.clientHeight < top){
+			if (scroller){
+				scroller.call(this._el, top);
+			}else{
+				this._el.scrollTop = top;
+			}
+		}
+		return this;
 	},
 	select: function(){
 		var b = this.data.selection = this.bounds();
@@ -187,24 +268,11 @@ Range.prototype = {
 		this.dispatch({type: 'select', bubbles: true});
 		return this; // allow for chaining
 	},
-	text: function(text, { select = undefined, inputType = 'insertText'} = {}){
-		if ( text !== undefined ){
-			let bounds = this.bounds(), el = this._el;
-			let eventparams = [this.text(), text, this[0], inputType];
-			this.dispatch (inputEventInit('beforeinput',...eventparams));
-			this._nativeSetText(text, this._nativeRange(bounds));
-			if (select == 'start'){
-				this[1] = this[0];
-			}else if (select == 'end'){
-				this[0] += text.length;
-				this[1] = this[0];
-			}else if (select == 'all'){
-				this[1] = this[0]+text.length;
-			}
-			this.dispatch (inputEventInit('input',...eventparams));
-			return this; // allow for chaining
+	selection: function(text){
+		if (arguments.length){
+			return this.bounds('selection').text(text, {select: 'end'}).select();
 		}else{
-			return this._nativeGetText(this._nativeRange(this.bounds()));
+			return this.bounds('selection').text();
 		}
 	},
 	sendkeys: function (text){
@@ -219,64 +287,32 @@ Range.prototype = {
 		this.dispatch({type: 'sendkeys', detail: text});
 		return this;
 	},
+	text: function(text, { select = undefined, inputType = 'insertText'} = {}){
+		if ( text !== undefined ){
+			let eventparams = [this.text(), text, this[0], inputType];
+			this.dispatch (inputEventInit('beforeinput',...eventparams));
+			this._nativeSetText(text, this._nativeRange(this.bounds()));
+			if (select == 'start'){
+				this[1] = this[0];
+			}else if (select == 'end'){
+				this[0] += text.length;
+				this[1] = this[0];
+			}else if (select == 'all'){
+				this[1] = this[0]+text.length;
+			}
+			this.dispatch (inputEventInit('input',...eventparams));
+			return this; // allow for chaining
+		}else{
+			return this._nativeGetText(this._nativeRange(this.bounds()));
+		}
+	},
 	top: function(){
 		return this._nativeTop(this._nativeRange(this.bounds()));
-	},
-	scrollIntoView: function(scroller){
-		var top = this.top();
-		// scroll into position if necessary
-		if (this._el.scrollTop > top || this._el.scrollTop+this._el.clientHeight < top){
-			if (scroller){
-				scroller.call(this._el, top);
-			}else{
-				this._el.scrollTop = top;
-			}
-		}
-		return this;
 	},
 	wrap: function (n){
 		this._nativeWrap(n, this._nativeRange(this.bounds()));
 		return this;
 	},
-	selection: function(text){
-		if (arguments.length){
-			return this.bounds('selection').text(text, {select: 'end'}).select();
-		}else{
-			return this.bounds('selection').text();
-		}
-	},
-	clone: function(){
-		return bililiteRange(this._el).bounds(this.bounds());
-	},
-	all: function(text){
-		if (arguments.length){
-			let eventparams = [this._el[this._textProp], text, 0, 'insertReplacementText'];
-			this.dispatch (inputEventInit('beforeinput',...eventparams));
-			this._el[this._textProp] = text;
-			this.dispatch (inputEventInit('input',...eventparams));
-			return this;
-		}else{
-			return this._el[this._textProp];
-		}
-	},
-	get element() { return this._el },
-	dispatch: function(opts = {}){
-		var event = new Event (opts.type, opts);
-		event.target = this._el;
-		event.view = this._win;
-		for (prop in opts) try { event[prop] = opts[prop] } catch(e){}; // ignore read-only errors for properties that were copied in the previous line
-		// dispatch event asynchronously (in the sense of on the next turn of the event loop; still should be fired in order of dispatch
-		setTimeout( () => this._el.dispatchEvent(event), 0);
-		return this;
-	},
-	listen: function (type, func = console.log){
-		this._el.addEventListener(type, func);
-		return this;
-	},
-	dontlisten: function (type, func = console.log){
-		this._el.removeEventListener(type, func);
-		return this;
-	}
 };
 
 // allow extensions ala jQuery

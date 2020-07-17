@@ -116,43 +116,7 @@ bililiteRange.extend({
 			return this.all().slice(0, this[0]).split('\n').length;
 		}
 	},
-	
-	live: function(on = true){
-		if (on){
-			if (this._inputHandler) return this; // don't double-bind
-			this._inputHandler = evt => {
-				var start, oldend, newend;
-				if (evt.bililiteRange.unchanged) return;
-				start = evt.bililiteRange.start;
-				oldend = start + evt.bililiteRange.oldText.length;
-				newend = start + evt.bililiteRange.newText.length;
-				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
-				let [b0, b1] = this.bounds();
-				if (b0 <= start){
-					// no change
-				}else if (b0 > oldend){
-					b0  += newend - oldend;
-				}else{
-					b0  = newend;
-				}
-				if (b1 < start){
-					// no change
-				}else if (b1 >= oldend){
-					b1 += newend - oldend;
-				}else{
-					b1 = start;
-				}
-				this.bounds([b0, b1]);
-			};
-			// we only want to listen to changes that happened *after* we went live, so start listening asynchronously
-			setTimeout ( () => this.listen('input', this._inputHandler), 0);
-		}else{
-			this.dontlisten('input', this._inputHandler);
-			delete this._inputHandler;
-		}
-		return this;
-	},
-	
+		
 	findprimitive: function(re, bounds){
 		// search for re within the bounds given. Return the result of the RegExp.exec call  or false if not found.
 		// re needs to be global for this to work!
