@@ -103,3 +103,22 @@ multitest ('Testing bililiteRange bounds custom functions', function (rng, el, t
 	assert.ok(rng[0] == 0 && rng[1] == 'foobarbaz'.length, 'custom bounds set');
 	assert.equal(rng.all(), 'foobarbaz'+text, 'custom bounds have correct text');	
 });
+multitest ('Testing bililiteRange bounds examples', function (range, el, text, i, assert){
+	if (i == 3) return assert.expect(0); // can't select in NothingRange
+	bililiteRange.bounds.firstchar = () => [0,1];
+	assert.equal(range.all('ABCDE').bounds('firstchar').text(),'A', 'first example');
+	bililiteRange.bounds.nthchar = (name, n) => [+n, n+1];
+	assert.equal(range.all('ABCDE').bounds('nthchar', 2).text(), 'C', 'second example');
+	bililiteRange.bounds.wrap = function (name, before, after) {
+		return this.text(before + this.text() + after, {select: 'all'}).bounds();
+	}
+	assert.equal(range.all('ABCDE').bounds('firstchar').bounds('wrap', 'foo', 'bar').text(), 'fooAbar', 'third example');
+	bililiteRange.bounds.endofline = function () {
+		if (this.text()[this.length-1] == '\n') return [this[1], this[1]]; // range ends with a newline
+		const nextnewline = this.all().indexOf('\n', this[1]);
+		if (nextnewline != -1) return [nextnewline + 1, nextnewline +1];
+		return this.bounds('end').bounds(); // no newline
+	}
+	if (i == 2) return; // no newlines in <input>
+	assert.equal(range.all('Hello\nWorld').bounds('start').bounds('endofline').text('Wonderful ').all(), 'Hello\nWonderful World', 'fourth example');
+});
