@@ -247,15 +247,11 @@ Range.prototype = {
 		this._el.addEventListener(type, func);
 		return this;
 	},
-	scrollIntoView: function(scroller){
+	scrollIntoView: function(scroller = (top => this._el.scrollTop = top) ){
 		var top = this.top();
 		// scroll into position if necessary
 		if (this._el.scrollTop > top || this._el.scrollTop+this._el.clientHeight < top){
-			if (scroller){
-				scroller.call(this._el, top);
-			}else{
-				this._el.scrollTop = top;
-			}
+			scroller.call(this._el, top);
 		}
 		return this;
 	},
