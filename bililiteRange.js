@@ -169,7 +169,7 @@ Range.prototype = {
 	},
 	bounds: function(s){
 		if (bililiteRange.bounds[s]){
-			this._bounds = bililiteRange.bounds[s].apply(this);
+			this._bounds = bililiteRange.bounds[s].apply(this, arguments);
 		}else if (s){
 			this._bounds = s; // don't do error checking now; things may change at a moment's notice
 		}else{

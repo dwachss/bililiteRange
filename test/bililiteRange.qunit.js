@@ -88,3 +88,18 @@ multitest ('Testing bililiteRange wrap', function (rng, el, text, i, assert){
 		assert.ok(el.nodeName == 'INPUT' || el.nodeName == 'TEXTAREA', 'wrap throws in text-only elements');
 	}
 });
+multitest ('Testing bililiteRange bounds custom functions', function (rng, el, text, i, assert){
+	bililiteRange.bounds.firstchar = () => [0,1];
+	rng.all(text).bounds('firstchar');
+	assert.ok(rng[0] == 0 && rng[1] == 1, 'custom bounds set');
+	assert.equal(rng.text(), text[0], 'custom bounds have correct text');
+	if (i == 3) return; // can't selectively change text in NothingRange
+	bililiteRange.bounds.andmore = function (name,...rest){
+		const s = rest.join('');
+		this.clone().bounds('endbounds').text(s);
+		return [this[0], this[1]+s.length];
+	};
+	rng.all(text).bounds('start').bounds('andmore', 'foo', 'bar', 'baz');
+	assert.ok(rng[0] == 0 && rng[1] == 'foobarbaz'.length, 'custom bounds set');
+	assert.equal(rng.all(), 'foobarbaz'+text, 'custom bounds have correct text');	
+});
