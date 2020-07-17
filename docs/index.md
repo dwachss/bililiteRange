@@ -1,7 +1,9 @@
 # Cross-Browser Text Ranges and Selections
 
 `bililiteRange(element)` returns an abstraction of a range of characters within element, initially all of the element.
-The range never extends outside the element. `element` is a DOM element (but it fails for the `<body>` element).
+The range never extends outside the element. `element` is a DOM element. It's not a constructor;
+you don't have to use `new bililiteRange()` 
+(though that [does work](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/new)).
 
 It works for `<input>`, `<textarea>` and any other `HTMLELement` (though they should have `contenteditable` set to be useful).
 
@@ -11,11 +13,16 @@ The major use case is a pretty-printing editor (I use [Prism](https://prismjs.co
 
 ## Methods
 
+Any method that does not have an explicit return value returns the range itself, so methods can be changed:
+`range.all('foo bar').bounds('start').text('baz ').sendkeys('{ArrowLeft}').select()` sets the text of the element to 
+`"baz foo bar"`, with the selection point right after `baz`.
+
 ### `0`
-Returns or sets the beginning of the range, so you can use it like an array: `range[0] = 2`.
+Returns or sets the beginning of the range, so you can use it like an array: `range[0] = 2`. Set returns the new value.
 
 ### `1`
-Returns or sets the end of the range, so you can use it like an array: `range[1] = 6`. The two together are equivalent to
+Returns or sets the end of the range, so you can use it like an array: `range[1] = 6`.  Set returns the new value.
+The two together are equivalent to
 `range.bounds[2,6])`.
 
 ### `all()`
@@ -48,6 +55,8 @@ and uses that.
 - `bounds('start')` sets the range to `[0,0]`.
 - `bounds('end')` sets the range to `[length, length]`.
 
+To create new `bounds` functions, see the [documentation](bounds.md).
+
 ### `clone()`
 Return a new bililiteRange with the same bounds as this one.
 
@@ -57,6 +66,15 @@ jQuery's [`data`](https://api.jquery.com/data/). See the documentation for [bili
 
 ### `element`
 Returns the DOM element that the range was defined on.
+
+### `live(on = true)`
+
+If the `on` argument is `true` (or undefined, since `true` is the default), makes this range "live": sets up an input listener
+that will adjust the bounds to track changes in the text of the element. Changes after the bounds do nothing; changes before the bounds
+move the bounds, and changes within the bounds change the bounds so the range still refers to the replacement text. Similar to bookmarks
+in Microsoft Word, except that deleting the entire text of the range does not remove or move the range; it just becomes a zero-length range.
+
+`live(false)` removes the input listener, so the range is no longer adjusted.
 
 ### `scrollIntoView([fn: function])`
 Does its best to scroll the beginning of the range into the visible part of the element, by analogy to `Element.scrollIntoView()`.
@@ -82,7 +100,7 @@ Short for `range.bounds('selection').text()`, to get the text currently selected
 
 ### `selection(s: string)`
 Short for `range.bounds('selection').text(s, 'end').select()`; useful for inserting text at the insertion point.
-This just inserts the String argument straight in the text; for a more sophisticated function, see `sendkeys` below.
+This just inserts the string argument straight in the text; for a more sophisticated function, see `sendkeys` below.
 
 ### `sendkeys(s: string)`
 Basically does text(s, 'end') but interprets brace-surrounded words (like `'{Backspace}'` as special commands that execute the
@@ -94,7 +112,7 @@ Returns the text of the current range.
 
 ### `text(s: string, [, 'start'|'end'|'all' [, inputType = 'insertText']])`
 Sets the text of the current range to s. If the second argument is present, also sets bounds, to the start of the inserted text,
-the end of the inserted text (what happens with the usual "paste" command
+the end of the inserted text (what happens with the usual "paste" command)
 or the entire inserted text. Follow this with select() to actually set the selection.
 
 For
@@ -213,7 +231,8 @@ insert text. See the [documentation](jquery.sendkeys.md).
 
 `jquery.jsvk.js` is a jQuery wrapper for Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/), which is apparently now
 dead. Depends on
-bililiteRange for character insertion. [Documentation is on my blog](http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/)
+bililiteRange for character insertion. 
+[Documentation is on my blog](http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/)
 If you want this file, it is on the [IE branch](https://github.com/dwachss/bililiteRange/blob/IE/jquery.jsvk.js).
 
 
