@@ -39,7 +39,10 @@ Returns an array, `[start, end]` of the bounds of the current range. `start` is 
 text of the entire element.
 
 ### `bounds(b: array)`
-Sets the bounds of the current range to the `b`. Does not throw an error for limits out of bounds, just silently limits it.
+Sets the bounds of the current range to the `b`. Does not throw an error for limits out of bounds, just silently limits them.
+
+### `bounds(r: bililiteRange)`
+Sets the bounds of the current range to those of `r`.
 
 ### `bounds(s: string)`
 Looks for a function `bililiteRange[s]` that is called with `this` set to the current `bililiteRange`, and sets the bounds.

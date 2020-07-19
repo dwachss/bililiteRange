@@ -22,8 +22,9 @@ of the two ranges. Thus `range.bounds([2,4]).bounds('intersection', [3,5])` leav
 intersection is the null set, then the range is set to an empty range at an undefined location (with the current
 algorithm, it is the start of the later bounds, but I may change that). 
 
-### `bounds('selection')` sets the range to the selected part of the element. This, along with `range.select()` is how to interact
-with the user. `bililiteRange`s act like selections, but they are not visible in the user interface.
+### `bounds('selection')`
+Sets the range to the selected part of the element. This, along with `range.select()`, is how to interact
+with the user. `bililiteRange`'s act like selections, but they are not visible in the user interface.
 
 ### `bounds('start')`
 Sets the range to a zero-length range at the start of the element: `[0, 0]`.
