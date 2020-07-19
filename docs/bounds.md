@@ -1,4 +1,39 @@
-# bililite bounds custom functions
+# bililiteRange `bounds`
+
+Setting the bounds with `range.bounds([x,y])` does no error checking or constraining, since the text may change. The constraining
+happens when the bounds are gotten with `range.bounds()`. Then both numbers are constrained with 
+`Math.max(0, Math.min (this.length, x or y))`, and the second number is constrained to be greater or equal to the first, with
+`y = Math.max(x, y)`.
+
+## The "built-in" functions
+
+### `bounds('all')`
+Sets the range to cover the entire element: `[0, range.length]`.
+
+### `bounds('end')`
+Sets the range to a zero-length range at the end of the element: `[range.length, range.length]`.
+
+### `bounds('endbounds')`
+Sets the range  to a zero-length range at the end of the current range: `[range[1], range[1]]`.
+
+### `bounds('intersection',...rest)`
+Creates a new range with `range.clone().bounds(...rest)`, then sets the bounds of this range to the insersection
+of the two ranges. Thus `range.bounds([2,4]).bounds('intersection', [3,5])` leaves `range.bounds()` as `[3,4]`. If the
+intersection is the null set, then the range is set to an empty range at an undefined location (with the current
+algorithm, it is the start of the later bounds, but I may change that). 
+
+### `bounds('selection')` sets the range to the selected part of the element. This, along with `range.select()` is how to interact
+with the user. `bililiteRange`s act like selections, but they are not visible in the user interface.
+
+### `bounds('start')`
+Sets the range to a zero-length range at the start of the element: `[0, 0]`.
+
+### `bounds('startbounds')`
+Sets the range  to a zero-length range at the start of the current range: `[range[0], range[0]]`.
+
+
+
+## Custom functions
 
 `bililiteRange.prototype.bounds(s: string)` looks for a function `bililiteRange.bounds[s]` and
 calls that with `b = bililiteRange.bounds[s].apply(this, arguments)`, then sets the bounds with

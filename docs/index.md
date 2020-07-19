@@ -52,10 +52,7 @@ This only uses the actual selection if the element is the same as document.activ
 then bililiteRange sets up event listeners to remember the selection from when the element was the active element,
 and uses that.
 
-- `bounds('start')` sets the range to `[0,0]`.
-- `bounds('end')` sets the range to `[length, length]`.
-
-To create new `bounds` functions, see the [documentation](bounds.md).
+Several other `bounds` functions are defined, and it is possible to create new `bounds` functions. See the [documentation](bounds.md).
 
 ### `clone()`
 Return a new bililiteRange with the same bounds as this one.
@@ -66,6 +63,9 @@ jQuery's [`data`](https://api.jquery.com/data/). See the documentation for [bili
 
 ### `element`
 Returns the DOM element that the range was defined on.
+
+### `length`
+Returns `range.text().length`.
 
 ### `live(on = true)`
 
@@ -204,6 +204,10 @@ Shorthand for `this.element.addEventListener(s, fn)`.
 Shorthand for `this.element.removeEventListener(s, fn)`.
 
 ## Other files
+
+### `bililiteRange.find.js`
+
+Implements searching with ranges. See the [documentation](find.md).
 
 ### `bililiteRange.util.js`
 

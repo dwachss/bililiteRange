@@ -3,15 +3,39 @@ multitest("Testing bililiteRange", function (rng, el, text, i, assert){
 	assert.equal (rng.text(), '' , "element should be empty" );
 	rng.text(text, {select: 'all'});
 	assert.equal (rng.text(), text, 'text set');
-	assert.equal (rng.length(), text.length, 'length calculated');
-	var b = [1, 10];
-	rng.bounds(b);
-	assert.deepEqual (rng.bounds(), b, 'bounds set');
-	assert.equal (rng.text(), text.substring.apply(text, b), 'bounds correspond to the correct text');
+	assert.equal (rng.length, text.length, 'length calculated');
 	assert.equal (rng.all(), text, 'all retains correct text');
+});
+multitest ("Testing bililiteRange bounds", function (rng, el, text, i, assert){
+	rng.text(text);
+	var b = [1, 10];
+	assert.deepEqual (rng.bounds(b).bounds(), b, 'bounds set');
+	assert.equal (rng.text(), text.substring.apply(text, b), 'bounds correspond to the correct text');
 	rng.select();
+	rng.bounds([0,0]); // changing bounds should not change selection
 	rng.bounds('selection');
 	assert.deepEqual (rng.bounds(), b, 'selection recorded');
+	const rng2 = rng.clone();
+	assert.deepEqual (rng2.bounds(), b, 'clone bounds set');
+	assert.equal (rng.element, rng2.element, 'clone element set');
+	assert.deepEqual (rng.bounds('all').bounds(), [0, rng.length], 'bounds "all"');
+	assert.deepEqual (rng2.bounds(), b, 'clone bounds not changed');
+	rng.bounds(rng2);
+	assert.deepEqual (rng2.bounds(), rng.bounds(), 'bounds copied');
+	assert.deepEqual (rng.bounds('start').bounds(), [0,0], 'bounds "start"');
+	assert.deepEqual (rng.bounds('end').bounds(), [rng.length,rng.length], 'bounds "end"');
+	rng.bounds(b);
+	assert.deepEqual (rng.bounds('startbounds').bounds(), [b[0],b[0]], 'bounds "startbounds"');
+	rng.bounds(b);
+	assert.deepEqual (rng.bounds('endbounds').bounds(), [b[1],b[1]], 'bounds "endbounds"');
+	rng.bounds([2,4]).bounds('union', [5,6]);
+	assert.deepEqual (rng.bounds(), [2,6], 'bounds "union"');
+	rng.bounds([2,5]).bounds('intersection', [4,6]);
+	assert.deepEqual (rng.bounds(), [4,5], 'bounds "intersection"');
+	rng.bounds([2,4]).bounds('intersection', [5,6]);
+	assert.deepEqual (rng.text().length, 0, 'bounds "null intersection has length 0"');
+	rng.bounds(b).bounds('union', 'union', 'start'); // One would never do this but it's legal; make sure the syntax works
+	assert.deepEqual (rng.bounds(), [0,b[1]], 'recursive "union"');
 });
 multitest("Testing bililiteRange blur/focus selection", function (rng, el, text, i, assert){
 	if (i == 3) return assert.expect(0); // no selection on NothingRange
@@ -37,7 +61,7 @@ multitest("Testing bililiteRange bounds array notation", function (rng, el, text
 multitest("Testing bililiteRange selection", function (rng, el, text, i, assert){
 	rng.all(text);
 	el.focus();
-	assert.equal (rng.bounds('selection').length(), text.length, "initial selection is empty");
+	assert.equal (rng.bounds('selection').length, text.length, "initial selection is empty");
 });
 multitest("Testing bililiteRange scrolling", function (rng, el, text, i, assert){
 	rng.all('');

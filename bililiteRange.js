@@ -22,7 +22,7 @@ bililiteRange = function(el){
 	// determine parent document, as implemented by John McLear <john@mclear.co.uk>
 	ret._doc = el.ownerDocument;
 	ret._win = 'defaultView' in ret._doc ? ret._doc.defaultView : ret._doc.parentWindow;
-	ret._bounds = [0, ret.length()];
+	ret._bounds = [0, ret.length];
 	
 	// selection tracking. We want clicks to set the selection to the clicked location but tabbing in or element.focus() should restore
 	// the selection to what it was.
@@ -170,13 +170,15 @@ Range.prototype = {
 	bounds: function(s){
 		if (bililiteRange.bounds[s]){
 			this._bounds = bililiteRange.bounds[s].apply(this, arguments);
+		}else if (s && s.bounds){
+			this._bounds = s.bounds(); // copy bounds from an existing range
 		}else if (s){
 			this._bounds = s; // don't do error checking now; things may change at a moment's notice
 		}else{
 			// constrain bounds now
 			var b = [
-				Math.max(0, Math.min (this.length(), this._bounds[0])),
-				Math.max(0, Math.min (this.length(), this._bounds[1]))
+				Math.max(0, Math.min (this.length, this._bounds[0])),
+				Math.max(0, Math.min (this.length, this._bounds[1]))
 			];
 			b[1] = Math.max(b[0], b[1]);
 			return b;
@@ -205,10 +207,10 @@ Range.prototype = {
 	get element() {
 		return this._el
 	},
-	length: function() {
+	get length() {
 		return this._el[this._textProp].length;
 	},
-	live: function(on = true){
+	live (on = true){
 		if (on){
 			if (this._inputHandler) return this; // don't double-bind
 			this._inputHandler = evt => {
@@ -330,16 +332,26 @@ bililiteRange.override = (name, fn) => {
 
 //bounds functions
 bililiteRange.bounds = {
-	all: function() { return [0, this.length()] },
-	start: function () { return [0,0] },
-	end: function () { return [this.length(), this.length()] },
-	selection: function(){
+	all: function() { return [0, this.length] },
+	start: function() { return [0,0] },
+	end: function() { return [this.length, this.length] },
+	selection: function() {
 		if (this._el === this._doc.activeElement){
 			this.bounds ('all'); // first select the whole thing for constraining
 			return this._nativeSelection();
 		}else{
 			return this.data.selection;
 		}
+	},
+	startbounds: function() { return  [this[0], this[0]] },
+	endbounds: function() { return  [this[1], this[1]] },
+	union: function (name,...rest) {
+		const b = this.clone().bounds(...rest);
+		return [ Math.min(this[0], b[0]), Math.max(this[1], b[1]) ];
+	},
+	intersection: function (name,...rest) {
+		const b = this.clone().bounds(...rest);
+		return [ Math.max(this[0], b[0]), Math.min(this[1], b[1]) ];
 	}
 };
 
@@ -394,7 +406,7 @@ function InputRange(){}
 InputRange.prototype = new Range();
 InputRange.prototype._textProp = 'value';
 InputRange.prototype._nativeRange = function(bounds) {
-	return bounds || [0, this.length()];
+	return bounds || [0, this.length];
 };
 InputRange.prototype._nativeSelect = function (rng){
 	this._el.setSelectionRange(rng[0], rng[1]);
@@ -449,7 +461,7 @@ W3CRange.prototype._nativeSelect = function (rng){
 W3CRange.prototype._nativeSelection = function (){
 	// returns [start, end] for the selection constrained to be in element
 	var rng = this._nativeRange(); // range of the element to constrain to
-	if (this._win.getSelection().rangeCount == 0) return [this.length(), this.length()]; // append to the end
+	if (this._win.getSelection().rangeCount == 0) return [this.length, this.length]; // append to the end
 	var sel = this._win.getSelection().getRangeAt(0);
 	return [
 		w3cstart(sel, rng),
@@ -563,7 +575,7 @@ function NothingRange(){}
 NothingRange.prototype = new Range();
 NothingRange.prototype._textProp = 'value';
 NothingRange.prototype._nativeRange = function(bounds) {
-	return bounds || [0,this.length()];
+	return bounds || [0,this.length];
 };
 NothingRange.prototype._nativeSelect = function (rng){ // do nothing
 };
