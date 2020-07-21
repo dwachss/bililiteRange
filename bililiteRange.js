@@ -319,13 +319,13 @@ bililiteRange.extend = function(fns){
 	Object.assign(bililiteRange.prototype, fns);
 };
 
-// TODO: implement bililiteRange.override
 bililiteRange.override = (name, fn) => {
 	const oldfn = bililiteRange.prototype[name];
 	bililiteRange.prototype[name] = function(){
+		const oldsuper = this.super;
 		this.super = oldfn;
 		const ret = fn.apply(this, arguments);
-		delete this.super;
+		this.super = oldsuper;
 		return ret;
 	};
 }

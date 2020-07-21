@@ -710,7 +710,7 @@ createOption.RegExp = function (name){
 }
 
 createOption ('autoindent', false);
-createOption ('ignorecase', true);
+createOption ('ignorecase', false);
 createOption ('tabSize', 8, true);
 createOption ('wrapscan', true);
 

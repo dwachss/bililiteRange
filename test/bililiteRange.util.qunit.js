@@ -10,12 +10,13 @@ multitest("Testing bililiteRange utilities", function (rng, el, text, i, assert)
 		bounds = [7,7];
 	}
 	rng.all(text).bounds('start');
-	rng.find(/07/);
+	rng.bounds(/07/);
 	assert.equal(rng.line(), line, 'find correct line');
 	rng.bounds('EOL');
 	assert.deepEqual(rng.bounds(), bounds, 'bounds (EOL)');
 });
 multitest("Testing bililiteRange live", function (rng, el, text, i, assert, done){
+	// this belongs in bililiteRange.qunit.js
 	if (i == 3) {
 		assert.expect(0);
 		done();
