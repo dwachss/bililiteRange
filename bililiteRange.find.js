@@ -1,4 +1,4 @@
-(function(private){
+(function(_private){
 
 bililiteRange.createOption('dotall', {value: false});
 bililiteRange.createOption('ignorecase', {value: false});
@@ -54,11 +54,11 @@ bililiteRange.override('bounds', function (re){
 		initialbounds = [0, bounds[0]];
 		fallbackbounds = [0, bounds[0]-1];
 	}
-	var match = private[findprimitive](re, initialbounds, this);
+	var match = _private[findprimitive](re, initialbounds, this);
 	if (matchIs(match, bounds)){ // if the match is exactly the current string, it doesn't count
-		match = private[findprimitive](re, fallbackbounds, this);
+		match = _private[findprimitive](re, fallbackbounds, this);
 	}
-	if (!match && re.wrapscan) match = private[findprimitive](re, [0, Number.MAX_VALUE], this);
+	if (!match && re.wrapscan) match = _private[findprimitive](re, [0, Number.MAX_VALUE], this);
 	if (matchIs(match, bounds)) match = false; // again, even with wrapping, don't find the identical segment
 	this.match = match; // remember this for the caller
 	if (match) this.bounds([match.index, match.index+match[0].length]); // select the found string
@@ -81,7 +81,7 @@ bililiteRange.prototype.replace = function (searchvalue, newvalue){
 };
 		
 
-private.findprimitive = function(re, bounds, range){
+_private.findprimitive = function(re, bounds, range){
 	// search for re within the bounds given. Return the result of the RegExp.exec call  or false if not found.
 	// re needs to be global for this to work!
 	var text = range.all();
@@ -91,12 +91,12 @@ private.findprimitive = function(re, bounds, range){
 	return match;
 };
 
-private.findprimitiveback = function (re, bounds, range){
+_private.findprimitiveback = function (re, bounds, range){
 	// no way to search backwards; have to search forward until we fail
 	var match = false;
 	do {
 		var lastmatch = match;
-		match = private.findprimitive(re, bounds, range);
+		match = _private.findprimitive(re, bounds, range);
 		bounds[0] = match.index+1;
 	}while (match);
 	return lastmatch;
