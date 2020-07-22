@@ -68,13 +68,6 @@
 			rng.data.autoindent = this.checked;
 		});
 		
-		// monkey patch text to use autoindent
-		bililiteRange.override ('text', function (text, opts) {
-			if ( text === undefined ) return this.super();
-			opts = Object.assign ({autoindent: rng.data.autoindent}, opts);
-			return this.super(text, opts);
-		});
-
 	</script>
 </body>
 </html>

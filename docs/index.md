@@ -41,6 +41,9 @@ text of the entire element.
 ### `bounds(b: array)`
 Sets the bounds of the current range to the `b`. Does not throw an error for limits out of bounds, just silently limits them.
 
+### `bounds(n: number)`
+Shortcut for `bounds([n,n])`.
+
 ### `bounds(r: bililiteRange)`
 Sets the bounds of the current range to those of `r`.
 

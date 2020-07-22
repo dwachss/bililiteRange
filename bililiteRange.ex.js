@@ -1,95 +1,29 @@
-// Attempts to implement the ex editor (http://ex-vi.sourceforge.net/ex.html) with some tweaks to make it javascript-friendly 
-// javascript regular expressions (and change ?regexp? addressing to ?/regexp/ since '?' is used so often as a metacharacter.
-// It's also much more forgiving of syntax errors.
-// errors are thrown with {message: 'whatever'}
-// messages are returned in range.exMessage
-
-// documentation: http://bililite.com/blog/2014/02/05/new-bililiterange-plugin-ex
-// Version 1.1
-//  depends: bililiteRange.js, bililiteRange.util.js
-
-// Copyright (c) 2013 Daniel Wachsstock
-// MIT license:
-// Permission is hereby granted, free of charge, to any person
-// obtaining a copy of this software and associated documentation
-// files (the "Software"), to deal in the Software without
-// restriction, including without limitation the rights to use,
-// copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following
-// conditions:
-
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-// OTHER DEALINGS IN THE SOFTWARE.
-
 (function(undefined){
 
-/*********************** shims: it's be nice to IE8 day *********************************/
-if(!String.prototype.trim) {
-  String.prototype.trim = function () {
-    return this.replace(/^\s+|\s+$/g,'');
-  };
-}
-if (!String.prototype.repeat){
-	// from http://stackoverflow.com/questions/202605/repeat-string-javascript
-	String.prototype.repeat = function(count) {
-			if (count < 1) return '';
-			var result = '', pattern = this.valueOf();
-			while (count > 0) {
-					if (count & 1) result += pattern;
-					count >>= 1, pattern += pattern;
-			}
-			return result;
-	};
-}
 /*********************** utility plugins *********************************/
 bililiteRange.bounds.nonewline = function(){
 	// a "line" includes the final newline, if present.
-	// doing an "endbounds" puts the range after that newline, which is considered part of the next line. 
-	// This moves the range before the last newline
+	// This moves the end boundary back before that
+	// used for getting the right autoindent for append,
+	// and for joining lines
 	var b = this.bounds();
-	if (this.text().slice(-1) == '\n') --b[1];
+	if (this.all().charAt(b[1]-1) == '\n') --b[1];
+	if (b[0] > b[1]) b[0] = b[1];
 	return [b[0], b[1]];
 }
 
 bililiteRange.extend ({
-lines: function(i, j){
-	if (arguments.length){
-		// selects the entire lines between i and j. 
-		if (i === undefined) i = j;
-		if (j === undefined) j = i;
-		if (i > j) j = (i += j -= i) - j; // ludicrously hacky 1-line swap (http://www.greywyvern.com/?post=265)
-		if (j <= 0) return this.bounds('start');
-		var totallines = this.all().split('\n').length;
-		if (i > totallines) return this.bounds('end');
-		var start = this.line(i).bounds('BOL').bounds()[0];
-		var end = this.line(j).bounds('EOL').bounds()[1]+1; // the +1 is to include the newline at the end of the line
-		return this.bounds([start, end]);
-	}else{
-		// if we end on a newline, don't count it
-		var start = this.line(), lines = this.text().slice(0,-1).split('\n').length;
-		return [start, start+lines-1];
-	}
-},
 
-newline: function(line, select, autoindent){
-	// insert text in a line by itself.
+wholeline: function(line, opts = {}){
+	// replace the text of this range but in a line by itself.
+	opts.select = 'end';
 	var b = this.bounds();
-	var text = this.all();
+	var alltext = this.all();
 	// remove single newlines at the end of line, since we presumably don't want multiple ones
 	line = line.replace(/\n$/, '');
-	if (b[0] > 0 && text.charAt(b[0]-1) != '\n') line = '\n'+line;
-	if (b[1] < text.length && text.charAt(b[1]) != '\n') line += '\n';
-	return this.text(line, { select, autoindent });
+	if (b[0] > 0 && alltext.charAt(b[0]-1) != '\n') line = '\n'+line;
+	if (b[1] < alltext.length && alltext.charAt(b[1]) != '\n') line += '\n';
+	return this.text(line, opts);
 }
 
 });
@@ -307,12 +241,13 @@ function interpretAddresses (rng, addresses){
 			return '';
 		});
 		if (s.charAt(0) == '/'){
-			var re = createRE(s, state.ignorecase);
-			lines.push(rng.bounds('EOL').find(re, !state.wrapscan).bounds('EOL').line()+offset);
+			var re = createRE(s, state.ignorecase); // TODO: use bililiteRange.RegExp
+			let line = rng.bounds('EOL').bounds(re).line()+offset;
+			lines.push(line);
 		}else if (s.charAt(0) == '?'){
 			// since having ? as a delimiter wreaks havoc with Javascript RE's, use ?/....../
 			re = createRE(s.slice(1), state.ignorecase);
-			lines.push(rng.bounds('BOL').findBack(re, !state.wrapscan).bounds('EOL').line()+offset);
+			lines.push(rng.bounds('BOL').bounds(rng.re(re, 'b')).bounds('EOL').line()+offset);
 		}else if (s.charAt(0) == "'"){
 			var mark = state.marks[s.slice(1)];
 			if (mark){
@@ -323,7 +258,7 @@ function interpretAddresses (rng, addresses){
 				throw new Error('Mark '+s.slice(1)+' not defined');
 			}
 		}else if (/\d+/.test(s)){
-			lines.push(rng.line(parseInt(s)).find(/.*/).bounds('endbounds').line()+offset); // make sure we go to the end of the line
+			lines.push(rng.line(parseInt(s)).bounds('EOL').line()+offset); // make sure we go to the end of the line
 		}else if (s == '.'){
 			lines.push(currLine+offset);
 		}else if (s == '%%'){
@@ -331,10 +266,10 @@ function interpretAddresses (rng, addresses){
 			lines.push(rnglines[0]);
 			lines.push(rnglines[1]+offset);
 		}else if (s == '$'){
-			lines.push (rng.bounds('all').bounds('endbounds').line()+offset);
+			lines.push (rng.bounds('end').line()+offset);
 		}else if (s == '%'){
 			lines.push(0);
-			lines.push (rng.bounds('all').bounds('endbounds').line()+offset);
+			lines.push (rng.bounds('end').line()+offset);
 		}else if (s == ';'){
 			if (lines.length > 0)	currLine = lines[lines.length-1];
 		}else if (s == ''){
@@ -424,16 +359,15 @@ var commands = bililiteRange.ex.commands = {
 
 	append: function (parameter, variant){
 		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
-		this.bounds('nonewline').bounds('endbounds');
-		this.newline(parameter, 'end', !variant != !this.data.autoindent);
+		this.bounds('EOL').bounds('nonewline').wholeline(parameter, {autoindent: !variant != !this.data.autoindent});
 	},
 
 	c: 'change',
 
 	change: function (parameter, variant){
 		pushRegister (this.text());
-		var indentation = this.indentation();
-		this.newline(parameter, 'all').bounds('nonewline');
+		const indentation = this.bounds('nonewline').indentation();
+		this.wholeline(parameter, {select: 'all', inputType: 'insertReplacementText'});
 		if (!variant != !this.data.autoindent) this.indent(indentation);
 	},
 
@@ -441,7 +375,7 @@ var commands = bililiteRange.ex.commands = {
 		var targetrng = this.clone();
 		var parsed = parseCommand(parameter, '.');
 		interpretAddresses(targetrng, parsed.addresses);
-		targetrng.bounds('endbounds').newline(this.text(), 'end');
+		targetrng.bounds('endbounds').wholeline(this.text(), {inputType: 'insertFromPaste'});
 		this.bounds(targetrng.bounds());
 	},
 
@@ -454,7 +388,7 @@ var commands = bililiteRange.ex.commands = {
 			this.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
 		}
 		pushRegister(this.text(), match[1]);
-		this.text('', 'end');
+		this.text('', {select: 'end', inputType: 'deleteContent'});
 	},
 
 	'delete': 'del',
@@ -487,14 +421,13 @@ var commands = bililiteRange.ex.commands = {
 	i: 'insert',
 
 	insert: function (parameter, variant){
-		this.bounds('startbounds').newline(parameter, 'all').bounds('nonewline');
-		if (!variant != !this.data.autoindent) this.indent(this.indentation());
-		this.bounds('endbounds');
+		this.bounds('BOL').wholeline(parameter, {autoindent: !variant != !this.data.autoindent});
 	},
 
 	ic: 'ignorecase',
 
 	join: function (parameter, variant){
+		// TODO: make sure this works with modern bililiteRange
 		var lines = this.lines();
 		var match = /^\d+/.exec(parameter);
 		if (match){
@@ -505,7 +438,7 @@ var commands = bililiteRange.ex.commands = {
 		var re = variant ? /\n/g : /\s*\n\s*/g;
 		var replacement = variant ? '' : ' '; // just one space. Doesn't do what the ex manual says about not inserting a space before a ')'
 		this.lines(lines[0],lines[1]).bounds('nonewline');
-		this.text(this.text().replace(re, replacement), 'start');
+		this.text(this.text().replace(re, replacement), {select: 'start'});
 	},
 
 	k: 'mark',
@@ -513,7 +446,9 @@ var commands = bililiteRange.ex.commands = {
 	m: 'move',
 
 	mark: function (parameter, variant){
-		this.data.marks[parameter] = this.clone().live();
+		const mark = this.clone();
+		if (mark.text().length > 0) mark.bounds('nonewline');
+		this.data.marks[parameter] = mark.live();
 	},
 
 	move: function (parameter, variant){
@@ -527,10 +462,10 @@ var commands = bililiteRange.ex.commands = {
 		if (target < b[0]){
 			// move to before the current bounds
 			this.text('');
-			targetrng.newline(text);
+			targetrng.wholeline(text);
 			this.bounds([target+text.length,target+text.length]);
 		}else if (target > b[1]){
-			targetrng.newline(text); // it will end up pointing to the end when we delete the old text below
+			targetrng.wholeline(text); // it will end up pointing to the end when we delete the old text below
 			this.text('');
 			this.bounds([target,target]);
 		} // if target is inside the current range, don't do anything
@@ -621,7 +556,8 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	'=': function (){
-		var lines = this.lines();
+		if (this.text().length > 0) this.bounds('nonewline');
+		let lines = this.lines();
 		this.exMessage = '['+(lines[0] == lines[1] ? lines[0] : lines[0]+', '+lines[1])+']';
 	},
 	

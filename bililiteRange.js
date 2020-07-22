@@ -70,8 +70,9 @@ bililiteRange = function(el){
 		// we need to insert newlines rather than create new elements, so character-based calculations work
 		ret.listen('paste', evt => {
 			if (!evt.defaultPrevented) {
+				// windows adds \r's to clipboard!
 				ret.clone().bounds('selection').
-					text(evt.clipboardData.getData("text/plain"), {select: 'end', inputType: 'insertFromPaste'}).
+					text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), {select: 'end', inputType: 'insertFromPaste'}).
 					select();
 				evt.preventDefault();
 			}
@@ -79,7 +80,7 @@ bililiteRange = function(el){
 		ret.listen('keydown', function(evt){
 			if (!evt.defaultPrevented) {
 				if (evt.key == 'Enter' && !evt.defaultPrevented){
-					retret.clone().bounds('selection').text('\n', {select: 'end', inputType: 'insertLineBreak'}).select();
+					ret.clone().bounds('selection').text('\n', {select: 'end', inputType: 'insertLineBreak'}).select();
 					evt.preventDefault();
 				}
 			}
@@ -168,8 +169,10 @@ Range.prototype = {
 		}
 	},
 	bounds: function(s){
-		if (bililiteRange.bounds[s]){
-			this._bounds = bililiteRange.bounds[s].apply(this, arguments);
+		if (typeof s === 'number'){
+			this._bounds = [s,s];
+		}else if (bililiteRange.bounds[s]){
+			this.bounds(bililiteRange.bounds[s].apply(this, arguments));
 		}else if (s && s.bounds){
 			this._bounds = s.bounds(); // copy bounds from an existing range
 		}else if (s){
@@ -195,7 +198,7 @@ Range.prototype = {
 		var event = new Event (opts.type, opts);
 		event.target = this._el;
 		event.view = this._win;
-		for (prop in opts) try { event[prop] = opts[prop] } catch(e){}; // ignore read-only errors for properties that were copied in the previous line
+		for (let prop in opts) try { event[prop] = opts[prop] } catch(e){}; // ignore read-only errors for properties that were copied in the previous line
 		// dispatch event asynchronously (in the sense of on the next turn of the event loop; still should be fired in order of dispatch
 		setTimeout( () => this._el.dispatchEvent(event) );
 		return this;
@@ -333,8 +336,8 @@ bililiteRange.override = (name, fn) => {
 //bounds functions
 bililiteRange.bounds = {
 	all: function() { return [0, this.length] },
-	start: function() { return [0,0] },
-	end: function() { return [this.length, this.length] },
+	start: function() { return 0 },
+	end: function() { return this.length },
 	selection: function() {
 		if (this._el === this._doc.activeElement){
 			this.bounds ('all'); // first select the whole thing for constraining
@@ -343,8 +346,8 @@ bililiteRange.bounds = {
 			return this.data.selection;
 		}
 	},
-	startbounds: function() { return  [this[0], this[0]] },
-	endbounds: function() { return  [this[1], this[1]] },
+	startbounds: function() { return  this[0] },
+	endbounds: function() { return  this[1] },
 	union: function (name,...rest) {
 		const b = this.clone().bounds(...rest);
 		return [ Math.min(this[0], b[0]), Math.max(this[1], b[1]) ];

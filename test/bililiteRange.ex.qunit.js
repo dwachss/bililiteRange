@@ -49,13 +49,16 @@ multitest("Testing bililiteRange ex marks", function (rng, el, text, i, assert, 
 		done();
 		return;
 	}
-	assert.expect (2);
+	assert.expect (4);
 	var text = 'One\nTwo\nThree';
-	rng.all(text).ex('2mark x').bounds([1,1]).text('inserted');
+	rng.all(text).ex('2mark x').ex("'x=");
+	assert.equal (rng.exMessage, '[2]', 'mark has correct line number');
+	assert.equal (rng.text(), 'Two', 'mark has correct text');
+	rng.bounds([1,1]).text('inserted');
 	async(function(){
 		rng.ex("'x=");
 		assert.equal (rng.exMessage, '[2]', 'mark retains line number');
-		assert.equal (rng.text(), 'Two\n', 'mark stays live');
+		assert.equal (rng.text(), 'Two', 'mark stays live');
 		done();
 	})(); // input events are async, so the live happens after the test
 }, true);
