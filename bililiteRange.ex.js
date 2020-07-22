@@ -1,16 +1,6 @@
 (function(undefined){
 
 /*********************** utility plugins *********************************/
-bililiteRange.bounds.nonewline = function(){
-	// a "line" includes the final newline, if present.
-	// This moves the end boundary back before that
-	// used for getting the right autoindent for append,
-	// and for joining lines
-	var b = this.bounds();
-	if (this.all().charAt(b[1]-1) == '\n') --b[1];
-	if (b[0] > b[1]) b[0] = b[1];
-	return [b[0], b[1]];
-}
 
 bililiteRange.extend ({
 

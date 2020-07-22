@@ -33,6 +33,14 @@ bililiteRange.bounds.line = function (name, n, n2){
 		return this.bounds('line', n).bounds('union', 'line', n2);
 	}
 };
+bililiteRange.bounds.nonewline = function(){
+	// a "line" includes the final newline, if present.
+	// This moves the end boundary back before that
+	var b = this.bounds();
+	if (this.all().charAt(b[1]-1) == '\n') --b[1];
+	if (b[0] > b[1]) b[0] = b[1];
+	return [b[0], b[1]];
+}
 
 // add autoindent option
 bililiteRange.createOption ('autoindent', {value: false});
@@ -63,45 +71,19 @@ bililiteRange.extend({
 	},
 
 	line:function(n){
-		// set the bounds to the nth line or
 		// return the line number of the *start* of the bounds. Note that it is 1-indexed, the way ex writes it!
-		if (arguments.length){
-			n =  parseInt(n);
-			if (isNaN(n)) return this;
-			// if n is too large,set the bounds to the end; if too small, to the beginning
-			if (n > this.all().split('\n').length) return this.bounds('end');
-			if (n < 1) return this.bounds([0,0]);
-			// move to the given line number, at same character number as the initial bounds.
-			var start = this.bounds();
-			this.bounds('BOL');
-			var c = start[0] - this[0]; // character number
-			// so find n-1 newlines to get to the correct line, then c characters over (if we don't have that many, go to the end of the line)
-			var re = new RegExp('(.*\\n){'+(n-1)+'}(.{'+c+'}|.*$)', 'm');
-			return this.bounds('all').bounds(re).bounds('endbounds');
-		}else{
-			// just count newlines before this.bounds
-			// If we are on the boundary between lines (i.e. after the newline), this counts the next line
-			return this.all().slice(0, this[0]).split('\n').length;
-		}
+		// just count newlines before this.bounds
+		// If we are on the boundary between lines (i.e. after the newline), this counts the next line
+		return this.all().slice(0, this[0]).split('\n').length;
 	},
 
 	lines: function(i, j){
-		if (arguments.length){
-			// selects the entire lines between i and j. 
-			if (i === undefined) i = j;
-			if (j === undefined) j = i;
-			if (i > j) [j,i] =[i,j]; // destructuring assignment for the win!
-			if (j <= 0) return this.bounds('start');
-			var totallines = this.all().split('\n').length;
-			if (i > totallines) return this.bounds('end');
-			var start = this.line(i).bounds('BOL')[0];
-			var end = this.line(j).bounds('EOL')[1];
-			return this.bounds([start, end]);
-		}else{
-			const start = this.line();
-			const end = this.clone().bounds('endbounds').line();
-			return [start, end];
-		}
+		// note that if the range ends on a newline, then the next line will be counted.
+		// so rng.bounds('line', n).lines() returns [n, n+1]. 
+		// Use rng.bounds('line', n).bounds('nonewline').lines() if that won't work.
+		const start = this.line();
+		const end = this.clone().bounds('endbounds').line();
+		return [start, end];
 	},
 
 	unindent: function (n, tabSize){
