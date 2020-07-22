@@ -276,7 +276,7 @@ function interpretAddresses (rng, addresses){
 			lines.push(offset);
 		}
 	});
-	rng.lines(lines.pop(), lines.pop());
+	rng.bounds('line', lines.pop(), lines.pop());
 }
 
 // we want to be able to list RegExp's with set, which uses JSON.stringify. This function lets us to that.
@@ -385,7 +385,7 @@ var commands = bililiteRange.ex.commands = {
 		if (match[2]){
 			// a count means we to change the range in e.g., 1,2 d 3 from [1,2] to [2,2+3-1] (3 lines from the end of the range, inclusive)
 			var lines = this.lines();
-			this.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
+			this.bounds('line', lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
 		}
 		pushRegister(this.text(), match[1]);
 		this.text('', {select: 'end', inputType: 'deleteContent'});
@@ -399,7 +399,7 @@ var commands = bililiteRange.ex.commands = {
 		var line = this.clone();
 		var lines = this.lines();
 		for (var i = lines[0]; i <= lines[1]; ++i){
-			if (re.test(line.lines(i).text()) != variant){
+			if (re.test(line.bounds('line', i).text()) != variant){
 				var oldlines = this.all().split('\n').length;
 				commands.forEach(function(command){
 					var parsed = parseCommand(command);
@@ -437,7 +437,7 @@ var commands = bililiteRange.ex.commands = {
 		if (lines[0] == lines[1]) ++lines[1]; // join at least 2 lines
 		var re = variant ? /\n/g : /\s*\n\s*/g;
 		var replacement = variant ? '' : ' '; // just one space. Doesn't do what the ex manual says about not inserting a space before a ')'
-		this.lines(lines[0],lines[1]).bounds('nonewline');
+		this.bounds('line', lines[0], lines[1]).bounds('nonewline');
 		this.text(this.text().replace(re, replacement), {select: 'start'});
 	},
 
@@ -550,7 +550,7 @@ var commands = bililiteRange.ex.commands = {
 		if (match[2]){
 			// a count means we to change the range in e.g., 1,2 y 3 from [1,2] to [2,2+3-1] (3 lines from the end of the range, inclusive)
 			var lines = this.lines();
-			this.lines(lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
+			this.bounds('line', lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
 		}
 		pushRegister(this.text(), match[1]);
 	},
