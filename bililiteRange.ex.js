@@ -349,14 +349,14 @@ var commands = bililiteRange.ex.commands = {
 
 	append: function (parameter, variant){
 		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
-		this.bounds('EOL').bounds('nonewline').wholeline(parameter, {autoindent: !variant != !this.data.autoindent});
+		this.bounds('EOL').wholeline(parameter, {autoindent: !variant != !this.data.autoindent});
 	},
 
 	c: 'change',
 
 	change: function (parameter, variant){
 		pushRegister (this.text());
-		const indentation = this.bounds('nonewline').indentation();
+		const indentation = this.indentation();
 		this.wholeline(parameter, {select: 'all', inputType: 'insertReplacementText'});
 		if (!variant != !this.data.autoindent) this.indent(indentation);
 	},
@@ -378,7 +378,7 @@ var commands = bililiteRange.ex.commands = {
 			this.bounds('line', lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
 		}
 		pushRegister(this.text(), match[1]);
-		this.text('', {select: 'end', inputType: 'deleteContent'});
+		this.bounds('andnewline').text('', {select: 'end', inputType: 'deleteContent'});
 	},
 
 	'delete': 'del',
@@ -427,7 +427,7 @@ var commands = bililiteRange.ex.commands = {
 		if (lines[0] == lines[1]) ++lines[1]; // join at least 2 lines
 		var re = variant ? /\n/g : /\s*\n\s*/g;
 		var replacement = variant ? '' : ' '; // just one space. Doesn't do what the ex manual says about not inserting a space before a ')'
-		this.bounds('line', lines[0], lines[1]).bounds('nonewline');
+		this.bounds('line', lines[0], lines[1]);
 		this.text(this.text().replace(re, replacement), {select: 'start'});
 	},
 
@@ -451,12 +451,12 @@ var commands = bililiteRange.ex.commands = {
 		var text = this.text();
 		if (target < b[0]){
 			// move to before the current bounds
-			this.text('');
+			this.bounds('andnewline').text('');
 			targetrng.wholeline(text);
 			this.bounds([target+text.length,target+text.length]);
 		}else if (target > b[1]){
 			targetrng.wholeline(text); // it will end up pointing to the end when we delete the old text below
-			this.text('');
+			this.bounds('andnewline').text('');
 			this.bounds([target,target]);
 		} // if target is inside the current range, don't do anything
 	},
@@ -546,7 +546,6 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	'=': function (){
-		if (this.text().length > 0) this.bounds('nonewline');
 		let lines = this.lines();
 		this.exMessage = '['+(lines[0] == lines[1] ? lines[0] : lines[0]+', '+lines[1])+']';
 	},
@@ -561,13 +560,13 @@ var commands = bililiteRange.ex.commands = {
 	'>': function (parameter, variant){
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
-		this.bounds('nonewline').indent('\t'.repeat(parameter));
+		this.indent('\t'.repeat(parameter));
 	},
 	
 	'<': function (parameter, variant){
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
-		this.bounds('nonewline').unindent(parameter, this.data.tabSize);
+		this.unindent(parameter, this.data.tabSize);
 	},
 	
 	'!': function (parameter, variant){

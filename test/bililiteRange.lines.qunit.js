@@ -8,7 +8,7 @@ multitest("Testing bililiteRange utilities", function (rng, el, text, i, assert)
 	}else{
 		text = 'one\n007\n\tthree'; // hard wire it here since we are counting lines
 		line = 2;
-		endbounds = [8,8];
+		endbounds = [7,7];
 		startbounds = [4,4];
 	}
 	rng.all(text).bounds('start');
@@ -22,7 +22,7 @@ multitest("Testing bililiteRange utilities", function (rng, el, text, i, assert)
 	rng.bounds([7,8]).bounds('BOL');
 	assert.deepEqual(rng.bounds(), startbounds, 'bounds (BOL) for range that include newline');
 	rng.bounds('start').bounds(/07\n/).bounds('EOL');
-	assert.deepEqual(rng.bounds(), endbounds, 'bounds (EOL with newline)');
+	assert.deepEqual(rng.bounds(), [14,14], 'bounds (EOL with newline)');
 	rng.bounds(text.length-1).bounds('EOL');
 	assert.deepEqual(rng[0], text.length, 'bounds (EOL at end with no newline)');
 });
@@ -33,7 +33,7 @@ multitest("Testing bililiteRange line[s]", function (rng, el, text, i, assert){
 	assert.equal(rng.line(), 1, 'line returned');
 	assert.deepEqual(rng.lines(), [1,3], 'lines returned');	
 	rng.bounds([1,3]).bounds('line', 2);
-	assert.deepEqual(rng.bounds(), [4,8], 'select line');
+	assert.deepEqual(rng.bounds(), [4,7], 'select line');
 	rng.bounds(0).bounds('line', 3);
 	assert.deepEqual(rng.bounds(), [8,14], 'select line with no newline');
 	assert.equal(rng.bounds('line', 3).text(), '\tthree', 'select whole line');
@@ -81,5 +81,5 @@ multitest("Testing autoindent", function (rng, el, text, i, assert){
 	assert.equal (rng.text(), 'one\ntwo\n\tthree\nfour', 'text unindented');
 	rng.all('\tone\n    two\n\t\tthree\nfour').bounds(/two/).unindent(2,4);
 	assert.equal (rng.text(), 'two', 'unindented text preserves bounds');
-	assert.equal (rng.bounds('line').text(), 'two\n', 'unindent removes whitespace from beginning of line');
+	assert.equal (rng.bounds('line').text(), 'two', 'unindent removes whitespace from beginning of line');
 });

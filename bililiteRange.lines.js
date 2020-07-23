@@ -1,9 +1,9 @@
 (function(){
-// a line goes from after the newline to after a newline. The newline is included in that line!
+// a line goes from after the newline to before the next newline. The newline is not included in that line! It's
+// a separator only.
 bililiteRange.bounds.EOL = function () {
-	if (this.text()[this.text().length-1] == '\n') return [this[1], this[1]]; // range ends with a newline
 	const nextnewline = this.all().indexOf('\n', this[1]);
-	if (nextnewline != -1) return nextnewline + 1;
+	if (nextnewline != -1) return nextnewline;
 	return this.bounds('end'); // no newline
 };
 bililiteRange.bounds.BOL = function(){
@@ -33,14 +33,11 @@ bililiteRange.bounds.line = function (name, n, n2){
 		return this.bounds('line', n).bounds('union', 'line', n2);
 	}
 };
-bililiteRange.bounds.nonewline = function(){
-	// a "line" includes the final newline, if present.
-	// This moves the end boundary back before that
-	var b = this.bounds();
-	if (this.all().charAt(b[1]-1) == '\n') --b[1];
-	if (b[0] > b[1]) b[0] = b[1];
-	return [b[0], b[1]];
+bililiteRange.bounds.andnewline = function(){
+	// if we want a "line" to include the following newline, use this
+	if (this.all().charAt(this[1]) == '\n') return this.bounds('union', this[1]+1);
 }
+	
 
 // add autoindent option
 bililiteRange.createOption ('autoindent', {value: false});
@@ -80,7 +77,6 @@ bililiteRange.extend({
 	lines: function(i, j){
 		// note that if the range ends on a newline, then the next line will be counted.
 		// so rng.bounds('line', n).lines() returns [n, n+1]. 
-		// Use rng.bounds('line', n).bounds('nonewline').lines() if that won't work.
 		const start = this.line();
 		const end = this.clone().bounds('endbounds').line();
 		return [start, end];
