@@ -84,18 +84,8 @@ bililiteRange.extend({
 
 	unindent: function (n, tabSize){
 		// remove n tabs or sets of tabSize spaces from the beginning of each line
-		tabSize = tabSize || this.data().tabSize || 8; // 8 is the browser default
-		// remove internal tabs
-		var oldtext = this.text(), newtext = unindent(oldtext, n, tabSize, false), b = this.bounds();
-		var diffInternal = newtext.length-oldtext.length;
-		this.text(newtext).bounds([b[0], b[1]+diffInternal]);
-		// remove initial tabs
-		var line = this.clone().bounds('line');
-		oldtext = line.text();
-		newtext = unindent(oldtext, n, tabSize, true);
-		line.text(newtext);
-		var diffStart = newtext.length-oldtext.length;
-		return this.bounds([Math.max(line.bounds()[0], b[0]+diffStart), b[1]+diffInternal+diffStart]);
+		tabSize = tabSize || this.data.tabSize || 8; // 8 is the browser default
+		return this.bounds('line').text(unindent(this.text(), n, tabSize), {select: 'all', inputType: 'insertReplacementText'});
 	},
 
 });
@@ -105,7 +95,7 @@ bililiteRange.extend({
 function indent(text, tabs){
 	return text.replace(/\n/g, '\n' + tabs);
 }
-function unindent(str, count, tabwidth, start){
+function unindent(str, count, tabwidth){
 	// count can be an integer >= 0 or Infinity.
 	// (We delete up to 'count' tabs at the beginning of each line.)
 	// If invalid, defaults to 1.
@@ -123,8 +113,9 @@ function unindent(str, count, tabwidth, start){
 	if (!isFinite(tabwidth) || tabwidth < 1) tabwidth = 4;
 	if (isNaN(count) || count < 0) count = 1;
 	if (!isFinite(count)) count = '';
-	var re = new RegExp((start ? '(^)' : '(\\n)') + `(?:\t| {${tabwidth}}){1,${count}}`, 'g');
-	return str.replace(re, '$1');
+	const restart = new RegExp(`^(?:\t| {${tabwidth}}){1,${count}}`, 'g');
+	const remiddle = new RegExp(`(\\n)(?:\t| {${tabwidth}}){1,${count}}`, 'g');
+	return str.replace(restart, '').replace(remiddle, '$1');
 }
 
 })();
