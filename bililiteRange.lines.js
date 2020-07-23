@@ -37,14 +37,14 @@ bililiteRange.bounds.andnewline = function(){
 	// if we want a "line" to include the following newline, use this
 	if (this.all().charAt(this[1]) == '\n') return this.bounds('union', this[1]+1);
 }
-	
 
-// add autoindent option
 bililiteRange.createOption ('autoindent', {value: false});
 bililiteRange.override ('text', function (text, opts = {}){
 	if ( text === undefined ) return this.super();
-	// use the data option only if doing ordinary text.
-	if (opts.autoindent || (opts.autoindent == null && opts.inputType == 'insertLineBreak')){
+	if (opts.ownline && text[0] != '\n' && this[1] > 0) text = `\n${text}`;
+	if (opts.ownline && this.all().charAt(this[1]) != '\n') text = `${text}\n`;
+	if (opts.autoindent == 'invert') opts.autoindent = !this.data.autoindent;
+	if (opts.autoindent || (opts.autoindent == null && this.data.autoindent && opts.inputType == 'insertLineBreak')){
 		text = indent(text, this.indentation());
 	}
 	return this.super(text, opts);
@@ -67,7 +67,7 @@ bililiteRange.extend({
 		return this.bounds([b[0]+tabs.length, b[1]+tabs.length+newtext.length-oldtext.length]);
 	},
 
-	line:function(n){
+	line: function(n){
 		// return the line number of the *start* of the bounds. Note that it is 1-indexed, the way ex writes it!
 		// just count newlines before this.bounds
 		// If we are on the boundary between lines (i.e. after the newline), this counts the next line

@@ -216,7 +216,7 @@ Range.prototype = {
 	live (on = true){
 		if (on){
 			if (this._inputHandler) return this; // don't double-bind
-			this._inputHandler = evt => {
+			const handler = evt => {
 				var start, oldend, newend;
 				if (evt.bililiteRange.unchanged) return;
 				start = evt.bililiteRange.start;
@@ -241,10 +241,15 @@ Range.prototype = {
 				this.bounds([b0, b1]);
 			};
 			// we only want to listen to changes that happened *after* we went live, so start listening asynchronously
-			setTimeout ( () => this.listen('input', this._inputHandler));
+			setTimeout ( () => {
+				this._inputHandler = handler;
+				this.listen('input', handler)
+			});
 		}else{
-			this.dontlisten('input', this._inputHandler);
-			delete this._inputHandler;
+			setTimeout ( () => {
+				this.dontlisten('input', this._inputHandler);
+				delete this._inputHandler;
+			});
 		}
 		return this;
 	},

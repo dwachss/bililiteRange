@@ -1,26 +1,5 @@
 (function(undefined){
 
-/*********************** utility plugins *********************************/
-
-bililiteRange.extend ({
-
-wholeline: function(line, opts = {}){
-	// replace the text of this range but in a line by itself.
-	opts.select = 'end';
-	var b = this.bounds();
-	var alltext = this.all();
-	// remove single newlines at the end of line, since we presumably don't want multiple ones
-	line = line.replace(/\n$/, '');
-	if (b[0] > 0 && alltext.charAt(b[0]-1) != '\n') line = '\n'+line;
-	if (b[1] < alltext.length && alltext.charAt(b[1]) != '\n') line += '\n';
-	return this.text(line, opts);
-}
-
-});
-
-/*********************** state variables that require some attention *********************************/
-bililiteRange.createOption ('marks', {value: {}, enumerable: false});
-
 /*********************** the actual ex plugin *********************************/
 bililiteRange.ex = {}; // namespace for exporting utility functions
 
@@ -31,6 +10,7 @@ bililiteRange.prototype.ex = function (commandstring, defaultaddress){
 	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
 	defaultaddress = defaultaddress || '.';
 	// set the next-to-last mark
+	if (!('marks' in state)) state.marks = {};
 	if ("'" in state.marks){ // previously defined; just update
 		var b = this.bounds(), lastb = state.marks["''"].bounds();
 		if (b[0] != lastb[0] || b[1] != lastb[1]){
@@ -248,7 +228,7 @@ function interpretAddresses (rng, addresses){
 				throw new Error('Mark '+s.slice(1)+' not defined');
 			}
 		}else if (/\d+/.test(s)){
-			lines.push(rng.line(parseInt(s)).bounds('EOL').line()+offset); // make sure we go to the end of the line
+			lines.push(rng.bounds('line', s).bounds('EOL').line()+offset); // make sure we go to the end of the line
 		}else if (s == '.'){
 			lines.push(currLine+offset);
 		}else if (s == '%%'){
@@ -341,15 +321,19 @@ function popRegister (register){
 
 /*********************** the actual editing commands *********************************/
 
-// a command is a function (parameter {String}, variant{Boolean}). 'this' is the bililiteRange; or a string that marks a synonym
+// a command is a function (parameter {String}, variant {Boolean})
+// 'this' is the bililiteRange; or a string that marks a synonym
 var commands = bililiteRange.ex.commands = {
 	a: 'append',
 
 	ai: 'autoindent',
 
 	append: function (parameter, variant){
-		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
-		this.bounds('EOL').wholeline(parameter, {autoindent: !variant != !this.data.autoindent});
+		this.bounds('EOL').text(parameter, {
+			select: 'end',
+			ownline: true,
+			autoindent: variant ? 'invert' : undefined
+		});
 	},
 
 	c: 'change',
@@ -357,7 +341,11 @@ var commands = bililiteRange.ex.commands = {
 	change: function (parameter, variant){
 		pushRegister (this.text());
 		const indentation = this.indentation();
-		this.wholeline(parameter, {select: 'all', inputType: 'insertReplacementText'});
+		this.text(parameter, {
+			select: 'end',
+			inputType: 'insertReplacementText'
+		});
+		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
 		if (!variant != !this.data.autoindent) this.indent(indentation);
 	},
 
@@ -365,7 +353,11 @@ var commands = bililiteRange.ex.commands = {
 		var targetrng = this.clone();
 		var parsed = parseCommand(parameter, '.');
 		interpretAddresses(targetrng, parsed.addresses);
-		targetrng.bounds('endbounds').wholeline(this.text(), {inputType: 'insertFromPaste'});
+		targetrng.bounds('endbounds').text(parameter, {
+			select: 'end',
+			ownline: true,
+			inputType: 'insertFromPaste'
+		});
 		this.bounds(targetrng.bounds());
 	},
 
@@ -411,7 +403,12 @@ var commands = bililiteRange.ex.commands = {
 	i: 'insert',
 
 	insert: function (parameter, variant){
-		this.bounds('BOL').wholeline(parameter, {autoindent: !variant != !this.data.autoindent});
+		// go to right before the beginning of this line
+		this.bounds('BOL').bounds(this[0]-1).text(parameter, {
+			select: 'end',
+			ownline: true,
+			autoindent: variant ? 'invert' : undefined
+		});
 	},
 
 	ic: 'ignorecase',
@@ -428,7 +425,10 @@ var commands = bililiteRange.ex.commands = {
 		var re = variant ? /\n/g : /\s*\n\s*/g;
 		var replacement = variant ? '' : ' '; // just one space. Doesn't do what the ex manual says about not inserting a space before a ')'
 		this.bounds('line', lines[0], lines[1]);
-		this.text(this.text().replace(re, replacement), {select: 'start'});
+		this.text(this.text().replace(re, replacement), {
+			select: 'start',
+			inputType: 'insertReplacementText'
+		});
 	},
 
 	k: 'mark',
@@ -437,28 +437,24 @@ var commands = bililiteRange.ex.commands = {
 
 	mark: function (parameter, variant){
 		const mark = this.clone();
-		if (mark.text().length > 0) mark.bounds('nonewline');
 		this.data.marks[parameter] = mark.live();
 	},
 
 	move: function (parameter, variant){
-		var targetrng = this.clone();
-		var parsed = parseCommand(parameter, '.');
+		const text = this.text();
+		const parsed = parseCommand(parameter, '.');
+		const targetrng = this.clone();
 		interpretAddresses(targetrng, parsed.addresses);
+		if (targetrng[0] >= this[0] && targetrng[0] <= this[1]) return; // if target is inside the current range, don't do anything
 		targetrng.bounds('endbounds');
-		var target = targetrng.bounds()[0];
-		var b = this.bounds();
-		var text = this.text();
-		if (target < b[0]){
-			// move to before the current bounds
-			this.bounds('andnewline').text('');
-			targetrng.wholeline(text);
-			this.bounds([target+text.length,target+text.length]);
-		}else if (target > b[1]){
-			targetrng.wholeline(text); // it will end up pointing to the end when we delete the old text below
-			this.bounds('andnewline').text('');
-			this.bounds([target,target]);
-		} // if target is inside the current range, don't do anything
+		this.bounds('andnewline').text('', {inputType: 'deleteByDrag'});
+		targetrng.text(text, {
+			select: 'start',
+			ownline: true,
+			inputType: 'insertFromDrop'
+		});
+		if (targetrng[0] >= this[0]) targetrng[0] -= text.length; // account for the removed text
+		this.bounds(targetrng[0]);
 	},
 
 	notglobal: function (parameter, variant){

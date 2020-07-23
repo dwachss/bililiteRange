@@ -77,6 +77,8 @@ multitest("Testing autoindent", function (rng, el, text, i, assert){
 	rng.all('one\n\ttwo\nthree').bounds(/two/).indent('\t');
 	assert.equal(rng.all(), 'one\n\t\ttwo\nthree', 'text indented');
 	assert.equal(rng.text(), 'two', 'indented text bounds set');
+	rng.all('one\n\ttwo\nthree').bounds('all').indent('>');
+	assert.equal(rng.all(), '>one\n>\ttwo\n>three', 'text ">" indented');
 	rng.all('\tone\n    two\n\t\tthree\nfour').bounds('all').unindent(1,4);
 	assert.equal (rng.text(), 'one\ntwo\n\tthree\nfour', 'text unindented');
 	rng.all('\tone\n    two\n\t\tthree\nfour').bounds(/two/).unindent(2,4);
