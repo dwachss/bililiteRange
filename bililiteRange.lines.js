@@ -37,6 +37,16 @@ bililiteRange.bounds.andnewline = function(){
 	// if we want a "line" to include the following newline, use this
 	if (this.all().charAt(this[1]) == '\n') return this.bounds('union', this[1]+1);
 }
+bililiteRange.bounds.char = function (name, n){
+	// move to character position n in the line of the start of this range.
+	this.bounds('EOL');
+	this.bounds('BOL').bounds('line');
+	if (this.bounds('BOL').bounds('line').text().length < n){
+		return this.bounds('EOL');
+	}else{
+		return this[0] + n;
+	}
+};
 
 bililiteRange.createOption ('autoindent', {value: false});
 bililiteRange.override ('text', function (text, opts = {}){
@@ -51,39 +61,45 @@ bililiteRange.override ('text', function (text, opts = {}){
 });
 
 bililiteRange.createOption ('tabsize', {value: 8}); // 8 is the browser default
-bililiteRange.extend({	
-
-	indentation: function(){
-		// returns the whitespace at the start of this line
-		return /^\s*/.exec(this.clone().bounds('line').text())[0];
+bililiteRange.extend({
+	char: function(){
+		return this[0] - this.clone().bounds('BOL')[0];
 	},
-	
 	indent: function (tabs){
 		// tabs is the string to insert before each line of the range
 		this.bounds('union', 'BOL');
 		// need to make sure we add the tabs at the start of the line in addition to after each newline
 		return this.text(tabs + indent (this.text(), tabs), {select: 'all', inputType: 'insertReplacementText'});
 	},
-
+	indentation: function(){
+		// returns the whitespace at the start of this line
+		return /^\s*/.exec(this.clone().bounds('line').text())[0];
+	},
 	line: function(){
 		// return the line number of the *start* of the bounds. Note that it is 1-indexed, the way ex writes it!
 		// just count newlines before this.bounds
 		return this.all().slice(0, this[0]).split('\n').length;
 	},
-
 	lines: function(){
 		const start = this.line();
 		const end = this.clone().bounds('endbounds').line();
 		return [start, end];
 	},
-
 	unindent: function (n, tabsize){
 		// remove n tabs or sets of tabsize spaces from the beginning of each line
 		tabsize = tabsize || this.data.tabsize;
 		return this.bounds('line').text(unindent(this.text(), n, tabsize), {select: 'all', inputType: 'insertReplacementText'});
 	},
-
 });
+
+bililiteRange.sendkeys['{ArrowUp}'] = bililiteRange.sendkeys['{uparrow}'] = function (rng){
+	const c = rng.char();
+	rng.bounds('line', rng.line()-1).bounds('char', c);
+};
+bililiteRange.sendkeys['{ArrowDown}'] = bililiteRange.sendkeys['{downarrow}'] = function (rng){
+	const c = rng.char();
+	rng.bounds('line', rng.line()+1).bounds('char', c);
+};
 
 // utilities
 

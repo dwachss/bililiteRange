@@ -85,3 +85,26 @@ multitest("Testing autoindent", function (rng, el, text, i, assert){
 	assert.equal (rng.text(), 'two', 'unindented text preserves bounds');
 	assert.equal (rng.bounds('line').text(), 'two', 'unindent removes whitespace from beginning of line');
 });
+multitest ("Testing character placement",  function (rng, el, text, i, assert){
+	if (i === 3) return assert.expect(0);
+	rng.all('abcdef');
+	rng.bounds('char', 3);
+	assert.deepEqual(rng.bounds(), [3,3], 'char set on single-line range');
+	if (i === 2) return;
+	rng.all('abc\ndef\nghij').bounds('line', 2).bounds('char', 2);
+	assert.deepEqual(rng.bounds(), [6,6], 'char set on multi-line range');
+	assert.equal(rng.char(), 2, 'char returns correct character');
+	rng.bounds ([5, 10]);
+	assert.equal(rng.char(), 1, 'char returns character of start of range');
+	assert.equal(rng.line(), 2, 'line returns line of start of range');
+	rng.bounds('line', 2).bounds('char', 2).sendkeys('{ArrowUp}');
+	assert.deepEqual(rng.bounds(), [2,2], 'up arrow sendkeys');	
+	rng.sendkeys('{ArrowUp}');
+	assert.deepEqual(rng.bounds(), [2,2], 'up arrow sendkeys stays unchanged at top');	
+	rng.sendkeys('{ArrowRight}').sendkeys('{ArrowDown}');
+	assert.deepEqual(rng.bounds(), [7,7], 'right arrow then down arrow sendkeys');	
+	rng.sendkeys('{ArrowDown}');
+	assert.deepEqual(rng.bounds(), [11,11], 'down arrow sendkeys');	
+	rng.sendkeys('{ArrowDown}');
+	assert.deepEqual(rng.bounds(), [11,11], 'down arrow sendkeys stays unchanged at bottom');	
+});

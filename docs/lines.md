@@ -17,6 +17,10 @@ either right after a newline or at the start of the element. The range will be z
 (End of line) Moves the range to the character position at the end of the line containing the end of the range. This will be either right before a
 newline or at the end of the element. The range will be zero length.
 
+### `bounds('char', n)`
+
+Moves the range to the `n`th character position at the end of the line containing the start of the range. The range will be zero length.
+
 ### `bounds('line')`
 
 Sets the range to the whole lines containing the range. Just `range.bounds('union', 'BOL').bounds('union', 'EOL')`.
@@ -80,6 +84,10 @@ Removes `n` sets of either tabs (`'\t'`) or `tabSize` spaces from the start of e
 If tabsize is 0 or not set, uses `range.data.tabsize`, which defaults to 8.
 Returns the range, with the bounds set to the lines that were modified (the whole lines).
 
+### `char()`
+
+Returns the character position (beginning of line is `0`) of the start of the range.
+
 ### `line()`
 
 Returns the line number (1-indexed) of the start of the range.
@@ -88,3 +96,11 @@ Returns the line number (1-indexed) of the start of the range.
 
 Returns an array of `[start, end]`, the line numbers of the start and end of the range.
 
+
+## `sendkeys` extensions
+
+`bililiteRange.lines.js` implements two more [`sendkeys`](sendkeys.md) special keys: `'{ArrowUp}'` and `'{ArrowDown}'`, with aliases `'{uparrow}'` and `'{downarrow}'`.
+They move to the range to the line above or below the *start* of the range, in the same *character* position. This is much less sophisticated than a real
+up/down arrow, for two reasons: it does not know about glyph widths, so it moves based on character count rather than position on the screen. Secondly, it does not
+remember where the column *ought* to be, so going from the end of a long line to a short line, the new position will be at the end of the short line. Going to another
+line, even if it is longer, will be at the character position corresponding to the end of the short line.

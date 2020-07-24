@@ -368,7 +368,7 @@ bililiteRange.sendkeys = {
 	'{tab}': function (rng, c, simplechar){
 		simplechar(rng, '\t'); // useful for inserting what would be whitespace
 	},
-	'{newline}': function (rng, c, simplechar){
+	'{newline}': function (rng){
 		rng.text('\n', {select: 'end', inputType: 'insertLineBreak'});
 	},
 	'{backspace}': function (rng){
@@ -391,14 +391,14 @@ bililiteRange.sendkeys = {
 		if (b[0] == b[1]) --b[0]; // no characters selected; it's just an insertion point. Move to the left
 		rng.bounds([b[0], b[0]]);
 	},
-	'{selectall}' : function (rng){
+	'{selectall}': function (rng){
 		rng.bounds('all');
 	},
 	'{selection}': function (rng){
 		// insert the characters without the sendkeys processing
 		rng.text(rng.data.sendkeysOriginalText, {select: 'end'});
 	},
-	'{mark}' : function (rng){
+	'{mark}': function (rng){
 		rng.data.sendkeysBounds = rng.bounds();
 	}
 };
