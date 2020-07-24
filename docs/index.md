@@ -67,6 +67,9 @@ Return a new bililiteRange with the same bounds as this one.
 Returns an object tied to the underlying element, useful for storing element (rather than per range). Similar to
 jQuery's [`data`](https://api.jquery.com/data/). See the documentation for [bililiteRange data](data.md).
 
+### `document`
+Returns `element.ownerDocument`.
+
 ### `element`
 Returns the DOM element that the range was defined on.
 
@@ -145,6 +148,9 @@ Will be negative if the element is scrolled so that the range is above the visib
 To scroll the element so that the range is at the top of the element, set `range.element.scrollTop = range.top()`.
 See `range.scrollIntoView()` above.
 
+### `window`
+Returns [`element.document.defaultView`](https://developer.mozilla.org/en-US/docs/Web/API/Document/defaultView).
+
 ### `wrap(Node)`
 Wraps the range with the DOM Node passed in (generally will be an HTML element). Only works 
 with ranges defined on the DOM itself; throws an error for ranges in `<input>` or `<textarea>` elements. 
@@ -197,9 +203,9 @@ bililiteRange.override ('text', function (text, opts) { // need to use "function
 Creates an event of type `opts.type`, then extends it with the rest of `opts`, and dispatches it on `range.element`. Basically does:
 
 ````js
-let event =  new CustomEvent(opts.type);
+let event =  new Event(opts.type);
 for (let key in opts) event[key] = opts[key];
-this.element.dispatchEvent(event); // but actually does this asynchonously, on the event queue
+this.element.dispatchEvent(event); // but actually does this asynchronously, on the event queue
 ````
 
 ### `listen(s, fn)`

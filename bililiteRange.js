@@ -21,7 +21,7 @@ bililiteRange = function(el){
 	ret._el = el;
 	// determine parent document, as implemented by John McLear <john@mclear.co.uk>
 	ret._doc = el.ownerDocument;
-	ret._win = 'defaultView' in ret._doc ? ret._doc.defaultView : ret._doc.parentWindow;
+	ret._win = ret._doc.defaultView;
 	ret._bounds = [0, ret.length];
 	
 	// selection tracking. We want clicks to set the selection to the clicked location but tabbing in or element.focus() should restore
@@ -203,6 +203,9 @@ Range.prototype = {
 		setTimeout( () => this._el.dispatchEvent(event) );
 		return this;
 	},
+	get document() {
+		return this._doc;
+	},
 	dontlisten: function (type, func = console.log){
 		this._el.removeEventListener(type, func);
 		return this;
@@ -314,6 +317,9 @@ Range.prototype = {
 	},
 	top: function(){
 		return this._nativeTop(this._nativeRange(this.bounds()));
+	},
+	get window() {
+		return this._win;
 	},
 	wrap: function (n){
 		this._nativeWrap(n, this._nativeRange(this.bounds()));
