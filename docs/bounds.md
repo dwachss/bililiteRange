@@ -32,8 +32,6 @@ Sets the range to a zero-length range at the start of the element: `[0, 0]`.
 ### `bounds('startbounds')`
 Sets the range  to a zero-length range at the start of the current range: `[range[0], range[0]]`.
 
-
-
 ## Custom functions
 
 `bililiteRange.prototype.bounds(s: string)` looks for a function `bililiteRange.bounds[s]` and

@@ -396,9 +396,9 @@ var commands = bililiteRange.ex.commands = {
 		this.bounds(line.bounds()).bounds('endbounds'); // move to the end of the last modified line
 	},
 
-	hardtabs: 'tabSize',
+	hardtabs: 'tabsize',
 
-	ht: 'tabSize',
+	ht: 'tabsize',
 
 	i: 'insert',
 
@@ -414,7 +414,6 @@ var commands = bililiteRange.ex.commands = {
 	ic: 'ignorecase',
 
 	join: function (parameter, variant){
-		// TODO: make sure this works with modern bililiteRange
 		var lines = this.lines();
 		var match = /^\d+/.exec(parameter);
 		if (match){
@@ -464,8 +463,11 @@ var commands = bililiteRange.ex.commands = {
 	print: function() { this.select() },
 
 	put: function (parameter, variant){
-		// this seems to be the correct definition, but should this respect autoindent?
-		commands.append.call (this, popRegister(parameter), variant);
+		this.bounds('EOL').text(popRegister(parameter), {
+			inputType: 'insertFromYank',
+			select: 'end',
+			ownline: true
+		});
 	},
 
 	redo: function (parameter, variant){
@@ -500,7 +502,7 @@ var commands = bililiteRange.ex.commands = {
 		}
 	},
 
-	shiftwidth: "tabSize",
+	shiftwidth: "tabsize",
 
 	substitute: function (parameter, variant){
 		// we do not use the count parameter (too hard to interpret s/(f)oo/$1 -- is that last 1 a count or part of the replacement?
@@ -509,15 +511,15 @@ var commands = bililiteRange.ex.commands = {
 		this.text(this.text().replace(re, string(re.rest))).bounds('endbounds');
 	},
 
-	sw: 'tabSize',
+	sw: 'tabsize',
 
 	t: 'copy',
 	
-	tabstop: 'tabSize',
+	tabstop: 'tabsize',
 
 	transcribe: 'copy',
 
-	ts: 'tabSize',
+	ts: 'tabsize',
 
 	u: 'undo',
 
@@ -562,7 +564,7 @@ var commands = bililiteRange.ex.commands = {
 	'<': function (parameter, variant){
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
-		this.unindent(parameter, this.data.tabSize);
+		this.unindent(parameter, this.data.tabsize);
 	},
 	
 	'!': function (parameter, variant){
@@ -632,7 +634,7 @@ createOption.RegExp = function (name){
 
 createOption ('autoindent', false);
 createOption ('ignorecase', false);
-createOption ('tabSize', 8, true);
+createOption ('tabsize', 8, true);
 createOption ('wrapscan', true);
 
 })();

@@ -50,6 +50,7 @@ bililiteRange.override ('text', function (text, opts = {}){
 	return this.super(text, opts);
 });
 
+bililiteRange.createOption ('tabsize', {value: 8}); // 8 is the browser default
 bililiteRange.extend({	
 
 	indentation: function(){
@@ -59,33 +60,27 @@ bililiteRange.extend({
 	
 	indent: function (tabs){
 		// tabs is the string to insert before each line of the range
-		var oldtext = this.text(), newtext = indent(oldtext, tabs), b = this.bounds();
-		this.text(newtext);
-		// Need to indent the line containing the start of the range (indent only adds the tabs after newlines)
-		this.clone().bounds('BOL').text(tabs);
-		// Adjust bounds
-		return this.bounds([b[0]+tabs.length, b[1]+tabs.length+newtext.length-oldtext.length]);
+		this.bounds('union', 'BOL');
+		// need to make sure we add the tabs at the start of the line in addition to after each newline
+		return this.text(tabs + indent (this.text(), tabs), {select: 'all', inputType: 'insertReplacementText'});
 	},
 
-	line: function(n){
+	line: function(){
 		// return the line number of the *start* of the bounds. Note that it is 1-indexed, the way ex writes it!
 		// just count newlines before this.bounds
-		// If we are on the boundary between lines (i.e. after the newline), this counts the next line
 		return this.all().slice(0, this[0]).split('\n').length;
 	},
 
-	lines: function(i, j){
-		// note that if the range ends on a newline, then the next line will be counted.
-		// so rng.bounds('line', n).lines() returns [n, n+1]. 
+	lines: function(){
 		const start = this.line();
 		const end = this.clone().bounds('endbounds').line();
 		return [start, end];
 	},
 
-	unindent: function (n, tabSize){
-		// remove n tabs or sets of tabSize spaces from the beginning of each line
-		tabSize = tabSize || this.data.tabSize || 8; // 8 is the browser default
-		return this.bounds('line').text(unindent(this.text(), n, tabSize), {select: 'all', inputType: 'insertReplacementText'});
+	unindent: function (n, tabsize){
+		// remove n tabs or sets of tabsize spaces from the beginning of each line
+		tabsize = tabsize || this.data.tabsize;
+		return this.bounds('line').text(unindent(this.text(), n, tabsize), {select: 'all', inputType: 'insertReplacementText'});
 	},
 
 });
@@ -95,26 +90,20 @@ bililiteRange.extend({
 function indent(text, tabs){
 	return text.replace(/\n/g, '\n' + tabs);
 }
-function unindent(str, count, tabwidth){
+function unindent(str, count, tabsize){
 	// count can be an integer >= 0 or Infinity.
 	// (We delete up to 'count' tabs at the beginning of each line.)
 	// If invalid, defaults to 1.
 	//
-	// tabwidth can be an integer >= 1.
+	// tabsize can be an integer >= 1.
 	// (The number of spaces to consider a single tab.)
-	// If invalid, defaults to 4.
-	//
-	// Either can also be a string or number that rounds to that.
-	//
-	// start=true: unindent only the first line of the string.
-	// start=false: unindent any line in the string except the first.
-	tabwidth = Math.round(tabwidth);
+	tabsize = Math.round(tabsize);
 	count = Math.round(count);
-	if (!isFinite(tabwidth) || tabwidth < 1) tabwidth = 4;
+	if (!isFinite(tabsize) || tabsize < 1) tabsize = 4;
 	if (isNaN(count) || count < 0) count = 1;
 	if (!isFinite(count)) count = '';
-	const restart = new RegExp(`^(?:\t| {${tabwidth}}){1,${count}}`, 'g');
-	const remiddle = new RegExp(`(\\n)(?:\t| {${tabwidth}}){1,${count}}`, 'g');
+	const restart = new RegExp(`^(?:\t| {${tabsize}}){1,${count}}`, 'g');
+	const remiddle = new RegExp(`(\\n)(?:\t| {${tabsize}}){1,${count}}`, 'g');
 	return str.replace(restart, '').replace(remiddle, '$1');
 }
 

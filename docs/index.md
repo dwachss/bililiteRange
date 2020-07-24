@@ -215,10 +215,10 @@ Shorthand for `this.element.removeEventListener(s, fn)`.
 
 Implements searching with ranges. See the [documentation](find.md).
 
-### `bililiteRange.util.js`
+### `bililiteRange.lines.js`
 
 Adds useful functions for searching and keeping the ranges up-to-date with changes in the underlying text. 
-Depends on `bililiteRange.js`. See the [documentation](util.md).
+Depends on `bililiteRange.js`. See the [documentation](lines.md).
 
 ### `bililiteRange.undo.js`
 

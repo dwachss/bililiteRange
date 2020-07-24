@@ -81,5 +81,9 @@ The following are `data` fields used by this package:
 
 `bililiteRange.undo.js`: `undos`
 
-`bililiteRange.ex.js`: `autoindent`, `ignorecase`, `marks`, `tabSize`, `wrapscan`
+`bililiteRange.lines.js`: `autoindent`, `tabsize`
+
+`bililiteRange.find.js`: `dotall`, `ignorecase`, `multiline`, `unicode`, `wrapscan`
+
+`bililiteRange.ex.js`: `marks`
 
