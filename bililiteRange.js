@@ -402,7 +402,7 @@ bililiteRange.sendkeys = {
 		rng.data.sendkeysBounds = rng.bounds();
 	}
 };
-// Synonyms from the proposed DOM standard (http://www.w3.org/TR/DOM-Level-3-Events-key/)
+// Synonyms from the DOM standard (http://www.w3.org/TR/DOM-Level-3-Events-key/)
 bililiteRange.sendkeys['{Enter}'] = bililiteRange.sendkeys['{enter}'] = bililiteRange.sendkeys['{newline}'];
 bililiteRange.sendkeys['{Backspace}'] = bililiteRange.sendkeys['{backspace}'];
 bililiteRange.sendkeys['{Delete}'] = bililiteRange.sendkeys['{del}'];
