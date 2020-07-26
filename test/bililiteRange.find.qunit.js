@@ -72,6 +72,23 @@ multitest("Testing bililiteRange from/to/whole paragraphs", function (rng, el, t
 	rng.bounds([2,3]).bounds('whole', '1');
 	assert.equal(rng.text(), '23\n567\n\n0', 'whole with arbitrary separator');
 });
+multitest("Testing bililiteRange from/to/whole paragraphs with outer", function (rng, el, text, i, assert){
+	if (i == 2 || i == 3) return assert.expect(0);
+	text = '123\n567\n\n012\n\n567';
+	rng.all(text);
+	rng.bounds('start').bounds('to', 'paragraphs', true);
+	assert.deepEqual(rng.bounds(), [0,9],'to paragraphs');
+	rng.bounds('endbounds').bounds('to', 'paragraphs', true);
+	assert.deepEqual(rng.bounds(), [9,14],'after end of paragraph, to paragraphs');
+	rng.bounds('from', 'paragraphs', true);
+	assert.deepEqual(rng.bounds(), [7,14],'from paragraphs');
+	rng.bounds(1).bounds('whole', 'paragraphs', true);
+	assert.equal(rng.text(), '123\n567\n\n', 'whole paragraph');
+	rng.bounds(11).bounds('whole', 'paragraphs', true);
+	assert.equal(rng.text(), '012\n\n', 'whole paragraph (includes separator after, not before');
+	rng.bounds([2,3]).bounds('whole', '1', true);
+	assert.equal(rng.text(), '23\n567\n\n01', 'whole with arbitrary separator');
+});
 multitest("Testing bililiteRange words and sentences", function (rng, el, text, i, assert){
 	if (i == 3) return assert.expect(0);
 	text = 'Hello, world. This is a   test';

@@ -93,22 +93,18 @@ Since the actual replacement is done on the matched substring alone, a RegExp th
 
 ## `bililiteRange.bounds` extensions
 
-### `bounds('to', separator)`
+### `bounds('to', separator, outer = false)`
 
 Extends the end of the range up to but not including the following matching `separator` (forces `wrapscan` to be false), If nothing matches, then extends the range to the
-end of the element.
+end of the element. If `outer` is true, then includes the `separator`
 
 ```js
-range.all('123\n456').bounds('start').bounds('to', /\n/);
+range.all('123\n456').bounds('start').bounds('to', /\n/);  // range.text() is '123' (not including the '\n').
+
+range.all('123\n456').bounds([4,5]).bounds('to', /\n/); // range.text() is '456'
+
+range.all('123\n456').bounds('start').bounds('to', /\n/, true); range.text() is '123\n'
 ```
-
-Sets range to `'123'` (not including the `\n`).
-
-```js
-range.all('123\n456').bounds([4,5]).bounds('to', /\n/);
-```
-
-Sets the range to '456'.
 
 `separator` is passed to `bililiteRange.RegExp`, preserving existing flags (if it's a `RegExp` or `bililiteRange.RegExp`).
 
@@ -130,14 +126,16 @@ bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
 range.bounds('selection').bounds('to', 'paragraphs').bounds('endbounds').select(); // jump to end of current paragraph
 ```
 
-### `bounds('from', separator)`
+### `bounds('from', separator, outer = false)`
 
 Extends the beginning of the range back to the immediately preceding `separator` (forces `backwards` to be true and `wrapscan` to be false). Does not include the
-separator itself. `separator` is the same as for `bounds('to')`.
+separator itself unless `outer` is true. `separator` is the same as for `bounds('to')`.
 
-### `bounds('whole', separator)`
+### `bounds('whole', separator, outer)`
 
-Does `range.bounds('union', 'from', separator).bounds('union', 'to', separator)`
+Does `range.bounds('union', 'from', separator).bounds('union', 'to', separator, outer)`.
+Note that `outer` applies only to the final separator, not the initial one. So `range.bounds('whole', 'word', true).text('')` deletes
+the word but leaves the initial whitespace in place.
 
 ```js
 range.bounds('selection').bounds('whole', 'sections').select(); // select the entire current section

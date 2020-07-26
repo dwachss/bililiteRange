@@ -80,7 +80,7 @@ bililiteRange.prototype.replace = function (searchvalue, newvalue){
 	});
 };
 
-bililiteRange.bounds.to = function(name, separator){
+bililiteRange.bounds.to = function(name, separator, outer = false){
 	if (separator in this.data) separator = this.data[separator];
 	if (!separator.source) separator = new RegExp(separator);
 	// note possible bug: if separator.source is defined but not separator.flags, then flags will be 'undefinedW'
@@ -91,19 +91,19 @@ bililiteRange.bounds.to = function(name, separator){
 	// bounds(/re/) includes searching in the range. bounds('endbounds') will fail for a zero-length match
 	// like /\b/
 	const match = _private.findprimitive(re, [this[1],  Number.MAX_VALUE], this);
-	return this.bounds('union', match.index);
+	return this.bounds('union', outer ? match.index + match[0].length : match.index);
 }
 
-bililiteRange.bounds.from = function(name, separator){
+bililiteRange.bounds.from = function(name, separator, outer = false){
 	if (separator in this.data) separator = this.data[separator];
 	if (!separator.source) separator = new RegExp(separator);
 	separator = this.re( `(${separator.source})|^`, separator.flags + 'bW');
 	const prevseparator = this.clone().bounds(separator);
-	return this.bounds('union', prevseparator[1]); // only from the end of the separator
+	return this.bounds('union', prevseparator[ outer ? 0 : 1 ]);
 }
 
-bililiteRange.bounds.whole = function(name, separator){
-	return this.bounds('union', 'from', separator).bounds('union', 'to',separator);
+bililiteRange.bounds.whole = function(name, separator, outer = false){
+	return this.bounds('union', 'from', separator).bounds('union', 'to', separator, outer);
 }
 
 bililiteRange.createOption ('words', {value: /\b/});
