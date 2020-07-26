@@ -72,6 +72,26 @@ multitest("Testing bililiteRange from/to/whole paragraphs", function (rng, el, t
 	rng.bounds([2,3]).bounds('whole', '1');
 	assert.equal(rng.text(), '23\n567\n\n0', 'whole with arbitrary separator');
 });
+multitest("Testing bililiteRange words and sentences", function (rng, el, text, i, assert){
+	if (i == 3) return assert.expect(0);
+	text = 'Hello, world. This is a   test';
+	rng.all(text);
+	rng.bounds(1).bounds('whole', 'words');
+	assert.equal(rng.text(), 'Hello', 'whole word');
+	rng.bounds('whole', 'sentences');
+	assert.equal(rng.text(), 'Hello, world', 'whole sentence');
+	rng.bounds(/,/);
+	rng.bounds('whole', 'words');
+	assert.equal (rng.text(), ', ', 'nonwords are selected with word separator');
+	rng.bounds(/This/).bounds('whole', 'words');
+	assert.equal(rng.text(), 'This', 'whole word remains whole');
+	rng.bounds('whole', 'sentences');
+	assert.equal(rng.text(), 'This is a   test', 'whole sentence without period');
+	text = 'ב◌ּ◌ְר◌ֵאש◌ׁ◌ִית, ב◌ּ◌ָר◌ָא';
+	rng.all(text);
+	rng.bounds(1).bounds('whole', 'bigwords');
+	assert.equal(rng.text(), 'ב◌ּ◌ְר◌ֵאש◌ׁ◌ִית,', 'bigword matches arbitrary unicode');
+});
 multitest("Testing bililiteRange whole sections", function (rng, el, text, i, assert){
 	if (i == 2 || i == 3) return assert.expect(0);
 	text = '123\n----\n5678\n<hr/>\n012\n\n567';

@@ -116,13 +116,16 @@ Sets the range to '456'.
 
 If `separator` is the name of a `bililiteRange` option (i.e. `range.data[separator]` exists), then that value is used as the separator. This is meant to be used like
 [vi](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/vi.html)'s paragraph and section boundary searches. For consistency with that, the predefined `RegExp`s
-are `paragraphs` and `sections`, rather than `paragraph` and `section`. Think of them as being short for `paragraphseparator` etc.
+are `words, `bigwords`, `sentences`, `paragraphs` and `sections`, rather than `word`, etc. Think of them as being short for `wordseparator` etc.
 
 Since I use Markdown so much, the defaults are:
 
 ```js
+bililiteRange.createOption ('words', {value: /\b/});
+bililiteRange.createOption ('bigwords', {value: /\s+/});
+bililiteRange.createOption ('sentences', {value: /\n\n|\.\s/});
 bililiteRange.createOption ('paragraphs', {value: /\n\n/});
-bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i}); // horizontal rules
+bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
 
 range.bounds('selection').bounds('to', 'paragraphs').bounds('endbounds').select(); // jump to end of current paragraph
 ```
