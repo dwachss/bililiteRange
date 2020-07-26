@@ -79,7 +79,32 @@ bililiteRange.prototype.replace = function (searchvalue, newvalue){
 		b0 += newtext.length - match.length;
 	});
 };
-		
+
+bililiteRange.bounds.to = function(name, separator){
+	if (separator in this.data) separator = this.data[separator];
+	if (!separator.source) separator = new RegExp(separator);
+	// note possible bug: if separator.source is defined but not separator.flags, then flags will be 'undefinedW'
+	// only possible if separator is some weird, non-RegExp but not a string, object.
+	separator = this.re( `(${separator.source})|$`, separator.flags + 'W' );
+	const nextseparator = this.clone().bounds('endbounds').bounds(separator);
+	return this.bounds('union', nextseparator[0]); // only up to the start of the separator
+}
+
+bililiteRange.bounds.from = function(name, separator){
+	if (separator in this.data) separator = this.data[separator];
+	if (!separator.source) separator = new RegExp(separator);
+	separator = this.re( `(${separator.source})|^`, separator.flags + 'bW');
+	const prevseparator = this.clone().bounds('startbounds').bounds(separator);
+	return this.bounds('union', prevseparator[1]); // only from the end of the separator
+}
+
+bililiteRange.bounds.whole = function(name, separator){
+	return this.bounds('union', 'from', separator).bounds('union', 'to',separator);
+}
+
+bililiteRange.createOption ('paragraphs', {value: /\n\n/});
+bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
+
 
 _private.findprimitive = function(re, bounds, range){
 	// search for re within the bounds given. Return the result of the RegExp.exec call  or false if not found.

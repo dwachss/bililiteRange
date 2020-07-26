@@ -15,7 +15,7 @@ bililiteRange.bounds.BOL = function(){
 bililiteRange.bounds.line = function (name, n, n2){
 	if (n == null){
 		// select the entire line or lines including the newline
-		return this.bounds('union', 'BOL').bounds('union', 'EOL').bounds();
+		return this.bounds('union', 'BOL').bounds('union', 'EOL');
 	}else if (n2 == null){
 		// select one line. Note that it is 1-indexed, the way ex does it!
 		n = parseInt(n);

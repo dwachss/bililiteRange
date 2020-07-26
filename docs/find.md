@@ -90,3 +90,51 @@ text.replace( searchvalue, (match, index) => { // actually, has to be more sophi
 ```
 
 Since the actual replacement is done on the matched substring alone, a RegExp that uses lookahead or lookbehind may fail.
+
+## `bililiteRange.bounds` extensions
+
+### `bounds('to', separator)`
+
+Extends the end of the range up to but not including the following matching `separator` (forces `wrapscan` to be false), If nothing matches, then extends the range to the
+end of the element.
+
+```js
+range.all('123\n456').bounds('start').bounds('to', /\n/);
+```
+
+Sets range to `'123'` (not including the `\n`).
+
+```js
+range.all('123\n456').bounds([4,5]).bounds('to', /\n/);
+```
+
+Sets the range to '456'.
+
+`separator` is passed to `bililiteRange.RegExp`, preserving existing flags (if it's a `RegExp` or `bililiteRange.RegExp`).
+
+#### Options for separators
+
+If `separator` is the name of a `bililiteRange` option (i.e. `range.data[separator]` exists), then that value is used as the separator. This is meant to be used like
+[vi](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/vi.html)'s paragraph and section boundary searches. For consistency with that, the predefined `RegExp`s
+are `paragraphs` and `sections`, rather than `paragraph` and `section`. Think of them as being short for `paragraphseparator` etc.
+
+Since I use Markdown so much, the defaults are:
+
+```js
+bililiteRange.createOption ('paragraphs', {value: /\n\n/});
+bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i}); // horizontal rules
+
+range.bounds('selection').bounds('to', 'paragraphs').bounds('endbounds').select(); // jump to end of current paragraph
+```
+
+### `bounds('from', separator)`
+
+Extends the beginning of the range back to the immediately preceding `separator` (forces `backwards` to be true and `wrapscan` to be false). Does not include the
+separator itself. `separator` is the same as for `bounds('to')`.
+
+### `bounds('whole', separator)`
+
+Does `range.bounds('union', 'from', separator).bounds('union', 'to', separator)`
+
+```js
+range.bounds('selection').bounds('whole', 'sections').select(); // select the entire current section
