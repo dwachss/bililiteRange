@@ -39,6 +39,7 @@
 	&lt;/html&gt;</pre>
 	<label><input type=checkbox id=autoindent checked /> Autoindent</label>
 	<script src="http://bililite.com/blog/wp-content/plugins/syntaxhighlightchooser/prism/prism.js" data-manual></script>
+	<script src="../../historystack/history.js"></script>
 	<script src="../bililiteRange.js"></script>
 	<script src="../bililiteRange.undo.js"></script>
 	<script src="../bililiteRange.lines.js"></script>
@@ -48,15 +49,8 @@
 		Prism.highlightElement(editor);
 		
 		// add the undo's
-		rng.undo(0).data.autoindent = true; // init
-		
-		editor.addEventListener ('keydown', function(evt){
-			// control z
-			if (evt.ctrlKey && evt.which == 90) bililiteRange.undo(evt);
-			// control y
-			if (evt.ctrlKey && evt.which == 89) bililiteRange.redo(evt);
-		});
-		
+		rng.initUndo().data.autoindent = true; // init
+				
 		rng.listen('input', evt => {
 			rng.bounds('selection');
 			Prism.highlightElement(editor);

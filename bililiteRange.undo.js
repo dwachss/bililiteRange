@@ -22,7 +22,6 @@ bililiteRange.extend({
 				this.listen('keydown', evt => {
 					if (!evt.ctrlKey) return;
 					if (evt.code == 'KeyZ'){
-						console.log(evt);
 						this.undo();
 						evt.preventDefault();
 					}
@@ -33,6 +32,7 @@ bililiteRange.extend({
 				});
 			}
 		});
+		return this;
 	},
 	undo(select = true) {
 		const undos = this.data.undos;
