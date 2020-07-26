@@ -1,79 +1,60 @@
-// implements a simple undo stack for bililiteRange
+(function(){
 
-// version 1.2
-// Documentation at http://bililite.com/blog/2013/12/25/bililiterange-undo/
-
-// depends on bililiteRange.js
-
-// Copyright (c) 2013 Daniel Wachsstock
-// MIT license:
-// Permission is hereby granted, free of charge, to any person
-// obtaining a copy of this software and associated documentation
-// files (the "Software"), to deal in the Software without
-// restriction, including without limitation the rights to use,
-// copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following
-// conditions:
-
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-// OTHER DEALINGS IN THE SOFTWARE.
-
-if (bililiteRange) (function(){
-
-bililiteRange.createOption ('undos', {enumerable: false});
-
-bililiteRange.prototype.undo = function(n){
-	if (arguments.length == 0) n = 1; // default
-	var state = getundostate(this);
-	if (n > 0){
-		for (var i = 0; i < n; ++i) restore (state, 'undo', this);
-	}else if (n < 0){
-		for (i = 0; i > n; --i) restore (state, 'redo', this);
+bililiteRange.extend({
+	initUndo (attachKeys = true) {
+		if (this.data.undos) return;
+		this.data.undos = new History({inputType: 'initial'});
+		setTimeout( ()=> { // put this on the event queue, so any pre-existing events are processed first
+			this.listen('input', evt => {
+				if (evt.inputType == 'historyUndo' || evt.inputType == 'historyRedo') return;
+				if (evt.inputType == 'insertText' && evt.bililiteRange.oldText == '' && evt.bililiteRange.newText.length == 1){
+					// single characters typed should accumulate in the last undo state, so they are all undone at once
+					const laststate = this.data.undos.state;
+					if (laststate.inputType == 'insertText' && laststate.start + laststate.newText.length == evt.bililiteRange.start){
+						// the last insert ended where the new one began
+						laststate.newText += evt.bililiteRange.newText;
+						return;
+					}
+				}
+				this.data.undos.pushState(Object.assign({inputType: evt.inputType}, evt.bililiteRange));
+			});
+			if (attachKeys){
+				this.listen('keydown', evt => {
+					if (!evt.ctrlKey) return;
+					if (evt.code == 'KeyZ'){
+						console.log(evt);
+						this.undo();
+						evt.preventDefault();
+					}
+					if (evt.code == 'KeyY'){
+						this.redo();
+						evt.preventDefault();
+					}
+				});
+			}
+		});
+	},
+	undo(select = true) {
+		const undos = this.data.undos;
+		if (undos.atStart) return; // silently do nothing
+		const state = undos.state;
+		undos.back();
+		this.bounds([state.start, state.start+state.newText.length]).text(state.oldText, {select: 'end', inputType: 'historyUndo'});
+		if (select) this.select();
+		return this;
+	},
+	redo(select = true) {
+		const undos = this.data.undos;
+		if (undos.atEnd) return; // silently do nothing
+		const state = undos.forward();
+		this.bounds([state.start, state.start+state.oldText.length]).text(state.newText, {select: 'end', inputType: 'historyRedo'});
+		if (select) this.select();
+		return this;
 	}
-	return this;
-};
+});
 
-function getundostate(rng){
-	var undos = rng.data.undos;
-	if (undos) return undos;
-	var state = new undostate (rng);
-	setuplisteners (rng);
-	return state;
-}
 
-function undostate (rng){
-	// inefficiently just stores the whole text rather than trying to figure out a diff
-	this.text = rng.all();
-	var laststate = rng.data.undos;
-	if (laststate && this.text == laststate.text) return; // is this too inefficient, to compare each time?
-	this.bounds = rng.bounds('selection').bounds(); 
-	this.undo = this; // set up a doubly linked list that never ends (so undo with only one element on the list does nothing) 
-	this.redo = this;
-	if (laststate) {
-		this.undo = laststate;
-		laststate.redo = this;
-	}
-	rng.data.undos = this;
-}
-
-function restore (state, dir, rng){
-	// dir is 'undo' or 'redo';
-	rng.dispatch({type: dir}); // signal it
-	state = state[dir];
-	state.lastevent = dir; // mark the undo/redo so we don't add the change in text to the undo stack
-	rng.data.undos = state;
-	rng.all(state.text).bounds(state.bounds).select(); // restore the old state
-}
+//TODO: this!
 
 function setuplisteners (rng){
 	var _callback = function(){

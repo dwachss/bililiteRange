@@ -5,7 +5,7 @@ bililiteRange.ex = {}; // namespace for exporting utility functions
 
 bililiteRange.prototype.ex = function (commandstring, defaultaddress){
 	this.exMessage = '';
-	this.undo(0); // initialize
+	this.initUndo();
 	var state = this.data;
 	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
 	defaultaddress = defaultaddress || '.';
