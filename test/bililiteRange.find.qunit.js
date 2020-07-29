@@ -8,7 +8,7 @@ multitest("Testing bililiteRange find", function (rng, el, text, i, assert){
 		bounds = [5,7];
 	}
 	rng.all(text).bounds(/07/);
-	assert.deepEqual(rng.bounds(), bounds, 'sinple RegExp search');
+	assert.deepEqual(rng.bounds(), bounds, 'simple RegExp search');
 	assert.equal (rng.match[0], '07', 'match recorded');
 	if (i === 3) return; // not too much we can do with NothingRange
 	
@@ -24,6 +24,16 @@ multitest("Testing bililiteRange find", function (rng, el, text, i, assert){
 	rng.bounds('start').bounds([8,11]).bounds(rng.re(/abc/, 'W'));
 	assert.deepEqual(rng.bounds(), [8,11], 'no wrap search leaves bounds unchanged');
 	assert.equal(rng.match, false, 'match is false on failed search');
+	
+	rng.all('test [a-z]');
+	rng.bounds('start').bounds(rng.re('[a-z]', 'v'));
+	assert.equal(rng.text(), 't', 'magic option uses special characters');
+	rng.bounds('start').bounds(rng.re('\\[a-z\\]', 'v'));
+	assert.equal(rng.text(), '[a-z]', 'magic option does not use escaped special characters');
+	rng.bounds('start').bounds(rng.re('[a-z]', 'V'));
+	assert.equal(rng.text(), '[a-z]', 'nomagic option does not special characters');
+	rng.bounds('start').bounds(rng.re('\\[a\\-z\\]', 'V'));
+	assert.equal(rng.text(), 't', 'nomagic option uses escaped special characters');
 });
 multitest("Testing bililiteRange replace", function (rng, el, text, i, assert){
 	if (i === 3) return assert.expect(0); // not too much we can do with NothingRange

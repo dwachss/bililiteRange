@@ -2,6 +2,7 @@
 
 bililiteRange.createOption('dotall', {value: false});
 bililiteRange.createOption('ignorecase', {value: false});
+bililiteRange.createOption('magic', {value: true});
 bililiteRange.createOption('multiline', {value: false});
 bililiteRange.createOption('unicode', {value: false});
 bililiteRange.createOption('wrapscan', {value: true});
@@ -12,26 +13,34 @@ bililiteRange.RegExp = function(source, flags){
 	if (source.flags) this.flags += source.flags; // source flags override the flags argument
 }
 
+const regExpOptions = {
+	dotall: 's', // whose idea was this?
+	ignorecase: 'i',
+	multiline: 'm',
+	magic: 'v', // from vim's "very magic"
+	unicode: 'u',
+	wrapscan: 'w'
+};
+
 bililiteRange.RegExp.prototype = {
-	toRE (range, globalize = true){
-		// returns a real RegExp with the global, not sticky, flag set, based on the defaults in range.data
+	toRE (range, g_y = 'g'){
+		// returns a real RegExp. bililiteRange.RegExp doesn't record g or y flags; use the g_y argument
+		
+		// assemble the default flags from range.data
 		let flags = '';
-		['dotall', 'ignorecase', 'multiline', 'unicode', 'wrapscan'].forEach( key => {
-			flags += range.data[key] ? key[0] : '';
-		});
-		flags.replace('d','s'); // who's idea was this, having the dotAll flag be 's'?
+		for (let key in regExpOptions) flags += range.data[key] ? regExpOptions[key] : '';
 		flags += this.flags;
 		let flagobject = {};
 		flags.split('').forEach( flag => {
-			if (/[bimsuw]/.test(flag)) flagobject[flag] = true;
-			if (/[IMUSUW]/.test(flag)) flagobject[flag.toLowerCase()] = false; // These are the only ones that might need to override a default
+			if (/[bimsuvw]/.test(flag)) flagobject[flag] = true;
+			if (/[IMUSUVW]/.test(flag)) flagobject[flag.toLowerCase()] = false; // These are the only ones that might need to override a default
 		});
-		flags = (globalize ? 'g' : '') +
+		flags = g_y +
 		 (flagobject.i ? 'i' : '') +
 		 (flagobject.m ? 'm' : '') +
 		 (flagobject.s ? 's' : '') +
 		 (flagobject.u ? 'u' : '');
-		let re = new RegExp (this.source, flags);
+		let re = new RegExp (flagobject.v ? this.source : quoteRegExp(this.source), flags);
 		re.backwards = (flagobject.b == true);
 		re.wrapscan = (flagobject.w == true);
 		return re;
@@ -111,6 +120,18 @@ bililiteRange.createOption ('bigwords', {value: /\s+/});
 bililiteRange.createOption ('sentences', {value: /\n\n|\.\s/});
 bililiteRange.createOption ('paragraphs', {value: /\n\n/});
 bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
+
+
+// internal methods
+
+function quoteRegExp(string){
+	// based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Escaping
+	// Always realizing http://regex.info/blog/2006-09-15/247 :
+	// Some people, when confronted with a problem, think “I know, I'll use regular expressions.”   Now they have two problems.
+	
+	// this escapes special characters, but *unescapes* them when escaped.
+	return string.replace(/(\\?)([.*+\-?^${}()|[\]\\])/g, (_, backslash, char) => backslash && char != '\\' ? char : '\\' + char);
+}
 
 _private.findprimitive = function(re, bounds, range){
 	// search for re within the bounds given. Return the result of the RegExp.exec call  or false if not found.

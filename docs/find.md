@@ -25,10 +25,16 @@ range.all('A A B B').bounds(1); // range.bounds is [1,1], after the first 'A'
 range.bounds(/a/i); // range.bounds is [2.3], the second 'A' (flags besides g and y are respected).
 ```
 
-In order to allow for two more flags, an "extended" RegExp is defined: `new bililiteRange.RegExp(pattern: string or RegExp or bililiteRange.RegExp [, flags: string])`
-that can be used instead. The two new flags are:
+## `bililiteRange.RexExp`
+
+In order to allow for three more flags, an "extended" RegExp is defined: `new bililiteRange.RegExp(pattern: string or RegExp or bililiteRange.RegExp [, flags: string])`
+that can be used instead. The three new flags are:
 
 - `b`: backwards. Set to true to search backwards from the start of the range
+- `v`: magic. The flag abbreviation comes from 
+[vim's "Very Magic" mode](https://davitenio.wordpress.com/2009/01/17/avoid-the-need-to-escape-parenthesis-brackets-in-vim-regexes/),
+since 'm' was already taken. This means to use the special characters like `.*[]` etc. as documented. This is the default (but can be changed with
+the capital `V` flag or changing range.data.magic; see below). If it is false, then special characters will be taken literally, *except* if escaped.
 - `w`: wrapscan. Set to true to wrap around. If false, then a forward search (`b` not set) will fail if there is no match after this range, and a backwards search
 (`b` set) will fail if there is no match before this range.
 
@@ -47,9 +53,10 @@ To make life easier, several of the flags have default options:
 ```js
 bililiteRange.createOption('dotall', {value: false}); //  note that the flag for this is 's'
 bililiteRange.createOption('ignorecase', {value: false});
+bililiteRange.createOption('magic', {value: true}); // note that 'magic' defaults to true, and the flag is 'v'
 bililiteRange.createOption('multiline', {value: false});
 bililiteRange.createOption('unicode', {value: false});
-bililiteRange.createOption('wrapscan', {value: true}); // Note that 'wrapscan' defaults to true!
+bililiteRange.createOption('wrapscan', {value: true}); // Note that 'wrapscan' defaults to true
 ```
 
 And those can of course be changed for a given element with `range.data.ignorecase = true`.
@@ -61,6 +68,35 @@ range.data.ignorecase = true;
 range.bounds(/foo/); // will match 'FOO'
 range.bounds( range.re('foo') ); // shortcut notation for expanded RegExp; will still match 'FOO' because the default was set
 range.bounds( range.re('foo', 'I') ); // capital 'I' means 'not i', overrides the default. Will not match 'FOO'
+
+range.bounds( range.re('[a-z]', 'v') ); // magic is true. Matches any single lowercase letter
+range.bounds( range.re('[a-z]', 'V') ); // magic is false. Matches the string '[a-z]'
+// note that backslashes must be written twice, so that they are escaped in the Javascript string 
+range.bounds( range.re('\\[a\\-z\\]', 'v') ); // magic is true but special characters are escaped. Matches the string '[a-z]'
+range.bounds( range.re('\\[a\\-z\\]', 'V') ); // magic is false, but special characters are escaped. Matches any single lowercase letter
+```
+
+### `bililiteRange.RegExp.prototype.toRe(range, g_y = 'g')`
+
+Takes an extended RegExp created with `new bililiteRange.RegExp` and turns it back into a real Javascript RegExp, using the
+data from `range` and appending the string `g_y` to the flags. The bililiteRange.RegExp doesn't use the `g` or `y` flags (the
+search location is set by the range, not `lastindex`) so this allows you to set it.
+
+The returned RegExp will have the source quoted appropriately if `magic` is false, and will have additional fields
+`backwards` and `wrapscan` set to their values in the `bililiteRange.RegExp`.
+
+```js
+re = new bililiteRange.RegExp('abc', 'biW'); // assuming the defaults have not been changed
+re2 = re.toRE(range, 'y');
+console.log(re2); // /abc/iy
+console.log(re2.backwards); // true
+console.log(re2.wrapscan); // false
+
+re = new bililiteRange.RegExp('^[A-Z]', 'mV'); // assuming the defaults have not been changed
+re2 = re.toRE(range);
+console.log(re2); // /\^\[A\-Z\]/mg
+console.log(re2.backwards); // false
+console.log(re2.wrapscan); // true
 ```
 
 ## `bililiteRange.prototype.replace(searchvalue, newvalue)`
