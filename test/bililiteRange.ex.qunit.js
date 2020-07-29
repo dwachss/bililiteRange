@@ -54,12 +54,19 @@ multitest("Testing bililiteRange ex", function (rng, el, text, i, assert){
 	assert.equal (rng.all(), text.replace(/e/g, 'x'), '~');
 });
 multitest("Testing bililiteRange multi-line commands", function (rng, el, text, i, assert){
-	if (el.nodeName.toLowerCase() == 'input'){
-		assert.expect(0); // line-oriented editing has little meaning for one line elements
-		return;
-	}
+	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0);
 	rng.all('One\nTwo\nThree').ex('2a foo | 4c bar | %>');
 	assert.equal(rng.all(), '\tOne\n\tTwo\n\tfoo\n\tbar', 'multiple commands done');
+});
+multitest("Testing bililiteRange ex shell escape", function (rng, el, text, i, assert){
+	rng.text(text).ex('%! return this.text().toUpperCase()');
+	assert.equal(rng.all(), rng.all().toUpperCase(), '!');
+	if (el.nodeName.toLowerCase() == 'input') return;
+	rng.all('One\nTwo\nThree').ex('2! return this.text().split("").reverse().join("")');
+	assert.equal(rng.all(), 'One\nowT\nThree', 'shell escape replaces text');
+	rng.ex('! this.data.foo = true');
+	assert.equal(rng.all(), 'One\nowT\nThree', 'shell escape that returns undefined does not change text');
+	assert.equal(rng.data.foo, true, 'shell escape that returns undefined has side effects');
 });
 multitest("Testing bililiteRange ex marks", function (rng, el, text, i, assert, done){
 	if (el.nodeName.toLowerCase() == 'input'){
@@ -85,8 +92,4 @@ multitest("Testing bililiteRange ex options", function (rng, el, text, i, assert
 	assert.equal (rng.exMessage, 'on', 'set boolean');
 	rng.ex('set sw=12|set tabSize?');
 	assert.equal (rng.exMessage, '[12]', 'set numeric');
-});
-multitest("Testing bililiteRange ex escape", function (rng, el, text, i, assert){
-	rng.text(text).ex('%! this.text().toUpperCase()');
-	assert.equal(rng.all(), rng.all().toUpperCase(), '!');
 });

@@ -568,8 +568,7 @@ var commands = bililiteRange.ex.commands = {
 	
 	'!': function (parameter, variant){
 		// not a shell escape but a Javascript escape
-		var result = eval(parameter);
-		if (result != undefined) this.text(result, 'end');
+		this.text(Function (parameter).call(this), {select: 'end'});
 	}
 };
 
