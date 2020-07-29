@@ -53,6 +53,14 @@ multitest("Testing bililiteRange ex", function (rng, el, text, i, assert){
 	rng.all(text).ex('%s "/e/f/g"  | %~ //x/g');
 	assert.equal (rng.all(), text.replace(/e/g, 'x'), '~');
 });
+multitest("Testing bililiteRange multi-line commands", function (rng, el, text, i, assert){
+	if (el.nodeName.toLowerCase() == 'input'){
+		assert.expect(0); // line-oriented editing has little meaning for one line elements
+		return;
+	}
+	rng.all('One\nTwo\nThree').ex('2a foo | 4c bar | %>');
+	assert.equal(rng.all(), '\tOne\n\tTwo\n\tfoo\n\tbar', 'multiple commands done');
+});
 multitest("Testing bililiteRange ex marks", function (rng, el, text, i, assert, done){
 	if (el.nodeName.toLowerCase() == 'input'){
 		assert.expect(0); // line-oriented editing has little meaning for one line elements

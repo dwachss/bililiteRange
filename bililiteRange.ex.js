@@ -58,8 +58,7 @@ function splitCommands(commandLine, splitter){
 	var delims = /[/"]/; // regular expressions and strings
 	var escaper = /\\/;
 	for (var i = 0; i < commandLine.length; ++i){
-		if (commandLine.indexOf(splitter, i) == i){
-			// terribly inefficient to do the same search every time through the loop, but probably faster to use the native indexOf than any other search
+		if (commandLine.substr(i, splitter.length) == splitter){
 			commands.push (commandLine.slice(0, i));
 			commandLine = commandLine.slice(i+splitter.length);
 			i = -1; // restart the loop
