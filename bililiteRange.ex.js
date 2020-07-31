@@ -562,6 +562,15 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	shiftwidth: "tabsize",
+	
+	source: function (parameter, variant){
+		if (!parameter) throw new Error ('No file named in source');
+		this.data.reader(parameter, this.data.directory).then( sourcefile => {
+			sourcefile.split('\n').forEach ( line => this.ex(line) );
+		}).catch(
+			err => this.data.stderr(new Error (file + ' not read in source'))
+		);
+	},
 
 	substitute: function (parameter, variant){
 		// we do not use the count parameter (too hard to interpret s/(f)oo/$1 -- is that last 1 a count or part of the replacement?
