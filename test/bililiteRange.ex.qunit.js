@@ -148,3 +148,6 @@ multitest ('Testing ex read/write', function (rng, el, text, i, assert, done){
 		() => done()
 	);
 }, true);
+multitest ('Testing ex read/write status and errors', function (rng, el, text, i, assert, done){
+	rng.data.stdout = message => rng.exMessage = message;
+});

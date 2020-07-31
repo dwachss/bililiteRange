@@ -3,6 +3,8 @@
 /*********************** the actual ex plugin *********************************/
 bililiteRange.ex = {}; // namespace for exporting utility functions
 
+const exkey = Symbol(); // marker that an element has been processed already
+
 bililiteRange.createOption ('stdout', {value: console.log, enumerable: false});
 bililiteRange.createOption ('stderr', {value: console.err, enumerable: false});
 bililiteRange.createOption ('reader', {
@@ -17,6 +19,7 @@ bililiteRange.createOption ('writer', {
 // to use jQuery:
 // range.data.reader = async (file, dir) => $.get(file);
 // range.data.writer = async (text, file, dir) => $.post(file, {text: text});
+bililiteRange.createOption ('savestatus', { monitored: true, value: 'clean' });
 
 bililiteRange.prototype.executor = function (command){
 	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
@@ -30,39 +33,37 @@ bililiteRange.prototype.executor = function (command){
 
 bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.'){
 	const data = this.data;
-	this.initUndo();
-	if (!('savestatus' in data)){
+	if (!this.element[exkey]){
+		this.element[exkey] = true;
+		this.initUndo();
 		data.directory = this.window.location.protocol + '//' + this.window.location.hostname;
 		data.file = window.location.pathname;
 		data.savestatus = 'clean';
 		this.listen ('input', evt => data.savestatus = 'dirty');
-	}
-	// set the next-to-last mark
-	if (!('marks' in data)) data.marks = {};
-	if ("'" in data.marks){ // previously defined; just update
-		var b = this.bounds(), lastb = data.marks["''"].bounds();
-		if (b[0] != lastb[0] || b[1] != lastb[1]){
-			data.marks["'"].bounds(lastb);
-			data.marks["''"].bounds(b);
-		}
-	}else{
 		data.marks = {
 			"'": this.clone().live(), // this will record the last position in the text
 			"''": this.clone().live() // this records the current position; just so it can be copied into ' above
 		};
+	}else{
+		// update the marks
+		let b = this.bounds(), lastb = data.marks["''"].bounds();
+		if (b[0] != lastb[0] || b[1] != lastb[1]){
+			data.marks["'"].bounds(lastb);
+			data.marks["''"].bounds(b);
+		}
 	}
 	// actually do the command
 	commandstring = commandstring.replace(/^:+/,''); // ignore initial colons that were likely accidentally typed.
 	try{
 		splitCommands(commandstring, '|').forEach(function(command){
-			var parsed = parseCommand(command, defaultaddress);
+			let parsed = parseCommand(command, defaultaddress);
 			interpretAddresses(this, parsed.addresses, data);
 			parsed.command.call(this, parsed.parameter, parsed.variant);
 		}, this);	
+		this.dispatch({type: 'excommand', command: commandstring, range: this});
 	}catch(err){
 		this.data.stderr(err);
 	}
-	this.dispatch({type: 'excommand', command: commandstring, range: this});
 	return this; // allow for chaining
 };
 
