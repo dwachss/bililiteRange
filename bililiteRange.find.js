@@ -1,4 +1,4 @@
-(function(_private){
+(function(){
 
 bililiteRange.createOption('dotall', {value: false});
 bililiteRange.createOption('ignorecase', {value: false});
@@ -7,113 +7,14 @@ bililiteRange.createOption('multiline', {value: false});
 bililiteRange.createOption('unicode', {value: false});
 bililiteRange.createOption('wrapscan', {value: true});
 
-bililiteRange.RegExp = function(source, flags){
-	this.source = source.source || source.toString(); // allow copying from a RegExp or a bililiteRange.RegExp
-	this.flags = flags;
-	if (source.flags) this.flags += source.flags; // source flags override the flags argument
-}
-
-const regExpOptions = {
-	dotall: 's', // whose idea was this?
-	ignorecase: 'i',
-	multiline: 'm',
-	magic: 'v', // from vim's "very magic"
-	unicode: 'u',
-	wrapscan: 'w'
+bililiteRange.bounds.find = function (name, restring, flags = ''){
+	return find (this, restring, 'V'+flags);
 };
 
-bililiteRange.RegExp.prototype = {
-	toRE (range, g_y = 'g'){
-		// returns a real RegExp. bililiteRange.RegExp doesn't record g or y flags; use the g_y argument
-		
-		// assemble the default flags from range.data
-		let flags = '';
-		for (let key in regExpOptions) flags += range.data[key] ? regExpOptions[key] : '';
-		flags += this.flags;
-		let flagobject = {};
-		flags.split('').forEach( flag => {
-			if (/[bimsuvw]/.test(flag)) flagobject[flag] = true;
-			if (/[IMUSUVW]/.test(flag)) flagobject[flag.toLowerCase()] = false; // These are the only ones that might need to override a default
-		});
-		flags = g_y +
-		 (flagobject.i ? 'i' : '') +
-		 (flagobject.m ? 'm' : '') +
-		 (flagobject.s ? 's' : '') +
-		 (flagobject.u ? 'u' : '');
-		let re = new RegExp (flagobject.v ? this.source : quoteRegExp(this.source), flags);
-		re.backwards = (flagobject.b == true);
-		re.wrapscan = (flagobject.w == true);
-		return re;
-	}
-};
-
-bililiteRange.prototype.re = (source, flags) => new bililiteRange.RegExp(source, flags);
-
-bililiteRange.override('bounds', function (re){
-	if (re instanceof RegExp) re = new bililiteRange.RegExp(re);
-	if (!(re instanceof bililiteRange.RegExp)) return this.super(...arguments);
-	re = re.toRE(this);
-	let bounds = this.bounds();
-	let findprimitive = 'findprimitive';
-	let initialbounds = [bounds[0], Number.MAX_VALUE];
-	let fallbackbounds = [bounds[0]+1, Number.MAX_VALUE];
-
-	if (re.backwards){
-		findprimitive = 'findprimitiveback';
-		initialbounds = [0, bounds[0]];
-		fallbackbounds = [0, bounds[0]-1];
-	}
-	var match = _private[findprimitive](re, initialbounds, this);
-	if (matchIs(match, bounds)){ // if the match is exactly the current string, it doesn't count
-		match = _private[findprimitive](re, fallbackbounds, this);
-	}
-	if (!match && re.wrapscan) match = _private[findprimitive](re, [0, Number.MAX_VALUE], this);
-	if (matchIs(match, bounds)) match = false; // again, even with wrapping, don't find the identical segment
-	this.match = match; // remember this for the caller
-	if (match) this.bounds([match.index, match.index+match[0].length]); // select the found string
-	return this;
+bililiteRange.override('bounds', function (re, flags = ''){
+	if (!(re instanceof RegExp)) return this.super(...arguments);
+	return find (this, re.source, flags + re.flags);
 });
-
-bililiteRange.prototype.replace = function (searchvalue, newvalue){
-	if (searchvalue instanceof bililiteRange.RegExp) searchvalue = searchvalue.toRE(this);
-	let b0 = this[0];
-	const searchrange = this.clone();
-	this.text().replace (searchvalue, function (match){
-		let args = Array.from(arguments);
-		let wholestring = args.pop();
-		if (typeof wholestring != 'string') args.pop(); // get past the groups argument
-		const index = args.pop(); // this is what we want
-		const newtext = match.replace (searchvalue, newvalue);
-		searchrange.bounds([b0+index, b0+index+match.length]).text(newtext, {inputType: 'insertReplacementText'});
-		b0 += newtext.length - match.length;
-	});
-};
-
-bililiteRange.bounds.to = function(name, separator, outer = false){
-	if (separator in this.data) separator = this.data[separator];
-	if (!separator.source) separator = new RegExp(separator);
-	// note possible bug: if separator.source is defined but not separator.flags, then flags will be 'undefinedW'
-	// only possible if separator is some weird, non-RegExp but not a string, object.
-	separator = this.re( `(${separator.source})|$`, separator.flags);
-	const re = separator.toRE(this);
-	// need to use findprimitive because we want to be sure to find a separator *after* this range. 
-	// bounds(/re/) includes searching in the range. bounds('endbounds') will fail for a zero-length match
-	// like /\b/
-	const match = _private.findprimitive(re, [this[1],  Number.MAX_VALUE], this);
-	return this.bounds('union', outer ? match.index + match[0].length : match.index);
-}
-
-bililiteRange.bounds.from = function(name, separator, outer = false){
-	if (separator in this.data) separator = this.data[separator];
-	if (!separator.source) separator = new RegExp(separator);
-	separator = this.re( `(${separator.source})|^`, separator.flags + 'bW');
-	const prevseparator = this.clone().bounds(separator);
-	return this.bounds('union', prevseparator[ outer ? 0 : 1 ]);
-}
-
-bililiteRange.bounds.whole = function(name, separator, outer = false){
-	return this.bounds('union', 'from', separator).bounds('union', 'to', separator, outer);
-}
 
 bililiteRange.createOption ('words', {value: /\b/});
 bililiteRange.createOption ('bigwords', {value: /\s+/});
@@ -121,44 +22,124 @@ bililiteRange.createOption ('sentences', {value: /\n\n|\.\s/});
 bililiteRange.createOption ('paragraphs', {value: /\n\n/});
 bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
 
-
-// internal methods
-
-function quoteRegExp(string){
-	// based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Escaping
-	// Always realizing http://regex.info/blog/2006-09-15/247 :
-	// Some people, when confronted with a problem, think “I know, I'll use regular expressions.”   Now they have two problems.
-	
-	// this escapes special characters, but *unescapes* them when escaped.
-	return string.replace(/(\\?)([.*+\-?^${}()|[\]\\])/g, (_, backslash, char) => backslash && char != '\\' ? char : '\\' + char);
-}
-
-_private.findprimitive = function(re, bounds, range){
-	// search for re within the bounds given. Return the result of the RegExp.exec call  or false if not found.
-	// re needs to be global for this to work!
-	var text = range.all();
-	re.lastIndex = bounds[0];
-	var match = re.exec(text);
-	if (!match || match.index+match[0].length > bounds[1]) return false;
-	return match;
+bililiteRange.bounds.to = function(name, separator, outer = false){
+	if (separator in this.data) separator = this.data[separator];
+	// end of text counts as a separator
+	const match = findprimitive(`(${separator.source})|$`, separator.flags, this.all(), this[1],  this.length);
+	return this.bounds('union', outer ? match.index + match[0].length : match.index);
 };
 
-_private.findprimitiveback = function (re, bounds, range){
-	// no way to search backwards; have to search forward until we fail
-	var match = false;
-	do {
-		var lastmatch = match;
-		match = _private.findprimitive(re, bounds, range);
-		bounds[0] = match.index+1;
-	}while (match);
-	return lastmatch;
+bililiteRange.bounds.from = function(name, separator, outer = false){
+	if (separator in this.data) separator = this.data[separator];
+	if (!(separator instanceof RegExp)) separator = new RegExp (quoteRegExp (separator));
+	// start of text counts as a separator
+	const match = findprimitiveback(`(${separator.source})|$^`, separator.flags, this.all(), 0,  this[0]);
+	return this.bounds('union', outer ? match.index : match.index + match[0].length);
 };
 
-function matchIs(match, bounds){
-	// check if the match that we just found is the same as the existing bounds, since we shouldn't count that
-	// this way, "Find Next" won't keep coming back to the same string.
-	// I think this is the way that Word does it
-	return match && match.index == bounds[0] && match[0].length == bounds[1]-bounds[0];
+bililiteRange.bounds.whole = function(name, separator, outer = false){
+	return this.bounds('union', 'from', separator).bounds('union', 'to', separator, outer);
+};
+
+//------- private functions -------
+
+function find (range, source, sourceflags){
+	const {
+		backward,
+		magic,
+		restricted,
+		sticky,
+		wrapscan,
+		flags
+	} = parseFlags (range, sourceflags);
+	if (!magic) source = quoteRegExp (source);
+	const findfunction = backward ? findprimitiveback : findprimitive;
+	let from, to;
+	if (restricted){
+		from = range[0];
+		to = range[1];
+	}else if (backward){
+		from = 0;
+		to = range[0];
+	}else{
+		from = range[1];
+		to = range.length;
+	}
+	let match = findfunction (source, flags, range.all(), from, to);
+	if (!match && wrapscan && !sticky && !restricted){
+		match = findfunction(source, flags, range.all(), 0, range.length);
+	}
+	range.match = match || false; // remember this for the caller
+	if (match) range.bounds([match.index, match.index+match[0].length]); // select the found string
+	return range;
 }
 
-})({});
+function parseFlags (range, flags){
+	let flagobject = {
+		b: false,
+		i: range.data.ignorecase,
+		m: range.data.multiline,
+		r: false,
+		s: range.data.dotall,
+		u: range.data.unicode,
+		v: range.data.magic,
+		w: range.data.wrapscan,
+		y: false
+	};
+	flags.split('').forEach( flag => flagobject[flag.toLowerCase()] = flag === flag.toLowerCase() );
+	return {
+		// these are the "real" flags, plus 'g' so we can use lastIndex. 'y' overrides 'g'
+		flags: (flagobject.i ? 'i' : '') + (flagobject.m ? 'm' : '') + (flagobject.s ? 's' : '') +
+		       (flagobject.u ? 'u' : '') + (flagobject.y ? 'y' : '') + 'g',
+		backward: flagobject.b,
+		magic: flagobject.v,
+		restricted: flagobject.r,
+		wrapscan: flagobject.w,
+		sticky: flagobject.y
+	};
+}
+
+function quoteRegExp (source){
+	// from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Escaping
+	return source.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&');
+}
+
+function findprimitive (source, flags, text, from, to){
+	// code from https://github.com/idupree/bililiteRange/tree/findback-greedy-correctness
+	if (to < text.length){
+		// make sure that there are at least length-to characters after the match
+		source = '(?:' + source + ')(?=[\\s\\S]{' + (text.length-to) + '})';
+	}
+	const re = new RegExp (source, flags);
+	re.lastIndex = from;
+	return re.exec(text);
+}
+
+function findprimitiveback (source, flags, text, from, to){
+	// code from https://github.com/idupree/bililiteRange/tree/findback-greedy-correctness
+	if (to < text.length){
+		// make sure that there are at least length-to characters after the match
+		source = '(?:' + source + ')(?=[\\s\\S]{' + (text.length-to) + '})';
+	}
+	if (/y/.test(flags)){
+		// sticky. Only match the end of the string.
+		flags = flags.replace('y','');
+		source = '(?:' + source + ')(?![\\s\\S]{' + (text.length-to+1) + '})'; // *don't* match too many characters
+		// this works even if $ won't, if multiline is true
+		const re = new RegExp (source, flags);
+		re.lastIndex = from;
+		return re.exec(text);
+	}else{
+		// no way to search backward; have to search forward until we fail
+		const re = new RegExp (source, flags);
+		re.lastIndex = from;
+		let match = false;
+		do {
+			var lastmatch = match;
+			match = re.exec(text);
+		}while (match);
+		return lastmatch;
+	}
+}
+
+})();

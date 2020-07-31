@@ -16,7 +16,7 @@ multitest("Testing bililiteRange utilities", function (rng, el, text, i, assert)
 	assert.equal(rng.line(), line, 'find correct line');
 	rng.bounds('EOL');
 	assert.deepEqual(rng.bounds(), endbounds, 'bounds (EOL)');
-	rng.bounds(rng.re('07', 'w')).bounds('BOL');
+	rng.bounds('find', '07', 'w').bounds('BOL');
 	assert.deepEqual(rng.bounds(), startbounds, 'bounds (BOL) (with wrapping search)');
 	if (el.nodeName.toLowerCase() == 'input') return; // don't test newlines
 	rng.bounds([7,8]).bounds('BOL');
