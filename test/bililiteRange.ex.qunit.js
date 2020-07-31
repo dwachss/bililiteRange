@@ -105,7 +105,7 @@ multitest("Testing bililiteRange ex errors", function (rng, el, text, i, assert)
 });
 multitest ('Testing ex read/write', function (rng, el, text, i, assert, done){
 	rng.data.stdout = message => rng.exMessage = message;
-	assert.expect(12);
+	assert.expect(18);
 	const rng2 = bililiteRange(rng.element).ex(); // initialize ex on the *element*
 	rng.data.file = 'test file';
 	rng.data.directory = 'C:';
@@ -120,14 +120,26 @@ multitest ('Testing ex read/write', function (rng, el, text, i, assert, done){
 	localStorage.setItem(rng.data.file, text);
 	rng.ex('e');
 	Promise.resolve().then(
-		() => assert.equal (rng.all(), text, 'edit, default file')
+		() => assert.equal (rng.all(), text, 'edit, default file') + 
+		 assert.equal (rng.exMessage, 'test file loaded', 'edit message')
 	).then(
 		() => localStorage.setItem('other file', text.split('').reverse().join(''))
 	).then(
 		() => rng.ex('e other file')
 	).then(
 		// input type=date can't be set to arbitrary data
-		() => assert.equal (rng.all(), i == 3 ? '' : text.split('').reverse().join(''), 'edit, named file')
+		() => assert.equal (rng.all(), i == 3 ? '' : text.split('').reverse().join(''), 'edit, named file') + 
+		 assert.equal (rng.exMessage, 'other file loaded', 'edit message')
+	).then(
+		() => rng.ex('$r test file')
+	).then(
+		() => {
+			// input type=date can't be set to arbitrary data and input can't handle newlines
+			const oldtext =  text.split('').reverse().join('')
+			const expected = i == 3 ? '' : i == 2 ? oldtext + text : oldtext + '\n' + text + '\n';
+			assert.equal (rng.all(), expected, 'read, named file'); 
+			assert.equal (rng.exMessage, 'test file read', 'edit message');
+		}
 	).then(
 		() => assert.equal (rng.data.file, 'other file', 'file name changed')
 	).then(
@@ -137,17 +149,43 @@ multitest ('Testing ex read/write', function (rng, el, text, i, assert, done){
 	).then(
 		() => rng.all('1969-12-31').ex('write')
 	).then(
-		() => assert.equal (localStorage.getItem('test file'), '1969-12-31', 'write')
+		() => assert.equal (localStorage.getItem('test file'), '1969-12-31', 'write') +
+		 assert.equal (rng.exMessage, 'test file saved', 'write message')
 	).then(
 		() => rng.ex('write new file')
 	).then(
-		() => assert.equal (localStorage.getItem('new file'), '1969-12-31', 'write named file')
+		() => assert.equal (localStorage.getItem('new file'), '1969-12-31', 'write named file') +
+		 assert.equal (rng.exMessage, 'new file saved', 'write message, named file')
 	).then(
 		() => assert.equal (rng.data.file, 'new file', 'write named file changes file name')
 	).then(
 		() => done()
 	);
 }, true);
-multitest ('Testing ex read/write status and errors', function (rng, el, text, i, assert, done){
-	rng.data.stdout = message => rng.exMessage = message;
-});
+multitest ('Testing ex edit error', function (rng, el, text, i, assert, done){
+	assert.expect(1);
+	rng.data.stderr = message => rng.exMessage = message;
+	rng.data.reader = async (file, dir) => { throw new Error('Nope') };
+	rng.ex('file foo | e');
+	setTimeout (
+		() => assert.equal (rng.exMessage, 'Error: foo not loaded', 'edit fails') + done()
+	);
+}, true);
+multitest ('Testing ex read error', function (rng, el, text, i, assert, done){
+	assert.expect(1);
+	rng.data.stderr = message => rng.exMessage = message;
+	rng.data.reader = async (file, dir) => { throw new Error('Nope') };
+	rng.ex('file foo | $r');
+	setTimeout (
+		() => assert.equal (rng.exMessage, 'Error: foo not read', 'read fails') + done()
+	);
+}, true);
+multitest ('Testing ex edit error', function (rng, el, text, i, assert, done){
+	assert.expect(1);
+	rng.data.stderr = message => rng.exMessage = message;
+	rng.data.writer = async (text, file, dir) => { throw new Error('Nope') };
+	rng.ex('file foo | w');
+	setTimeout (
+		() => assert.equal (rng.exMessage, 'Error: foo not saved', 'write fails') + done()
+	);
+}, true);

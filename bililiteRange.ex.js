@@ -6,7 +6,7 @@ bililiteRange.ex = {}; // namespace for exporting utility functions
 const exkey = Symbol(); // marker that an element has been processed already
 
 bililiteRange.createOption ('stdout', {value: console.log, enumerable: false});
-bililiteRange.createOption ('stderr', {value: console.err, enumerable: false});
+bililiteRange.createOption ('stderr', {value: console.error, enumerable: false});
 bililiteRange.createOption ('reader', {
 	value: async (file, dir) => localStorage.getItem(file)
 });
@@ -417,7 +417,7 @@ var commands = bililiteRange.ex.commands = {
 			this.data.savestatus = 'clean';
 			this.data.stdout (file + ' loaded');
 		}).catch(
-			err => { throw new Error (file + ' not loaded') }
+			err => this.data.stderr (new Error (file + ' not loaded'))
 		);
 	},
 
@@ -519,10 +519,13 @@ var commands = bililiteRange.ex.commands = {
 	read: function (parameter, variant){
 		const file = parameter || this.data.file;
 		this.data.reader(file, this.data.directory).then( text => {
-			this.text(text);
+			this.bounds('EOL').text(text, {
+				select: 'end',
+				ownline: true
+			});
 			this.data.stdout(file + ' read');
 		}).catch(
-			err => { throw new Error ('Could not read ' + file) }
+			err => this.data.stderr(new Error (file + ' not read'))
 		);
 	},
 
@@ -585,7 +588,7 @@ var commands = bililiteRange.ex.commands = {
 			if (parameter) this.data.file = parameter;
 			this.data.stdout (file + ' saved');
 		}).catch(
-			err => { throw new Error (file + ' not saved') }
+			err => this.data.stderr(new Error (file + ' not saved'))
 		);
 	},
 
