@@ -85,7 +85,7 @@ function commandCompletion(command){
 }
 
 /*********************** separating a command line into individual commands *********************************/
-function splitCommands(commandLine, splitter){
+function splitCommands(commandLine, splitter = '|'){
 	// need to be fancy about the | in regexps and strings; rather than try to make a monster regexp, use a simple parser
 	var commands = [];
 	var delims = /[/"]/; // regular expressions and strings

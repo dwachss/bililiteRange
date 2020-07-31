@@ -189,8 +189,9 @@ multitest ('Testing ex edit error', function (rng, el, text, i, assert, done){
 		() => assert.equal (rng.exMessage, 'Error: foo not saved', 'write fails') + done()
 	);
 }, true);
+
 multitest ('Testing ex source', function (rng, el, text, i, assert, done){
-	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0); 
+	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0) + done(); 
 	rng.data.stdout = message => rng.exMessage = message;
 	assert.expect(2);
 	localStorage.setItem('ex commands', '1i foo\n1c bar\n=');
