@@ -103,3 +103,48 @@ multitest("Testing bililiteRange ex errors", function (rng, el, text, i, assert)
 	rng.ex('set ===');
 	assert.equal (rng.exMessage.toString(), 'Error: Bad syntax in set: ===', 'Thrown errors are caught');
 });
+multitest ('Testing ex read/write', function (rng, el, text, i, assert, done){
+	rng.data.stdout = message => rng.exMessage = message;
+	assert.expect(12);
+	const rng2 = bililiteRange(rng.element).ex(); // initialize ex on the *element*
+	rng.data.file = 'test file';
+	rng.data.directory = 'C:';
+	assert.equal (rng2.data.file, 'test file', 'file name set on element');
+	assert.equal (rng2.data.directory, 'C:', 'directory set on element');
+	rng.ex('file');
+	assert.equal (rng.exMessage, '"test file"', 'file name set in ex');
+	rng.ex('dir');
+	assert.equal (rng.exMessage, '"C:"', 'directory set in ex');
+	rng.ex('dir D:');
+	assert.equal (rng.data.directory, 'D:', 'directory changed in ex');
+	localStorage.setItem(rng.data.file, text);
+	rng.ex('e');
+	Promise.resolve().then(
+		() => assert.equal (rng.all(), text, 'edit, default file')
+	).then(
+		() => localStorage.setItem('other file', text.split('').reverse().join(''))
+	).then(
+		() => rng.ex('e other file')
+	).then(
+		// input type=date can't be set to arbitrary data
+		() => assert.equal (rng.all(), i == 3 ? '' : text.split('').reverse().join(''), 'edit, named file')
+	).then(
+		() => assert.equal (rng.data.file, 'other file', 'file name changed')
+	).then(
+		() => rng.ex('file test file')
+	).then(
+		() => assert.equal (rng.data.file, 'test file', 'file name recorded')
+	).then(
+		() => rng.all('1969-12-31').ex('write')
+	).then(
+		() => assert.equal (localStorage.getItem('test file'), '1969-12-31', 'write')
+	).then(
+		() => rng.ex('write new file')
+	).then(
+		() => assert.equal (localStorage.getItem('new file'), '1969-12-31', 'write named file')
+	).then(
+		() => assert.equal (rng.data.file, 'new file', 'write named file changes file name')
+	).then(
+		() => done()
+	);
+}, true);

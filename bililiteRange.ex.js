@@ -28,21 +28,25 @@ bililiteRange.prototype.executor = function (command){
 	 focus();
 };
 
-bililiteRange.prototype.ex = function (commandstring, defaultaddress){
+bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.'){
+	const data = this.data;
 	this.initUndo();
-	var state = this.data;
-	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
-	defaultaddress = defaultaddress || '.';
+	if (!('savestatus' in data)){
+		data.directory = this.window.location.protocol + '//' + this.window.location.hostname;
+		data.file = window.location.pathname;
+		data.savestatus = 'clean';
+		this.listen ('input', evt => data.savestatus = 'dirty');
+	}
 	// set the next-to-last mark
-	if (!('marks' in state)) state.marks = {};
-	if ("'" in state.marks){ // previously defined; just update
-		var b = this.bounds(), lastb = state.marks["''"].bounds();
+	if (!('marks' in data)) data.marks = {};
+	if ("'" in data.marks){ // previously defined; just update
+		var b = this.bounds(), lastb = data.marks["''"].bounds();
 		if (b[0] != lastb[0] || b[1] != lastb[1]){
-			state.marks["'"].bounds(lastb);
-			state.marks["''"].bounds(b);
+			data.marks["'"].bounds(lastb);
+			data.marks["''"].bounds(b);
 		}
 	}else{
-		state.marks = {
+		data.marks = {
 			"'": this.clone().live(), // this will record the last position in the text
 			"''": this.clone().live() // this records the current position; just so it can be copied into ' above
 		};
@@ -52,7 +56,7 @@ bililiteRange.prototype.ex = function (commandstring, defaultaddress){
 	try{
 		splitCommands(commandstring, '|').forEach(function(command){
 			var parsed = parseCommand(command, defaultaddress);
-			interpretAddresses(this, parsed.addresses, state);
+			interpretAddresses(this, parsed.addresses, data);
 			parsed.command.call(this, parsed.parameter, parsed.variant);
 		}, this);	
 	}catch(err){
@@ -228,7 +232,7 @@ var lastRE = /(?:)/; // blank RE's refer to this
 function interpretAddresses (rng, addresses){
 	// %% is the current range. If it is used by itself, don't change the range (or use line-based addressing)
 	if (addresses.length == 1 && addresses[0] == "%%") return;
-	var state = rng.data;
+	const data = rng.data;
 	var lines = [];
 	var currLine = rng.line();
 	addresses.forEach(function(s){
@@ -238,15 +242,15 @@ function interpretAddresses (rng, addresses){
 			return '';
 		});
 		if (s.charAt(0) == '/'){
-			var re = createRE(s, state.ignorecase); // TODO: use bililiteRange.RegExp
+			var re = createRE(s, data.ignorecase); // TODO: use bililiteRange.RegExp
 			let line = rng.bounds('EOL').bounds(re).line()+offset;
 			lines.push(line);
 		}else if (s.charAt(0) == '?'){
 			// since having ? as a delimiter wreaks havoc with Javascript RE's, use ?/....../
-			re = createRE(s.slice(1), state.ignorecase);
+			re = createRE(s.slice(1), data.ignorecase);
 			lines.push(rng.bounds('BOL').bounds(re, 'b').bounds('EOL').line()+offset);
 		}else if (s.charAt(0) == "'"){
-			var mark = state.marks[s.slice(1)];
+			var mark = data.marks[s.slice(1)];
 			if (mark){
 				var these = mark.lines();
 				lines.push(these[0]);
@@ -405,10 +409,15 @@ var commands = bililiteRange.ex.commands = {
 	dir: 'directory',
 	
 	edit: function (parameter, variant){
-		this.data.reader(parameter || this.data.file, this.data.directory).then( text => {
+		const file = parameter || this.data.file;
+		this.data.reader(file, this.data.directory).then( text => {
 			if (parameter) this.data.file = parameter;
-			this.all(text);
-		})
+			this.all(text).bounds('end');
+			this.data.savestatus = 'clean';
+			this.data.stdout (file + ' loaded');
+		}).catch(
+			err => { throw new Error (file + ' not loaded') }
+		);
 	},
 
 	global: function (parameter, variant){
@@ -507,9 +516,13 @@ var commands = bililiteRange.ex.commands = {
 	},
 	
 	read: function (parameter, variant){
-		this.data.reader(parameter || this.data.file, this.data.directory).then( text => {
+		const file = parameter || this.data.file;
+		this.data.reader(file, this.data.directory).then( text => {
 			this.text(text);
-		})
+			this.data.stdout(file + ' read');
+		}).catch(
+			err => { throw new Error ('Could not read ' + file) }
+		);
 	},
 
 	redo: function (parameter, variant){
@@ -565,9 +578,14 @@ var commands = bililiteRange.ex.commands = {
 	
 	write: function (parameter, variant){
 		// unlike real ex, always writes the whole file.
-		this.data.writer (this.all(), parameter || this.data.file, this.data.directory).then( () => {
+		const file = parameter || this.data.file;
+		this.data.writer (this.all(), file, this.data.directory).then( () => {
+			this.data.savestatus = 'clean';
 			if (parameter) this.data.file = parameter;
-		})
+			this.data.stdout (file + ' saved');
+		}).catch(
+			err => { throw new Error (file + ' not saved') }
+		);
 	},
 
 	u: 'undo',
@@ -645,15 +663,15 @@ createOption.generic = function (name){
 
 createOption.Boolean = function (name){
 	return function (parameter, variant){
-		var state = this.data;
+		const data = this.data;
 		if (parameter=='?'){
-			this.data.stdout (state[name] ? 'on' : 'off');
+			data.stdout (data[name] ? 'on' : 'off');
 		}else if (parameter == 'off' || parameter == 'no' || parameter == 'false'){
-			state[name] = variant;
+			data[name] = variant;
 		}else if (parameter == 'toggle'){
-			state[name] = !state[name];
+			data[name] = !data[name];
 		}else{
-			state[name] = !variant; // variant == false means take it straight and set the option
+			data[name] = !variant; // variant == false means take it straight and set the option
 		}
 	};
 }
@@ -684,7 +702,7 @@ createOption ('autoindent', false);
 createOption ('ignorecase', false);
 createOption ('tabsize', 8);
 createOption ('wrapscan', true);
-createOption ('directory', window.location.protocol+'//'+window.location.hostname);
-createOption ('file', window.location.pathname);
+createOption ('directory', '');
+createOption ('file', 'document');
 
 })();
