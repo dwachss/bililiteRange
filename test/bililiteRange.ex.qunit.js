@@ -189,7 +189,6 @@ multitest ('Testing ex edit error', function (rng, el, text, i, assert, done){
 		() => assert.equal (rng.exMessage, 'Error: foo not saved', 'write fails') + done()
 	);
 }, true);
-
 multitest ('Testing ex source', function (rng, el, text, i, assert, done){
 	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0) + done(); 
 	rng.data.stdout = message => rng.exMessage = message;
@@ -203,4 +202,27 @@ multitest ('Testing ex source', function (rng, el, text, i, assert, done){
 			done();
 		}
 	);
+}, true);
+multitest ('Testing ex map', function (rng, el, text, i, assert, done){
+	assert.expect(4);
+	rng.all(text).ex('map "alt-f o" open file');
+	rng.listen ('map', evt => {
+		assert.equal (evt.detail.command, 'map', 'map command');
+		assert.equal (evt.detail.variant, false, 'map variant');
+		assert.equal (evt.detail.rhs, 'alt-f o', 'map rhs');
+		assert.equal (evt.detail.lhs, 'open file', 'map lhs');
+		done();
+	});
+}, true);
+multitest ('Testing ex map variant', function (rng, el, text, i, assert, done){
+	assert.expect(4);
+	rng.all(text).ex('map! "alt-f o" command\\|with\t separator and special characters');
+	rng.listen ('map', evt => {
+		assert.equal (evt.detail.command, 'map', 'map command');
+		assert.equal (evt.detail.variant, true, 'map variant');
+		assert.equal (evt.detail.rhs, 'alt-f o', 'map rhs');
+		assert.equal (evt.detail.lhs, 'command|with\t separator and special characters', 'map lhs');
+		console.log(evt.detail.lhs.length);
+		done();
+	});
 }, true);

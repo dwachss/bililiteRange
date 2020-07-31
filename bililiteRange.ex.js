@@ -224,7 +224,7 @@ function string(text){
 	// we use JSON strings if it is necessary to include special characters
 	if (text === undefined) return '';
 	text = text.trim();
-	if (text.charAt(0) == '"') text = JSON.parse(text);
+	if (text.charAt(0) == '"' & text.slice(-1) == '"') text = JSON.parse(text);
 	return text;
 }
 bililiteRange.ex.string = string; // export it
@@ -482,7 +482,10 @@ var commands = bililiteRange.ex.commands = {
 	m: 'move',
 	
 	map: function (parameter, variant){
-		
+		const parameters = splitCommands (parameter, ' ');
+		const rhs = string(parameters.shift());
+		const lhs = parameters.join(' ').replace(/\\\|/g, '|'); // an lhs with a vertical line needs to be escaped
+		this.dispatch ({type: 'map', detail: { command: 'map', variant, rhs, lhs }});
 	},
 
 	mark: function (parameter, variant){
