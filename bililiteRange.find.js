@@ -25,7 +25,7 @@ bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
 bililiteRange.bounds.to = function(name, separator, outer = false){
 	if (separator in this.data) separator = this.data[separator];
 	// end of text counts as a separator
-	const match = findprimitive(`(${separator.source})|$`, separator.flags, this.all(), this[1],  this.length);
+	const match = findprimitive(`(${separator.source})|$`, 'g'+separator.flags, this.all(), this[1],  this.length);
 	return this.bounds('union', outer ? match.index + match[0].length : match.index);
 };
 
@@ -33,7 +33,7 @@ bililiteRange.bounds.from = function(name, separator, outer = false){
 	if (separator in this.data) separator = this.data[separator];
 	if (!(separator instanceof RegExp)) separator = new RegExp (quoteRegExp (separator));
 	// start of text counts as a separator
-	const match = findprimitiveback(`(${separator.source})|$^`, separator.flags, this.all(), 0,  this[0]);
+	const match = findprimitiveback(`(${separator.source})|^`, 'g'+separator.flags, this.all(), 0,  this[0]);
 	return this.bounds('union', outer ? match.index : match.index + match[0].length);
 };
 
@@ -137,6 +137,7 @@ function findprimitiveback (source, flags, text, from, to){
 		do {
 			var lastmatch = match;
 			match = re.exec(text);
+			if (match && re.lastIndex == match.index) ++re.lastIndex; // beware zero-length matches and infinite loops
 		}while (match);
 		return lastmatch;
 	}

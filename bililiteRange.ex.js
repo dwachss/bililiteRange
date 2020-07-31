@@ -3,6 +3,25 @@
 /*********************** the actual ex plugin *********************************/
 bililiteRange.ex = {}; // namespace for exporting utility functions
 
+bililiteRange.createOption ('stdout', {value: console.log, enumerable: false});
+bililiteRange.createOption ('stderr', {value: console.err, enumerable: false});
+bililiteRange.createOption ('reader', {
+	value: (file, dir, range) => Promise.resolve(range.window.localStorage.getItem(file))
+});
+bililiteRange.createOption ('writer', {
+	value: (text, file, dir, range) => Promise.resolve(range.window.localStorage.setItem(file, text))
+});
+
+bililiteRange.prototype.executor = function (command){
+	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
+	return text => this.bounds('selection').
+	 ex(command || text, '%%').
+	 select().
+	 scrollIntoView().
+	 element().
+	 focus();
+};
+
 bililiteRange.prototype.ex = function (commandstring, defaultaddress){
 	this.exMessage = '';
 	this.initUndo();
@@ -632,7 +651,9 @@ createOption.RegExp = function (name){
 
 createOption ('autoindent', false);
 createOption ('ignorecase', false);
-createOption ('tabsize', 8, true);
+createOption ('tabsize', 8);
 createOption ('wrapscan', true);
+createOption ('directory', window.location.protocol+'//'+window.location.hostname);
+createOption ('file', window.location.pathname);
 
 })();

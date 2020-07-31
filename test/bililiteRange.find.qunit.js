@@ -68,7 +68,6 @@ multitest("Testing bililiteRange find greedy correctness", function (rng, el, te
 	assert.equal(rng.text(), 'aaa', 'greedy bounds found backward correctly');
 });
 multitest("Testing bililiteRange from/to/whole paragraphs", function (rng, el, text, i, assert){
-	return assert.expect(0);
 	if (i == 2 || i == 3) return assert.expect(0);
 	text = '123\n567\n\n012\n\n567';
 	rng.all(text);
@@ -88,11 +87,10 @@ multitest("Testing bililiteRange from/to/whole paragraphs", function (rng, el, t
 	assert.deepEqual(rng.bounds(), [14,17],'from paragraphs, last paragraph');
 	rng.bounds(11).bounds('whole', 'paragraphs');
 	assert.equal(rng.text(), '012', 'whole paragraph');
-	rng.bounds([2,3]).bounds('whole', '1');
+	rng.bounds([2,3]).bounds('whole', /1/);
 	assert.equal(rng.text(), '23\n567\n\n0', 'whole with arbitrary separator');
 });
 multitest("Testing bililiteRange from/to/whole paragraphs with outer", function (rng, el, text, i, assert){
-	return assert.expect(0);
 	if (i == 2 || i == 3) return assert.expect(0);
 	text = '123\n567\n\n012\n\n567';
 	rng.all(text);
@@ -106,11 +104,10 @@ multitest("Testing bililiteRange from/to/whole paragraphs with outer", function 
 	assert.equal(rng.text(), '123\n567\n\n', 'whole paragraph');
 	rng.bounds(11).bounds('whole', 'paragraphs', true);
 	assert.equal(rng.text(), '012\n\n', 'whole paragraph (includes separator after, not before');
-	rng.bounds([2,3]).bounds('whole', '1', true);
+	rng.bounds([2,3]).bounds('whole', /1/, true);
 	assert.equal(rng.text(), '23\n567\n\n01', 'whole with arbitrary separator');
 });
 multitest("Testing bililiteRange words and sentences", function (rng, el, text, i, assert){
-	return assert.expect(0);
 	if (i == 3) return assert.expect(0);
 	text = 'Hello, world. This is a   test';
 	rng.all(text);
@@ -131,7 +128,6 @@ multitest("Testing bililiteRange words and sentences", function (rng, el, text, 
 	assert.equal(rng.text(), 'ב◌ּ◌ְר◌ֵאש◌ׁ◌ִית,', 'bigword matches arbitrary unicode');
 });
 multitest("Testing bililiteRange whole sections", function (rng, el, text, i, assert){
-	return assert.expect(0);
 	if (i == 2 || i == 3) return assert.expect(0);
 	text = '123\n----\n5678\n<hr/>\n012\n\n567';
 	rng.all(text);
@@ -139,8 +135,6 @@ multitest("Testing bililiteRange whole sections", function (rng, el, text, i, as
 	assert.equal(rng.text(), '123','whole sections --- ');
 	rng.bounds('end').bounds('whole', 'sections');
 	assert.equal(rng.text(), '012\n\n567','whole sections <hr>');
-	rng.bounds('all').replace(/hr/g, match => match.toUpperCase());
-	assert.equal(rng.all(), '123\n----\n5678\n<HR/>\n012\n\n567', 'replace with a function');
 	rng.bounds('line', 3).bounds('whole', 'sections');
 	assert.equal(rng.text(), '5678','whole sections between --- and <HR> (uppercase works)');
 });
