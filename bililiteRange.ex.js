@@ -117,6 +117,7 @@ function splitCommands(commandLine, splitter){
 		}
 	}
 	commands.push(commandLine); // the rest of the line
+	commands = commands.filter ( item => item ); // remove empty strings
 	return commands;
 }
 
@@ -479,6 +480,10 @@ var commands = bililiteRange.ex.commands = {
 	k: 'mark',
 
 	m: 'move',
+	
+	map: function (parameter, variant){
+		
+	},
 
 	mark: function (parameter, variant){
 		const mark = this.clone();
