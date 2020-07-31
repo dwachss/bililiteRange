@@ -1,4 +1,5 @@
 multitest("Testing bililiteRange ex", function (rng, el, text, i, assert){
+	rng.data.stdout = message => rng.exMessage = message;
 	if (el.nodeName.toLowerCase() == 'input'){
 		assert.expect(0); // line-oriented editing has little meaning for one line elements
 		return;
@@ -69,6 +70,7 @@ multitest("Testing bililiteRange ex shell escape", function (rng, el, text, i, a
 	assert.equal(rng.data.foo, true, 'shell escape that returns undefined has side effects');
 });
 multitest("Testing bililiteRange ex marks", function (rng, el, text, i, assert, done){
+	rng.data.stdout = message => rng.exMessage = message;
 	if (el.nodeName.toLowerCase() == 'input'){
 		assert.expect(0); // line-oriented editing has little meaning for one line elements
 		done();
@@ -88,8 +90,16 @@ multitest("Testing bililiteRange ex marks", function (rng, el, text, i, assert, 
 	})(); // input events are async, so the live happens after the test
 }, true);
 multitest("Testing bililiteRange ex options", function (rng, el, text, i, assert){
+	rng.data.stdout = message => rng.exMessage = message;
 	rng.ex('set ai|ai?');
 	assert.equal (rng.exMessage, 'on', 'set boolean');
 	rng.ex('set sw=12|set tabSize?');
 	assert.equal (rng.exMessage, '[12]', 'set numeric');
+});
+multitest("Testing bililiteRange ex errors", function (rng, el, text, i, assert){
+	rng.data.stderr = message => rng.exMessage = message;
+	rng.all(text).ex('foo');
+	assert.equal (rng.exMessage.toString(), 'Error: foo not defined', 'Thrown errors are caught');
+	rng.ex('set ===');
+	assert.equal (rng.exMessage.toString(), 'Error: Bad syntax in set: ===', 'Thrown errors are caught');
 });

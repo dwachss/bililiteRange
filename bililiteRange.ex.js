@@ -6,11 +6,17 @@ bililiteRange.ex = {}; // namespace for exporting utility functions
 bililiteRange.createOption ('stdout', {value: console.log, enumerable: false});
 bililiteRange.createOption ('stderr', {value: console.err, enumerable: false});
 bililiteRange.createOption ('reader', {
-	value: (file, dir, range) => Promise.resolve(range.window.localStorage.getItem(file))
+	value: async (file, dir) => localStorage.getItem(file)
 });
 bililiteRange.createOption ('writer', {
-	value: (text, file, dir, range) => Promise.resolve(range.window.localStorage.setItem(file, text))
+	value: async (text, file, dir) => localStorage.setItem(file, text)
 });
+// to use AJAX (you would probably want to handle HTTP errors, which still resolve, with response.ok != true):
+// range.data.reader = async (file, dir) => (await fetch(file)).text();
+// range.data.writer = async (text, file, dir) => await fetch(file, {method: 'POST', body: text});
+// to use jQuery:
+// range.data.reader = async (file, dir) => $.get(file);
+// range.data.writer = async (text, file, dir) => $.post(file, {text: text});
 
 bililiteRange.prototype.executor = function (command){
 	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
@@ -23,7 +29,6 @@ bililiteRange.prototype.executor = function (command){
 };
 
 bililiteRange.prototype.ex = function (commandstring, defaultaddress){
-	this.exMessage = '';
 	this.initUndo();
 	var state = this.data;
 	// default address is generally the current line; 'bounds' means use the current bounds. '%' means the entire text
@@ -44,11 +49,15 @@ bililiteRange.prototype.ex = function (commandstring, defaultaddress){
 	}
 	// actually do the command
 	commandstring = commandstring.replace(/^:+/,''); // ignore initial colons that were likely accidentally typed.
-	splitCommands(commandstring, '|').forEach(function(command){
-		var parsed = parseCommand(command, defaultaddress);
-		interpretAddresses(this, parsed.addresses, state);
-		parsed.command.call(this, parsed.parameter, parsed.variant);
-	}, this);	
+	try{
+		splitCommands(commandstring, '|').forEach(function(command){
+			var parsed = parseCommand(command, defaultaddress);
+			interpretAddresses(this, parsed.addresses, state);
+			parsed.command.call(this, parsed.parameter, parsed.variant);
+		}, this);	
+	}catch(err){
+		this.data.stderr(err);
+	}
 	this.dispatch({type: 'excommand', command: commandstring, range: this});
 	return this; // allow for chaining
 };
@@ -235,7 +244,7 @@ function interpretAddresses (rng, addresses){
 		}else if (s.charAt(0) == '?'){
 			// since having ? as a delimiter wreaks havoc with Javascript RE's, use ?/....../
 			re = createRE(s.slice(1), state.ignorecase);
-			lines.push(rng.bounds('BOL').bounds(rng.re(re, 'b')).bounds('EOL').line()+offset);
+			lines.push(rng.bounds('BOL').bounds(re, 'b').bounds('EOL').line()+offset);
 		}else if (s.charAt(0) == "'"){
 			var mark = state.marks[s.slice(1)];
 			if (mark){
@@ -392,6 +401,15 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	'delete': 'del',
+	
+	dir: 'directory',
+	
+	edit: function (parameter, variant){
+		this.data.reader(parameter || this.data.file, this.data.directory).then( text => {
+			if (parameter) this.data.file = parameter;
+			this.all(text);
+		})
+	},
 
 	global: function (parameter, variant){
 		var re = createRE(parameter, this.data.ignorecase);
@@ -487,6 +505,12 @@ var commands = bililiteRange.ex.commands = {
 			ownline: true
 		});
 	},
+	
+	read: function (parameter, variant){
+		this.data.reader(parameter || this.data.file, this.data.directory).then( text => {
+			this.text(text);
+		})
+	},
 
 	redo: function (parameter, variant){
 		// restores the text only, not any other aspects of state
@@ -497,9 +521,9 @@ var commands = bililiteRange.ex.commands = {
 
 	set: function (parameter, variant){
 		if (!parameter){
-			this.exMessage = JSON.stringify(this.data);
+			this.data.stdout (JSON.stringify(this.data));
 		}else if(parameter == 'all'){
-			this.exMessage = JSON.stringify (this.data.all);
+			this.data.stdout (JSON.stringify (this.data.all));
 		}else{
 			var self = this;
 			splitCommands(parameter, ' ').forEach(function(command){
@@ -538,6 +562,13 @@ var commands = bililiteRange.ex.commands = {
 	transcribe: 'copy',
 
 	ts: 'tabsize',
+	
+	write: function (parameter, variant){
+		// unlike real ex, always writes the whole file.
+		this.data.writer (this.all(), parameter || this.data.file, this.data.directory).then( () => {
+			if (parameter) this.data.file = parameter;
+		})
+	},
 
 	u: 'undo',
 
@@ -563,7 +594,7 @@ var commands = bililiteRange.ex.commands = {
 
 	'=': function (){
 		let lines = this.lines();
-		this.exMessage = '['+(lines[0] == lines[1] ? lines[0] : lines[0]+', '+lines[1])+']';
+		this.data.stdout ('['+(lines[0] == lines[1] ? lines[0] : lines[0]+', '+lines[1])+']');
 	},
 	
 	'&': 'substitute',
@@ -605,7 +636,7 @@ bililiteRange.ex.createOption = createOption;
 createOption.generic = function (name){
 	return function (parameter, variant){
 		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = JSON.stringify(this.data[name]);
+			this.data.stdout (JSON.stringify(this.data[name]));
 		}else{
 			this.data[name] = parameter;
 		}
@@ -616,7 +647,7 @@ createOption.Boolean = function (name){
 	return function (parameter, variant){
 		var state = this.data;
 		if (parameter=='?'){
-			this.exMessage = state[name] ? 'on' : 'off';
+			this.data.stdout (state[name] ? 'on' : 'off');
 		}else if (parameter == 'off' || parameter == 'no' || parameter == 'false'){
 			state[name] = variant;
 		}else if (parameter == 'toggle'){
@@ -630,7 +661,7 @@ createOption.Boolean = function (name){
 createOption.Number = function (name){
 	return function (parameter, variant){
 		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = '['+this.data[name]+']';
+			this.data.stdout ('['+this.data[name]+']');
 		}else{
 			var value = parseInt(parameter);
 			if (isNaN(value)) throw new Error('Invalid value for '+name+': '+parameter);
@@ -642,7 +673,7 @@ createOption.Number = function (name){
 createOption.RegExp = function (name){
 	return function (parameter, variant){
 		if (parameter == '?' || parameter === true || !parameter){
-			this.exMessage = JSON.stringify(this.data[name]);
+			this.data.stdout (JSON.stringify(this.data[name]));
 		}else{
 			this.data[name] = createRE(parameter, this.data.ignorecase);
 		}
