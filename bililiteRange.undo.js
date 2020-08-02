@@ -21,7 +21,7 @@ bililiteRange.extend({
 			});
 			if (attachKeys){
 				this.listen('keydown', evt => {
-					if (!evt.ctrlKey) return;
+					if (!evt.ctrlKey || evt.altKey || evt.shiftKey || evt.metaKey) return;
 					if (evt.code == 'KeyZ'){
 						this.undo();
 						evt.preventDefault();
