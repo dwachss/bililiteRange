@@ -76,3 +76,37 @@ Major breaking changes include:
 fields rather than as functions (`range.element`, not `range.element()`).
 - `bililiteRange.data()` is now the more descriptive `bililiteRange.createOption()`.
 - `ex` is very different. Read [the manual](docs/ex.md).
+
+## Obsolete files
+
+They are all in the [2.5.2 release](https://github.com/dwachss/bililiteRange/releases/tag/v2.5.2) but no longer are part
+of `bililiteRange`.
+
+`jquery.jsvk.js` is a jQuery wrapper for Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/), which is apparently now
+dead. Depends on
+bililiteRange for character insertion. [Documentation](http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/)
+
+
+`jquery.vi.js` is the beginning of an implementation of the 
+[*vi* editor](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/vi.html)
+which I never completed and never ended up using.
+
+`bililiteRange.fancytext.js` and `bililiteRange.fancytextasync.js` were adapters between the 
+[Prism syntax highlighter](https://prismjs.com/)
+and bililiteRange. It's much simpler now, just 
+
+```js
+range.listen('input', evt => {
+	rng.bounds('selection');
+	Prism.highlightElement(editor);
+	rng.select();
+});
+```
+
+Doesn't need a whole plugin for that.
+
+`jquery.keymap.js` and `jquery.status.js` have their own repositories : [keymap](https://github.com/dwachss/keymap)
+and [status](https://github.com/dwachss/status).
+
+`jquery.livesearch.js` and `jquery.savemonitor.js` were fun and cute, but not very useful.
+
