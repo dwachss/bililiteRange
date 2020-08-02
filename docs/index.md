@@ -87,7 +87,7 @@ in Microsoft Word, except that deleting the entire text of the range does not re
 
 ### `scrollIntoView([fn: function])`
 Does its best to scroll the beginning of the range into the visible part of the element, by analogy to `Element.scrollIntoView()`.
-See [scrollIntoView](scrollIntoView) for more details. Note that it does not move the element itself, just sets `element.scrollTop` so
+Note that it does not move the element itself, just sets `element.scrollTop` so
 that the start of the range is within the visible part of the element. If it already visible, does nothing.
 This only scrolls vertically, not horizontally.
 
@@ -119,20 +119,25 @@ See the [full documentation](sendkeys.md).
 ### `text()`
 Returns the text of the current range.
 
-### `text(s: string, [, 'start'|'end'|'all' [, inputType = 'insertText']])`
-Sets the text of the current range to s. If the second argument is present, also sets bounds, to the start of the inserted text,
-the end of the inserted text (what happens with the usual "paste" command)
-or the entire inserted text. Follow this with select() to actually set the selection.
+### `text(s: string, [opts])`
+Sets the text of the current range to `s`. If `opts.select` is defined, it also sets the bounds depending on the value:
+`opts.select == 'start'` sets it to the start of the inserted text,
+`opts.select == 'end'`
+the end of the inserted text (what happens with the usual "paste" command), and 
+`opts.select == 'all'`
+or the entire inserted text. Any other value is ignored. Follow this with `select()` to actually set the selection.
 
 For
 consistency with [Input Events](https://www.w3.org/TR/input-events-1/), also triggers `beforeinput` and `input` events on the element.
-The `inputType` is determined by the third parameter. The `data` field is set to `s` (potentially an empty string, unlike 
+The `inputType` is determined by `opts.inputType`, with a default value of `'insertText'`. The `data` field is set to `s` (potentially an empty string, unlike 
 Chrome, which sets the `data` field to
-`undefined` if no text is being inserted). Since this is not enough to fully determine the change made, another field is set on the `Event`
+`undefined` if no text is being inserted). Since this is not enough to fully determine the change made, 
+another field is set on the `Event`
 object: 
 
 ````js
 let e = new Event('input');
+e.inputType = opts.inputType || 'insertText';
 e.bililiteRange = {
 	oldText, // the content of the range before it was changed
 	newText, // s, the text inserted
