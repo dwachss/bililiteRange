@@ -25,11 +25,12 @@ So, for example, `bililiteRange(el).sendkeys('foo')` replaces the current range 
 after that string. `bililiteRange(el).sendkeys('foo{Delete}{ArrowLeft}{ArrowLeft}')` replaces the current range with 'foo', 
 removes the character just after that string and sets the range to between the 'f' and the 'o'.
 
+{% raw %}
 To manipulate the selection, use the usual bililiteRange methods. Thus, to simulate a backspace key, 
 use `bililiteRange(el).bounds('selection').sendkeys('{Backspace}').select()`.
 To insert a '{', use an unmatched brace, `bililiteRange(el).sendkeys('this is a left brace: {')`, or `'{{}'`, 
 as in `bililiteRange(el).sendkeys('function() {{} whatever }')`.
-
+{% endraw %}
 If anyone knows how to implement an up or down arrow, or page up/down, please let me know.
 
 ## Other Commands
