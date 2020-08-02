@@ -13,7 +13,7 @@ The major use case is a pretty-printing editor (I use [Prism](https://prismjs.co
 
 ## Methods
 
-Any method that does not have an explicit return value returns the range itself, so methods can be changed:
+Any method that does not have an explicit return value returns the range itself, so methods can be chained:
 `range.all('foo bar').bounds('start').text('baz ').sendkeys('{ArrowLeft}').select()` sets the text of the element to 
 `"baz foo bar"`, with the selection point right after `baz`.
 
