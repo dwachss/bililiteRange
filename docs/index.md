@@ -246,14 +246,3 @@ Implements the [ex line-editor](http://ex-vi.sourceforge.net/ex.html). Depends o
 jQuery wrapper for `bililiteRange.prototype.sendkeys`, with a `keydown` handler that allows for synthetic (untrusted) `keydown` events to
 insert text. See the [documentation](jquery.sendkeys.md).
 
-## Obsolete files
-
-`jquery.keymap.js` has been moved into its own project, https://github.com/dwachss/keymap .
-
-`jquery.jsvk.js` is a jQuery wrapper for Ilya Lebedev's JavaScript VirtualKeyboard (http://www.allanguages.info/), which is apparently now
-dead. Depends on
-bililiteRange for character insertion. 
-[Documentation is on my blog](http://bililite.com/blog/2013/01/30/jsvk-a-jquery-plugin-for-virtualkeyboard/)
-If you want this file, it is on the [IE branch](https://github.com/dwachss/bililiteRange/blob/IE/jquery.jsvk.js).
-
-
