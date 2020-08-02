@@ -4,7 +4,7 @@
 @import "{{ site.theme }}";
 /* customizing jekyll themes from https://docs.github.com/en/github/working-with-github-pages/adding-a-theme-to-your-github-pages-site-using-jekyll */
 @media screen and (min-width: 1310px) {
-  wrapper {
+  div.wrapper {
     width: 100% ! important;
   }
 
