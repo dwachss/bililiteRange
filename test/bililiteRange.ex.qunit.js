@@ -216,13 +216,25 @@ multitest ('Testing ex map', function (rng, el, text, i, assert, done){
 }, true);
 multitest ('Testing ex map variant', function (rng, el, text, i, assert, done){
 	assert.expect(4);
-	rng.all(text).ex('map! "alt-f o" command\\|with\t separator and special characters');
+	rng.all(text).ex(String.raw`map! "alt-f o" "command|with\t separator and special characters"`);
 	rng.listen ('map', evt => {
 		assert.equal (evt.detail.command, 'map', 'map command');
 		assert.equal (evt.detail.variant, true, 'map variant');
 		assert.equal (evt.detail.rhs, 'alt-f o', 'map rhs');
 		assert.equal (evt.detail.lhs, 'command|with\t separator and special characters', 'map lhs');
-		console.log(evt.detail.lhs.length);
 		done();
 	});
 }, true);
+multitest ('Testing ex global', function (rng, el, text, i, assert, done){
+	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0); 
+	rng.all ('one\ntwo\nthree');
+	rng.ex('%g/^/ m0'); // reverse: move every line to the beginning
+	assert.equal (rng.all(), 'three\ntwo\none\n', 'global reverse');
+	rng.all ('one\ntwo\nthree');
+	rng.ex('%g/one|two/ d');
+	assert.equal (rng.all(), 'three', 'global delete');
+	rng.all ('one\ntwo\nthree');
+	rng.ex('%g/one|two/ "a foo | .-1 d"'); 
+	assert.equal (rng.all(), 'foo\nfoo\nthree', 'global delete');
+});
+

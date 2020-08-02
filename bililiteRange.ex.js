@@ -224,7 +224,13 @@ function string(text){
 	// we use JSON strings if it is necessary to include special characters
 	if (text === undefined) return '';
 	text = text.trim();
-	if (text.charAt(0) == '"' & text.slice(-1) == '"') text = JSON.parse(text);
+	if (text.startsWith('"')){
+		try{
+			text = JSON.parse(text);
+		}catch (err){
+			// nothing; it's not a JSON string
+		}
+	}
 	return text;
 }
 bililiteRange.ex.string = string; // export it
@@ -423,20 +429,18 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	global: function (parameter, variant){
+		// TODO: make this work correctly, even with multiple added lines.
 		var re = createRE(parameter, this.data.ignorecase);
-		var commands = splitCommands(string(re.rest), '\\n');
+		var commands = string(re.rest);
 		var line = this.clone();
 		var lines = this.lines();
 		for (var i = lines[0]; i <= lines[1]; ++i){
 			if (re.test(line.bounds('line', i).text()) != variant){
-				var oldlines = this.all().split('\n').length;
-				commands.forEach(function(command){
-					var parsed = parseCommand(command);
-					parsed.command.call(line, parsed.parameter, parsed.variant);
-				});
-				var addedlines = this.all().split('\n').length - oldlines;
+				const oldlines = this.all().split('\n').length;
+				line.ex(commands);
+				const addedlines = this.all().split('\n').length - oldlines;
 				lines[1] += addedlines;
-				if (addedlines > 0) i += addedlines;
+				i += addedlines;
 				// note that this assumes the added lines are all  before or immediately after the current line. If not, we will skip the wrong lines			
 			}
 		}
@@ -484,7 +488,7 @@ var commands = bililiteRange.ex.commands = {
 	map: function (parameter, variant){
 		const parameters = splitCommands (parameter, ' ');
 		const rhs = string(parameters.shift());
-		const lhs = parameters.join(' ').replace(/\\\|/g, '|'); // an lhs with a vertical line needs to be escaped
+		const lhs = string(parameters.join(' '));
 		this.dispatch ({type: 'map', detail: { command: 'map', variant, rhs, lhs }});
 	},
 
