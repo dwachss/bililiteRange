@@ -52,9 +52,9 @@ Look in the [docs folder](docs/index.md). The documents are:
 uses `bililiteRange.prototype.sendkeys()`. Depends on `bililiteRange.js`.
 - [find.md](docs/find.md): documentation of `bililite.find.js`, an extension to `bililiteRange.prototype.bounds()` 
 that allows searching with regular expressions. Depends on `bililiteRange.js`.
-- [lines.md[(docs/lines.md): documentation of `bililite.lines.js`, with extension to `bililiteRange.prototype.bounds()`
+- [lines.md](docs/lines.md): documentation of `bililite.lines.js`, with extension to `bililiteRange.prototype.bounds()`
 and other methods for dealing with line-oriented text. Depends on `bililiteRange.js`.
-- [undo.md[(docs/undo.md): documentation of `bililite.undo.js`, that adds `bililiteRange.prototype.undo()` and 
+- [undo.md](docs/undo.md): documentation of `bililite.undo.js`, that adds `bililiteRange.prototype.undo()` and 
 `bililiteRange.prototype.redo()`. Depends on `bililiteRange.js`.
 - [ex.md](docs/ex.md): documentation of `bililite.ex.js` that implements (sort of) the 
 [*ex* line editor](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/ex.html).
