@@ -553,6 +553,10 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	s: 'substitute',
+	
+	sendkeys: function (parameter, variant){
+		this.sendkeys(parameter);
+	},
 
 	set: function (parameter, variant){
 		if (!parameter){

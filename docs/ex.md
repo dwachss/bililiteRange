@@ -200,6 +200,8 @@ Not implemented.
 Does `range.undo()`, undo-ing anything that changed the text with an `input` event. See the documentation for
 [`bililiteRange.undo`](undo.md).
 
+Note that `bililiteRange.ex` automatically does `range.initUndo()` if necessary.
+
 ### `unmap`
 
 See [`map`](#map). Dispatches a `map` event, but with the `detail` field having a different `command`, and `lhs` set to the entire parameter:
@@ -316,4 +318,16 @@ Implemented as described for [`bililiteRange.bounds(RegExp, flags)`](find.md).
 ### `writeany`
 
 Not implemented.
+
+## Nonstandard commands
+
+These were too useful to not include
+
+## `redo`
+
+Does `range.redo()`.
+
+## `sendkeys`
+
+Does `range.sendkeys(parameter)`
 

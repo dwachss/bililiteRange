@@ -6,6 +6,7 @@ bililiteRange.extend({
 		this.data.undos = new History({inputType: 'initial'});
 		setTimeout( ()=> { // put this on the event queue, so any pre-existing events are processed first
 			this.listen('input', evt => {
+				if (evt.bililiteRange.unchanged) return;
 				if (evt.inputType == 'historyUndo' || evt.inputType == 'historyRedo') return;
 				if (evt.inputType == 'insertText' && evt.bililiteRange.oldText == '' && evt.bililiteRange.newText.length == 1){
 					// single characters typed should accumulate in the last undo state, so they are all undone at once
@@ -36,7 +37,7 @@ bililiteRange.extend({
 	},
 	undo(select = true) {
 		const undos = this.data.undos;
-		if (undos.atStart) return; // silently do nothing
+		if (undos.atStart) return this; // silently do nothing
 		const state = undos.state;
 		undos.back();
 		this.bounds([state.start, state.start+state.newText.length]).text(state.oldText, {select: 'end', inputType: 'historyUndo'});
@@ -45,7 +46,7 @@ bililiteRange.extend({
 	},
 	redo(select = true) {
 		const undos = this.data.undos;
-		if (undos.atEnd) return; // silently do nothing
+		if (undos.atEnd) return this; // silently do nothing
 		const state = undos.forward();
 		this.bounds([state.start, state.start+state.oldText.length]).text(state.newText, {select: 'end', inputType: 'historyRedo'});
 		if (select) this.select();

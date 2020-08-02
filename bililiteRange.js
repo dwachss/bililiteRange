@@ -55,7 +55,6 @@ bililiteRange = function(el){
 		// So we enhance input events with that information. 
 		// the "newText" should always be the same as the 'data' field, if it is defined
 		data.oldText = ret.all();
-		ret.listen ('beforeinput', () => data.oldText = ret.all() );
 		ret.listen('input', evt => {
 			const newText = ret.all();
 			if (!evt.bililiteRange){
@@ -65,6 +64,7 @@ bililiteRange = function(el){
 					evt.bililiteRange.start = ret.clone().bounds('selection')[1] - (evt.data || '').length;
 				}
 			}
+			data.oldText = newText;
 		});
 		
 		// we need to insert newlines rather than create new elements, so character-based calculations work
@@ -207,7 +207,6 @@ Range.prototype = {
 		return this._doc;
 	},
 	dontlisten: function (type, func = console.log){
-		if (type == 'map') console.log('listening for map');
 		this._el.removeEventListener(type, func);
 		return this;
 	},

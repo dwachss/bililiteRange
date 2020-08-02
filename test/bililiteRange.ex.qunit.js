@@ -251,7 +251,19 @@ multitest ('Testing ex global', function (rng, el, text, i, assert, done){
 	assert.equal (rng.all(), 'foo\nfoo\nthree', 'global delete');
 });
 multitest ('Testing ex undo/redo', function (rng, el, text, i, assert, done){
-});
+	rng.ex();
+	rng.all(text);
+	rng.all('');
+	setTimeout ( () =>{
+		rng.ex('undo');
+		assert.equal(rng.all(), text, 'ex undo works');
+		rng.ex('redo');
+		setTimeout ( () => assert.equal(rng.all(), '', 'ex redo works') + done() );
+	});
+}, true);
 multitest ('Testing ex sendkeys', function (rng, el, text, i, assert, done){
+	if (i == 3) return assert.expect(0);
+	rng.all(text).bounds('start').ex('%%sendkeys {Delete}!');
+	assert.equal (rng.all(), '!' + text.slice(1), 'ex sendkeys');
 });
 
