@@ -80,7 +80,7 @@ Prepends `tabs` to every line in the range. Returns the range (for chaining) wit
 
 ### `unindent(n: number, tabsize: number)`
 
-Removes `n` sets of either tabs (`'\t'`) or `tabSize` spaces from the start of every line in the range.
+Removes `n` sets of either tabs (`'\t'`) or `tabsize` spaces from the start of every line in the range.
 If tabsize is 0 or not set, uses `range.data.tabsize`, which defaults to 8.
 Returns the range, with the bounds set to the lines that were modified (the whole lines).
 

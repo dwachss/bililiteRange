@@ -44,6 +44,8 @@ multitest("Testing bililiteRange ex", function (rng, el, text, i, assert){
 	rng.all(text).ex('/Two/;+1 s/[et]/*/ig');
 	assert.equal (rng.all(), 'One\n*wo\n*hr**', 'substitute');
 	rng.all(text).ex('1,2y|3put');
+	rng.ex('version');
+	assert.ok (rng.exMessage, 'version'); // don't commit to which version
 	assert.equal (rng.all(), 'One\nTwo\nThree\nOne\nTwo\n', 'yank');
 	rng.all(text).ex('1,2=');
 	assert.equal (rng.exMessage, '[1, 2]', '=');
@@ -205,25 +207,36 @@ multitest ('Testing ex source', function (rng, el, text, i, assert, done){
 }, true);
 multitest ('Testing ex map', function (rng, el, text, i, assert, done){
 	assert.expect(4);
-	rng.all(text).ex('map "alt-f o" open file');
 	rng.listen ('map', evt => {
 		assert.equal (evt.detail.command, 'map', 'map command');
 		assert.equal (evt.detail.variant, false, 'map variant');
-		assert.equal (evt.detail.rhs, 'alt-f o', 'map rhs');
-		assert.equal (evt.detail.lhs, 'open file', 'map lhs');
+		assert.equal (evt.detail.rhs, 'alt-f o', 'map lhs');
+		assert.equal (evt.detail.lhs, 'open file', 'map rhs');
 		done();
 	});
+	rng.all(text).ex('map "alt-f o" open file');
 }, true);
 multitest ('Testing ex map variant', function (rng, el, text, i, assert, done){
 	assert.expect(4);
-	rng.all(text).ex(String.raw`map! "alt-f o" "command|with\t separator and special characters"`);
 	rng.listen ('map', evt => {
 		assert.equal (evt.detail.command, 'map', 'map command');
 		assert.equal (evt.detail.variant, true, 'map variant');
-		assert.equal (evt.detail.rhs, 'alt-f o', 'map rhs');
-		assert.equal (evt.detail.lhs, 'command|with\t separator and special characters', 'map lhs');
+		assert.equal (evt.detail.rhs, 'alt-f o', 'map lhs');
+		assert.equal (evt.detail.lhs, 'command|with\t separator and special characters', 'map rhs');
 		done();
 	});
+	rng.all(text).ex(String.raw`map! "alt-f o" "command|with\t separator and special characters"`);
+}, true);
+multitest ('Testing ex unmap', function (rng, el, text, i, assert, done){
+	assert.expect(4);
+	rng.listen ('map', evt => {
+		assert.equal (evt.detail.command, 'unmap', 'unmap command');
+		assert.equal (evt.detail.variant, false, 'unmap variant');
+		assert.equal (evt.detail.lhs, 'alt-f o', 'map lhs');
+		assert.equal (evt.detail.rhs, undefined, 'map rhs');
+		done();
+	});
+	rng.all(text).ex('unmap alt-f o');
 }, true);
 multitest ('Testing ex global', function (rng, el, text, i, assert, done){
 	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0); 
@@ -236,5 +249,9 @@ multitest ('Testing ex global', function (rng, el, text, i, assert, done){
 	rng.all ('one\ntwo\nthree');
 	rng.ex('%g/one|two/ "a foo | .-1 d"'); 
 	assert.equal (rng.all(), 'foo\nfoo\nthree', 'global delete');
+});
+multitest ('Testing ex undo/redo', function (rng, el, text, i, assert, done){
+});
+multitest ('Testing ex sendkeys', function (rng, el, text, i, assert, done){
 });
 

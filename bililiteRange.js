@@ -207,6 +207,7 @@ Range.prototype = {
 		return this._doc;
 	},
 	dontlisten: function (type, func = console.log){
+		if (type == 'map') console.log('listening for map');
 		this._el.removeEventListener(type, func);
 		return this;
 	},

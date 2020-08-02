@@ -5,6 +5,8 @@ bililiteRange.ex = {}; // namespace for exporting utility functions
 
 const exkey = Symbol(); // marker that an element has been processed already
 
+const version = '3.0';
+
 bililiteRange.createOption ('stdout', {value: console.log, enumerable: false});
 bililiteRange.createOption ('stderr', {value: console.error, enumerable: false});
 bililiteRange.createOption ('reader', {
@@ -34,10 +36,10 @@ bililiteRange.prototype.executor = function (command){
 bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.'){
 	const data = this.data;
 	if (!this.element[exkey]){
-		this.element[exkey] = true;
+		this.element[exkey] = version;
 		this.initUndo();
 		data.directory = this.window.location.protocol + '//' + this.window.location.hostname;
-		data.file = window.location.pathname;
+		data.file = this.window.location.pathname;
 		data.savestatus = 'clean';
 		this.listen ('input', evt => data.savestatus = 'dirty');
 		data.marks = {
@@ -250,10 +252,11 @@ function interpretAddresses (rng, addresses){
 			return '';
 		});
 		if (s.charAt(0) == '/'){
-			var re = createRE(s, data.ignorecase); // TODO: use bililiteRange.RegExp
+			var re = createRE(s, data.ignorecase); // TODO: use bililiteRange regexp flags
 			let line = rng.bounds('EOL').bounds(re).line()+offset;
 			lines.push(line);
 		}else if (s.charAt(0) == '?'){
+			// TODO: change this to b flag
 			// since having ? as a delimiter wreaks havoc with Javascript RE's, use ?/....../
 			re = createRE(s.slice(1), data.ignorecase);
 			lines.push(rng.bounds('BOL').bounds(re, 'b').bounds('EOL').line()+offset);
@@ -376,6 +379,8 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	c: 'change',
+	
+	cd: 'directory',
 
 	change: function (parameter, variant){
 		pushRegister (this.text());
@@ -387,6 +392,8 @@ var commands = bililiteRange.ex.commands = {
 		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
 		if (!variant != !this.data.autoindent) this.indent(indentation);
 	},
+	
+	chdir: 'directory',
 
 	copy: function (parameter, variant){
 		var targetrng = this.clone();
@@ -417,6 +424,9 @@ var commands = bililiteRange.ex.commands = {
 	dir: 'directory',
 	
 	edit: function (parameter, variant){
+		if (this.data.savestatus == 'dirty' && !variant){
+			throw new Error (file + 'not saved. Use edit! to force reloading');
+		}
 		const file = parameter || this.data.file;
 		this.data.reader(file, this.data.directory).then( text => {
 			if (parameter) this.data.file = parameter;
@@ -446,10 +456,6 @@ var commands = bililiteRange.ex.commands = {
 		}
 		this.bounds(line.bounds()).bounds('endbounds'); // move to the end of the last modified line
 	},
-
-	hardtabs: 'tabsize',
-
-	ht: 'tabsize',
 
 	i: 'insert',
 
@@ -543,7 +549,7 @@ var commands = bililiteRange.ex.commands = {
 
 	redo: function (parameter, variant){
 		// restores the text only, not any other aspects of state
-		this.undo(-1);
+		this.redo();
 	},
 
 	s: 'substitute',
@@ -601,6 +607,10 @@ var commands = bililiteRange.ex.commands = {
 
 	ts: 'tabsize',
 	
+	unmap: function (parameter, variant){
+		this.dispatch ({type: 'map', detail: { command: 'unmap', variant, lhs: parameter }});
+	},
+
 	write: function (parameter, variant){
 		// unlike real ex, always writes the whole file.
 		const file = parameter || this.data.file;
@@ -621,6 +631,10 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	v: 'notglobal',
+	
+	version: function (parameter, variant){
+		this.data.stdout(this.element[exkey]);
+	},
 
 	ws: 'wrapscan',
 
@@ -725,6 +739,7 @@ createOption.RegExp = function (name){
 
 createOption ('autoindent', false);
 createOption ('ignorecase', false);
+createOption ('magic', true);
 createOption ('tabsize', 8);
 createOption ('wrapscan', true);
 createOption ('directory', '');
