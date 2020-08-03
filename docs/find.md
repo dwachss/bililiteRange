@@ -34,7 +34,7 @@ range.bounds(/foo/); // range.bounds() is [0,3], and range.match is {0: 'foo', i
 range.bounds(/foo/); // range.bounds() is unchanged, [0,3]. range.match is false
 
 range.all('A A B B').bounds(1); // range.bounds is [1,1], after the first 'A'
-range.bounds(/a/i); // range.bounds is [2.3], the second 'A' (flags are respected).
+range.bounds(/a/i); // range.bounds is [2,3], the second 'A' (flags are respected).
 ```
 
 ## flags
@@ -67,7 +67,7 @@ will fail if there is no match before this range.
 
 ```js
 range.all('A A B B').bounds(1); // range.bounds is [1,1], after the first 'A'
-range.bounds/a/, 'iw'); // range.bounds is [2.3], the second 'A'.
+range.bounds(a/, 'iw'); // range.bounds is [2.3], the second 'A'.
 range.bounds(/a/, 'iw'); // range.bounds is [0.1], the first 'A'. We have wrapped around
 
 range.bounds(3); // range.bounds() is [3,3], after the second 'A'
@@ -123,7 +123,7 @@ range.all('123\n456').bounds('start').bounds('to', /\n/);  // range.text() is '1
 
 range.all('123\n456').bounds([4,5]).bounds('to', /\n/); // range.text() is '456'
 
-range.all('123\n456').bounds('start').bounds('to', /\n/, true); range.text() is '123\n'
+range.all('123\n456').bounds('start').bounds('to', /\n/, true); // range.text() is '123\n'
 ```
 
 `separator` is either a RegExp or a string (which is taken literally).

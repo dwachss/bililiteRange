@@ -83,7 +83,8 @@ The following are `data` fields used by this package:
 
 `bililiteRange.lines.js`: `autoindent`, `tabsize`
 
-`bililiteRange.find.js`: `dotall`, `ignorecase`, `multiline`, `unicode`, `wrapscan`
+`bililiteRange.find.js`: `bigwords`, `dotall`, `ignorecase`, `magic`, `multiline`, `sections`, 
+`sentences`, `unicode`, `words`, `wrapscan`
 
-`bililiteRange.ex.js`: `marks`
+`bililiteRange.ex.js`: `directory`, `file`, `reader`, `stderr`, `stderr`, `savestatus`, `writer`
 

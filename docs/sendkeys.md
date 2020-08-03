@@ -31,7 +31,8 @@ use `bililiteRange(el).bounds('selection').sendkeys('{Backspace}').select()`.
 To insert a '{', use an unmatched brace, `bililiteRange(el).sendkeys('this is a left brace: {')`, or `'{{}'`, 
 as in `bililiteRange(el).sendkeys('function() {{} whatever }')`.
 {% endraw %}
-If anyone knows how to implement an up or down arrow, or page up/down, please let me know.
+
+Up and down arrows are implemented in [`bililiteRange.lines.js`](lines.md).
 
 ## Other Commands
 
