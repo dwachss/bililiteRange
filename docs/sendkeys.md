@@ -38,21 +38,27 @@ Up and down arrows are implemented in [`bililiteRange.lines.js`](lines.md).
 
 To make life easier for me, there are a few other "keys" that implement specific actions:
 
-<dl>
-<dt><code>selectall</code></dt>
-<dd>Equivalent to `bounds('all')`</dd>
-<dt><code>tab</code></dt>
-<dd>Insert a '\t' character. $().sendkeys('\t') would work just as well, but there are circumstances 
-when I wanted to avoid having to escape backslashes.</dd>
-<dt><code>selection</code></dt>
-<dd>Inserts the text of the original range (useful for creating "wrapping" functions, like `"<em>{selection}</em>"`).</dd>
-<dt><code>mark</code></dt>
-<dd>Remembers the current insertion point and restores it after the sendkeys call. 
-Thus <code>"&lt;p&gt;{mark}&lt;/p&gt;"</code> inserts <code>&lt;p&gt;&lt;/p&gt;</code> and leaves the bounds to the line between the tags.</dd>
-<dd>So to wrap the text of a range in HTML tags, use <code>range.sendkeys('&lt;strong&gt;{selection}&lt;/strong&gt;')</code>. 
-To create a hyperlink, use <code>range.sendkeys('&lt;a href=&quot;{mark}&quot;&gt;{selection}&lt;/a&gt;')</code> which leaves the range 
-between the quote marks rather than at the end.<dd>
-</dl>
+### `selectall`
+
+Equivalent to `bounds('all')`.
+
+### `tab`
+
+Insert a `'\t'` character. `$().sendkeys('\t')` would work just as well, 
+but there are circumstances when I wanted to avoid having to escape backslashes.
+
+### `selection`
+
+Inserts the text of the original range (useful for creating "wrapping" functions, like `"{selection}"`).
+
+### `mark`
+
+Remembers the current insertion point and restores it after the sendkeys call. 
+Thus `"<p>{mark}</p>"` inserts `<p></p>` and leaves the bounds to the line between the tags.
+
+So to wrap the text of a range in HTML tags, use `range.sendkeys('<strong>{selection}</strong>')`. 
+To create a hyperlink, use `range.sendkeys('<a href="{mark}">{selection}</a>')` which leaves the range between the 
+quote marks rather than at the end.
 
 ## Plugins
 
