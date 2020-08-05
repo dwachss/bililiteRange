@@ -15,6 +15,16 @@ range.bounds(/foo/);
 
 will set the bounds of the range to the next match of `/foo/` in the element, starting *after* the current bounds.
 
+The program looks for a RegExp by [duck typing](https://en.wikipedia.org/wiki/Duck_typing) it, so anything
+with `source` and `flags` fields will work:
+
+```js
+range.bounds({source: 'foo$', flags: 'iV'})
+```
+
+uses the [extended flags](#flags) to match case-insensitive and "no magic", meaning the `$` is taken literally. This matches
+`'FOO$'`.
+
 The difference between the two forms is that the `('find', string, flags)` form searches for the string literally. It creates a RegExp
 with all the special characters escaped (see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Escaping )
 and does `new RegExp (string, flags)`. 
@@ -112,6 +122,21 @@ match only the start or the end of [`range[0]`, `range[1]`], depending on whethe
 
 Wrap-around searches are only relevant if `restricted` and `sticky` are not set. If the search fails, sets the search bounds to the entire text and
 searches again, forward or backward.
+
+
+## `bililiteRange.prototype.replace`
+
+`range.replace(search, replacement, flags = '')` does the same as `range.text( range.text().replace(search, replacement) )`
+but allows the use of the extended flags as above, and works correctly for `^` and `$` (they match the start/end of the entire
+element, not just the text of the range. `search` can be a string, interpreted as for `range.bounds('find', search, flags)`
+and it can be anything that has a `source` and `flags` field, as for `range.bounds(search)` above.
+
+Specifying the `g` flag will replace all occurences of `search`. Specifying the `b` flag does nothing except if the `y`
+flag is set; in that case it will only match the end of the range. The algorithm for searching for matches is as though
+the `r` flag were set; it only replaces text inside the range.
+
+`b` without `g` ought to just change the *last* occurence of `search`, but doesn't.
+
 
 ## `bililiteRange.bounds` extensions
 

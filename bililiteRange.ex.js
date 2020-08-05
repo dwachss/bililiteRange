@@ -211,6 +211,7 @@ bililiteRange.ex.string = string; // export it
 
 /*********************** turn an array of address descriptions into an actual range *********************************/
 var lastRE = /(?:)/; // blank RE's refer to this
+var lastSubstitutionRE = /(?:)/; // & command uses this
 function interpretAddresses (rng, addresses){
 	// %% is the current range. If it is used by itself, don't change the range (or use line-based addressing)
 	if (addresses.length == 1 && addresses[0] == "%%") return;
