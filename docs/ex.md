@@ -203,6 +203,11 @@ the search term, and the last replacement from a `substitute` command (including
 
 The only way to get flags on a `~` command is with the defaults: `range.data.global`, `range.data.magic` etc.
 
+There is a subtlety of the parser that is worth noting: `|` separates commands, but the parser looks at
+`s /foo/bar/i | /bar/` and sees two regular expressions, `/foo/` and `/i | /` and won't split on the `|`.
+Use a different delimiter: `s #foo#bar#i | /bar/` works fine. The problem is that the `substitute` command parameter
+may have one, two, or three delimiters. 
+
 ### `suspend`, `tag`, `unabbreviate`
 
 Not implemented.
