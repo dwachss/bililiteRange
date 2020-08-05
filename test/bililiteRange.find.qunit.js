@@ -142,3 +142,24 @@ multitest("Testing bililiteRange whole sections", function (rng, el, text, i, as
 	rng.bounds('line', 3).bounds('whole', 'sections');
 	assert.equal(rng.text(), '5678','whole sections between --- and <HR> (uppercase works)');
 });
+multitest("Testing bililiteRange replace", function (rng, el, text, i, assert){
+	if (i == 3) return assert.expect(0);
+	text = 'abcdefabc';
+	rng.all (text);
+	rng.bounds({source: 'def', flags: ''});
+	assert.deepEqual(rng.bounds(), [3,6], 'ducktyped RegExp');
+	rng.replace(/e/, '.');
+	assert.deepEqual(rng.all(), 'abcd.fabc', 'replace forward with string');
+	rng.all (text).bounds({source: 'def', flags: ''});
+	rng.replace(/e/y, '.');
+	assert.equal(rng.all(), 'abcdefabc', 'replace forward sticky with string, no match');
+	rng.all (text).bounds({source: 'def', flags: ''});
+	rng.replace(/d/y, '.');
+	assert.equal(rng.all(), 'abc.efabc', 'replace forward sticky with string, match');
+	rng.all (text).bounds({source: 'def', flags: ''});
+	rng.replace(/f/, '.', 'by');
+	assert.equal(rng.all(), 'abcde.abc', 'replace backward sticky with string, match');
+	rng.all (text).bounds('all');
+	rng.replace('[ab]', match => match.toUpperCase(), 'vg');
+	assert.equal(rng.all(), 'ABcdefABc', 'replace global with function, flags parameter');
+});

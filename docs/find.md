@@ -81,6 +81,7 @@ and you would need to override them (with, for instance, `'VW'`) if necessary.
 
 ```js
 bililiteRange.createOption('dotall', {value: false}); //  note that the flag for this is 's'
+bililiteRange.createOption('global', {value: false}); // this is only relevant for replace; find only finds one match
 bililiteRange.createOption('ignorecase', {value: false});
 bililiteRange.createOption('magic', {value: true}); // note that 'magic' defaults to true, and the flag is 'v'
 bililiteRange.createOption('multiline', {value: false});
@@ -89,7 +90,8 @@ bililiteRange.createOption('wrapscan', {value: true}); // Note that 'wrapscan' d
 
 ```
 
-And those can of course be changed for a given element with `range.data.ignorecase = true`.
+And those can of course be changed for a given element with `range.data.ignorecase = true`. The flags that control the
+*location* of the search (`b`, `r` and `y`) do not have options; the default is always `false`.
 
 ### The actual algorithm
 

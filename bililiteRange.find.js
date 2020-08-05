@@ -1,6 +1,7 @@
 (function(){
 
 bililiteRange.createOption('dotall', {value: false});
+bililiteRange.createOption('gloabl', {value: false});
 bililiteRange.createOption('ignorecase', {value: false});
 bililiteRange.createOption('magic', {value: true});
 bililiteRange.createOption('multiline', {value: false});
@@ -12,9 +13,25 @@ bililiteRange.bounds.find = function (name, restring, flags = ''){
 };
 
 bililiteRange.override('bounds', function (re, flags = ''){
-	if (!(re instanceof RegExp)) return this.super(...arguments);
+	// duck typed RegExps are OK, allows for flags to be part of re
+	if (!(re instanceof Object && 'source' in re && 'flags' in re)) return this.super(...arguments);
 	return find (this, re.source, flags + re.flags);
 });
+
+bililiteRange.prototype.replace = function (search, replace, flags = ''){
+	if (search instanceof Object && 'source' in search && 'flags' in search){
+		// a RegExp or similar
+		flags = flags + search.flags;
+		search = search.source;
+	}else{
+		search = search.toString();
+		flags = 'V' + flags;
+	}
+	return this.text(
+		replaceprimitive (search, parseFlags(this, flags), this.all(), replace, this[0], this[1]),
+		{ inputType: 'insertReplacementText' }
+	);
+}		
 
 bililiteRange.createOption ('words', {value: /\b/});
 bililiteRange.createOption ('bigwords', {value: /\s+/});
@@ -51,7 +68,7 @@ function find (range, source, sourceflags){
 		sticky,
 		wrapscan,
 		flags
-	} = parseFlags (range, sourceflags);
+	} = parseFlags (range, sourceflags + 'g');
 	if (!magic) source = quoteRegExp (source);
 	const findfunction = backward ? findprimitiveback : findprimitive;
 	let from, to;
@@ -77,6 +94,7 @@ function find (range, source, sourceflags){
 function parseFlags (range, flags){
 	let flagobject = {
 		b: false,
+		g: range.data.global,
 		i: range.data.ignorecase,
 		m: range.data.multiline,
 		r: false,
@@ -88,9 +106,9 @@ function parseFlags (range, flags){
 	};
 	flags.split('').forEach( flag => flagobject[flag.toLowerCase()] = flag === flag.toLowerCase() );
 	return {
-		// these are the "real" flags, plus 'g' so we can use lastIndex. 'y' overrides 'g'
-		flags: (flagobject.i ? 'i' : '') + (flagobject.m ? 'm' : '') + (flagobject.s ? 's' : '') +
-		       (flagobject.u ? 'u' : '') + (flagobject.y ? 'y' : '') + 'g',
+		// these are the "real" flags
+		flags: (flagobject.g ? 'g' : '') + (flagobject.i ? 'i' : '') + (flagobject.m ? 'm' : '') +
+			(flagobject.s ? 's' : '') + (flagobject.u ? 'u' : '') + (flagobject.y ? 'y' : ''),
 		backward: flagobject.b,
 		magic: flagobject.v,
 		restricted: flagobject.r,
@@ -141,6 +159,27 @@ function findprimitiveback (source, flags, text, from, to){
 		}while (match);
 		return lastmatch;
 	}
+}
+
+function replaceprimitive (search, flagobject, text, replace, from, to){
+	if (!flagobject.magic) search = quoteRegExp (search);
+	if (from > 0){
+		// make sure we have at least (from) characters before the match
+		search = String.raw`(?<=[\s\S]{` + from + '})(?:' + search + ')';
+	}
+	if (to < text.length){
+		// make sure we have at least (length - to) characters after the match
+		search = '(?:' + search + String.raw`)(?=[\s\S]{` + (text.length - to) + '})';
+	}
+	if (flagobject.sticky && flagobject.backward){
+		flagobject.flags = flagobject.flags.replace('y', '');
+		// make sure we don't have too many characters after the match
+		search = '(?:' + search + String.raw`)(?![\s\S]{` + (text.length - to + 1) + '})';
+	}
+	const re = new RegExp (search, flagobject.flags);
+	re.lastIndex = from; // only relevant for sticky && !backward
+	// if to == length, then go to the end of the string,not to position 0!
+	return text.replace (re, replace).slice(from, to-text.length || undefined);
 }
 
 })();
