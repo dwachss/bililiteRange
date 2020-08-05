@@ -642,6 +642,7 @@ var commands = bililiteRange.ex.commands = {
 
 	'~': function (parameter, variant){
 		lastSubstitutionRE.source = lastRE.source;
+		lastSubstitutionRE.flags = '';
 		commands.substitute.call (this, parameter, variant);
 	},
 	

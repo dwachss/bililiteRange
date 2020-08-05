@@ -101,8 +101,6 @@ which is probably the most useful defaults for AJAX.
 
 Rather than searching backwards with `'?foo?'`, use the [extended flags](find.md#flags): `'/foo/b'`.
 
-**The extended flags have not yet been implemented (as of 2020-08-02).**
-
 Similarly, the replace string for the substitute command uses 
 the Javascript 
 [replace](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace) 
@@ -138,6 +136,10 @@ the next matched line but match the newly inserted `foo`.
 
 The algorithm as described in the manual does two passes: first mark all the matching lines, *then* do the commands
 on each of them. I'm not sure how to do that with `bililiteRange`.
+
+There is a `bililiteRange` option `global`, that is used for regular expression searches. Rather than have to deal with
+the conflict of trying to distinguish `ex('global on')` for the option and `ex('global /x/ d')` for the command, I left
+the option out of `ex`. Use `range.data.global = true; ex('s/foo/bar/');` to use the default.
 
 ### `list`
 
@@ -189,7 +191,17 @@ As with `edit` and `read`, uses `range.data.reader` to get the source file.
 
 ### `substitute`
 
-The `confirm` option is not implemented.
+The `confirm` option is not implemented. Nonglobal regular expressions (without the `g` flag) act like javascript:
+only the first occurence of the match in the range of addresses will be changed, not the first occurence on each line.
+It uses [`bililiteRange.prototype.replace`](find.md#bililiterangeprototypereplace).
+
+`&` is simply a synonym for `substitute`; both will repeat the last search if no regular expression is given. It's not
+clear why that exists, since `s` works perfectly well.
+
+`~` uses the last regular expression seen in the editor (whether in `global`, `substitute` or an address) as
+the search term, and the last replacement from a `substitute` command (including `&` and `~`), but the flags are reset.
+
+The only way to get flags on a `~` command is with the defaults: `range.data.global`, `range.data.magic` etc.
 
 ### `suspend`, `tag`, `unabbreviate`
 

@@ -269,4 +269,16 @@ multitest ('Testing ex sendkeys', function (rng, el, text, i, assert, done){
 	rng.all(text).bounds('start').ex('%%sendkeys {Delete}!');
 	assert.equal (rng.all(), '!' + text.slice(1), 'ex sendkeys');
 });
+multitest ('Testing ex search with flags', function (rng, el, text, i, assert, done){
+	if (i == 2 || i == 3) return assert.expect(0);
+	rng.all('1 a\n2 b\n3 c\n2 d\n1 e');
+	rng.bounds('start').ex('/3/');
+	assert.equal(rng.line(), 3, 'address by RegExp');
+	rng.ex('/1/bW');
+	assert.equal(rng.line(), 1, 'address by RegExp, backward nowrapscan');
+	rng.ex('/3/bW');
+	assert.equal(rng.line(), 1, 'address by RegExp, backward nowrapscan, failed match');
+	rng.ex('/3/bw');
+	assert.equal(rng.line(), 3, 'address by RegExp, backward wrapscan');
+});
 
