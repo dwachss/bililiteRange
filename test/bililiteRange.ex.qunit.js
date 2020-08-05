@@ -10,10 +10,10 @@ multitest("Testing bililiteRange ex", function (rng, el, text, i, assert){
 	assert.deepEqual (rng.lines(), [3,3], 'append line set');
 	rng.all('One\n\tTwo\nThree').ex('2 a! foo');
 	assert.equal (rng.all(), 'One\n\tTwo\n\tfoo\nThree', 'append variant');
-	rng.all(text).ex('/Three/c bar');
+	rng.all(text).ex('/Three/ c bar');
 	assert.equal (rng.all(), 'One\nTwo\nbar', 'change');
 	assert.deepEqual (rng.lines(), [3,3], 'change line set');
-	rng.all('One\nTwo\n\tThree').ex('/Three/c! bar');
+	rng.all('One\nTwo\n\tThree').ex('/Three/ c! bar');
 	assert.equal (rng.all(), 'One\nTwo\n\tbar', 'change variant');
 	rng.all(text).ex('1,2d');
 	assert.equal (rng.all(), 'Three', 'delete');
@@ -40,21 +40,24 @@ multitest("Testing bililiteRange ex", function (rng, el, text, i, assert){
 	assert.deepEqual (rng.lines(), [3,3], 'move forward line set');
 	rng.all(text).ex('3m0');
 	assert.equal (rng.all(), 'Three\nOne\nTwo\n', 'move back');
-	assert.deepEqual (rng.lines(), [1,1], 'move back line set');
-	rng.all(text).ex('/Two/;+1 s/[et]/*/ig');
-	assert.equal (rng.all(), 'One\n*wo\n*hr**', 'substitute');
-	rng.all(text).ex('1,2y|3put');
+	assert.deepEqual (rng.lines(), [1,1], 'move back line set'); 
+	rng.all(text).ex('/Two/;+1 s/[et]/./ig');
+	assert.equal (rng.all(), 'One\n.wo\n.hr..', 'substitute');
 	rng.ex('version');
 	assert.ok (rng.exMessage, 'version'); // don't commit to which version
-	assert.equal (rng.all(), 'One\nTwo\nThree\nOne\nTwo\n', 'yank');
+	rng.all(text).ex('1,2y|3put');
+	assert.equal (rng.all(), 'One\nTwo\nThree\nOne\nTwo\n', 'yank and put');
 	rng.all(text).ex('1,2=');
 	assert.equal (rng.exMessage, '[1, 2]', '=');
 	rng.all(text).ex('1,2>');
 	assert.equal (rng.all(), '\tOne\n\tTwo\nThree', '>');
 	rng.ex('1<');
 	assert.equal (rng.all(), 'One\n\tTwo\nThree', '<');
-	rng.all(text).ex('%s "/e/f/g"  | %~ //x/g');
-	assert.equal (rng.all(), text.replace(/e/g, 'x'), '~');
+	rng.all(text).ex('%s#x#q# | /e/  | %~');
+	assert.equal (rng.all(), text.replace(/e/, 'q'), '~');
+	rng.data.global = true;
+	rng.all(text).ex('%s#x#q# | /e/  | %~');
+	assert.equal (rng.all(), text.replace(/e/g, 'q'), '~ with global flag');
 });
 multitest("Testing bililiteRange multi-line commands", function (rng, el, text, i, assert){
 	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0);
@@ -241,14 +244,14 @@ multitest ('Testing ex unmap', function (rng, el, text, i, assert, done){
 multitest ('Testing ex global', function (rng, el, text, i, assert, done){
 	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0); 
 	rng.all ('one\ntwo\nthree');
-	rng.ex('%g/^/ m0'); // reverse: move every line to the beginning
+	rng.ex('%g/^/m m0'); // reverse: move every line to the beginning
 	assert.equal (rng.all(), 'three\ntwo\none\n', 'global reverse');
 	rng.all ('one\ntwo\nthree');
 	rng.ex('%g/one|two/ d');
 	assert.equal (rng.all(), 'three', 'global delete');
 	rng.all ('one\ntwo\nthree');
 	rng.ex('%g/one|two/ "a foo | .-1 d"'); 
-	assert.equal (rng.all(), 'foo\nfoo\nthree', 'global delete');
+	assert.equal (rng.all(), 'foo\nfoo\nthree', 'global append and delete');
 });
 multitest ('Testing ex undo/redo', function (rng, el, text, i, assert, done){
 	rng.ex();

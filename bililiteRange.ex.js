@@ -128,47 +128,19 @@ bililiteRange.ex.splitCommands = splitCommands;
 /*********************** parsing individual commands *********************************/
 // create a regular expression to cover all possible address indicators.
 // Rather than write the whole ugly thing out, synthesize it.
-var REflags = 'igmwIMW'; // valid flags for regular expressions (I and M mean not i and m when they are the default, and w means wrap, overriding
-// the state of wrapscan; W means no wrapping
-function bslash(s) {return s.replace('\\', '\\\\')} // need to double-escape backslashes
-var addressRE = new RegExp('^\\s*' + // allow whitespace at the beginning
+const addressRE = new RegExp('^\\s*' + // allow whitespace at the beginning
 	'('+[
 		'%%', // my extension to mean "current range"
-		'[.\\$%]', // single character addresses
-		'\\d+', // line numbers
+		String.raw`[.\$%]`, // single character addresses
+		String.raw`\d+`, // line numbers
 		"'['a-z]", // marks
-		bslash("\\&?[/?]"), // special regexps: \/, \&\, \?, \&?
-		// forward (/ delimited) regexps, a slash followed by some (escaped character or a non slash) ended with a slash, possibly preceded with a question mark
-		'\\??'+bslash('/(?:\\.|[^/])*/['+REflags+']*')
+		// regular expressions. Allow any letters as flags
+		String.raw`/(?:\\.|[^/])*/[a-zA-Z]*`
 	].join('|')+')'
 );
 
-// command id's in the real ex are letters and = & ~ > < 
-var idRE = /^\s*(!|[a-zA-Z=&~><]+)/; // a single exclamation point is a legal command
-var aUnicode = 'a'.charCodeAt(0);
-function encodeID (c){
-	// encodes a single character in base-26 (a-z) numbers preceded by '&'; sort of like encodeURI with '%'s
-	// but with characters legal in ex commands
-	function encode(x) {
-		if (x < 26) return String.fromCharCode(x + aUnicode);
-		return encode(x/26) + encode(x%26);
-	};
-	return '&' + encode(c.charCodeAt(0));
-}
-bililiteRange.ex.toID = function (s){
-	// creates a legal id from an arbitrary string. Since I use sendkeys/keymap, I special-case those characters
-	return s.replace(/./g, function (c){
-		if (idRE.test(c) && c != '!') return c; // don't include ! in id's
-		return {
-			'-': '~',
-			'%': 'alt~',
-			'^': 'ctl~',
-			'+': 'shift~',
-			'{': '<',
-			'}': '>'
-		}[c] || encodeID(c) ;
-	});
-}
+// command names. Technically multiple >>> and <<< are legal, but we will treat them as parameters
+const idRE = /^\s*([!=&~><]|[a-zA-Z]+)/; 
 
 function parseCommand(command, defaultaddress){
 	return {
@@ -192,8 +164,8 @@ function parseCommand(command, defaultaddress){
 		});
 		// a comma separates addresses
 		if (/^\s*([,;])\s*/.test(command)){
+			if (/;/.test(command)) addresses.push(';'); // need to track semicolons since they change the value of '.'
 			command = command.replace(/^\s*([,;])\s*/, '');
-			if (RegExp.$1 == ';') addresses.push(';'); // need to track semicolons since they change the value of '.'
 			addresses.push.apply(addresses, parseAddresses()); // recursively parse the whole list
 		}
 		return addresses;
@@ -252,14 +224,9 @@ function interpretAddresses (rng, addresses){
 			return '';
 		});
 		if (s.charAt(0) == '/'){
-			var re = createRE(s, data.ignorecase); // TODO: use bililiteRange regexp flags
-			let line = rng.bounds('EOL').bounds(re).line()+offset;
+			var re = createRE(s);
+			let line = rng.bounds(re).line()+offset;
 			lines.push(line);
-		}else if (s.charAt(0) == '?'){
-			// TODO: change this to b flag
-			// since having ? as a delimiter wreaks havoc with Javascript RE's, use ?/....../
-			re = createRE(s.slice(1), data.ignorecase);
-			lines.push(rng.bounds('BOL').bounds(re, 'b').bounds('EOL').line()+offset);
 		}else if (s.charAt(0) == "'"){
 			var mark = data.marks[s.slice(1)];
 			if (mark){
@@ -293,39 +260,46 @@ function interpretAddresses (rng, addresses){
 
 // we want to be able to list RegExp's with set, which uses JSON.stringify. This function lets us to that.
 function REtoJSON() { return '/' + this.source + '/' + (this.flags || '') }
-function createRE(s, ignorecase){
-	// create a RegExp from a string (with an aribitrary delimiter), of the form /re/(rest)?/?flags?/? (the "rest" part is for the substitute command)
+function createRE(s, substitute = false){
+	// create a pseudo RegExp from a string (with an aribitrary delimiter, no \w characters or special RegExp characters).
+	// if substitute is true, of the form /source/(replacement/)?flags?/?
+	// otherwise /source/flags?/?
+	// note that it may end with a delimiter, which may be added by the parser in splitCommands
 	// as with splitCommands above, easier to scan with a simple parser than to use RegExps
-	var delim = s.charAt(0);
-	var escaper = /\\/;
-	var re, rest,flags;
-	for (var i = 1; i < s.length; ++i){
-		var c = s.charAt(i);
+	const delim = s.charAt(0);
+	if (/[\w\\|"]/.test(delim)) throw new Error(`Illegal delimiter in regular expression: ${delim}`);
+	const escaper = /\\/;
+	let source, replacement, flags;
+	let i;
+	for (i = 1; i < s.length; ++i){
+		let c = s.charAt(i);
 		if (escaper.test(c)) ++i;
 		if (c == delim) break;
 	}
-	re = s.substring(1, i);
+	source = s.substring(1, i);
 	s = s.substring(i+1);
+	if (substitute) {
+		for (i = 1; i < s.length; ++i){
+			let c = s.charAt(i);
+			if (escaper.test(c)) ++i;
+			if (c == delim) break;
+		}
+		replacement = s.substring(0, i);
+		s = s.substring(i+1);
+	}else{
+		replacement = '';
+	}
 	// flags may end with a delimiter, put in by the parser in splitCommands
-	s = s.replace(RegExp('(['+REflags+']*)\\'+delim+'?$'), function(match, p1){
+	s = s.replace(RegExp('([a-zA-Z]*)\\'+delim+'?'), function(match, p1){
 		flags = p1;
 		return '';
 	});
-	if (re == ''){
+	if (source == ''){
 		// blank string means use last regular expression
-		re = lastRE.source;
-		flags = flags || lastRE.flags;
+		source = lastRE.source;
 	}
-	if (!/M/i.test(flags)) flags += 'm'; // default is multiline mode unless we mark it otherwise with M
-	if (ignorecase && !/I/i.test(flags)) flags += 'i'; // allow for global option to ignore case
-	var ret = new RegExp(re, flags.replace(/[^igm]/g,''));  // don't forget to remove the invalid flags
-	if (/w/.test(flags)) ret.nowrap = false;
-	if (/W/.test(flags)) ret.nowrap = true;
-	ret.rest = s.replace(new RegExp('\\'+delim+'$'), ''); // remove the last delimiter if present
-	lastRE = ret;
-	lastRE.flags = flags;
-	lastRE.toJSON = REtoJSON;
-	return ret;
+	lastRE = {source, replacement, flags, rest: s, toJSON: REtoJSON};
+	return lastRE;
 }
 bililiteRange.ex.createRE = createRE;
 
@@ -440,12 +414,14 @@ var commands = bililiteRange.ex.commands = {
 
 	global: function (parameter, variant){
 		// TODO: make this work correctly, even with multiple added lines.
-		var re = createRE(parameter, this.data.ignorecase);
+		var re = createRE(parameter);
+		re.flags += 'r'; // search within the line
 		var commands = string(re.rest);
 		var line = this.clone();
 		var lines = this.lines();
 		for (var i = lines[0]; i <= lines[1]; ++i){
-			if (re.test(line.bounds('line', i).text()) != variant){
+			line.bounds('line', i).bounds(re);
+			if (!line.match == variant){ // !match means match is not defined.
 				const oldlines = this.all().split('\n').length;
 				line.ex(commands);
 				const addedlines = this.all().split('\n').length - oldlines;
@@ -454,7 +430,7 @@ var commands = bililiteRange.ex.commands = {
 				// note that this assumes the added lines are all  before or immediately after the current line. If not, we will skip the wrong lines			
 			}
 		}
-		this.bounds(line.bounds()).bounds('endbounds'); // move to the end of the last modified line
+		this.bounds(line).bounds('EOL'); // move to the end of the last modified line
 	},
 
 	i: 'insert',
@@ -597,8 +573,11 @@ var commands = bililiteRange.ex.commands = {
 	substitute: function (parameter, variant){
 		// we do not use the count parameter (too hard to interpret s/(f)oo/$1 -- is that last 1 a count or part of the replacement?
 		// easy enough to assume it's part of the replacement but that's probably not what we meant)
-		var re = createRE(parameter, this.data.ignorecase);
-		this.text(this.text().replace(re, string(re.rest))).bounds('endbounds');
+		var re = parameter ? createRE(parameter, true) : lastSubstitutionRE;
+		if (re.source == '' && re.replacement == '') re = lastSubstitutionRE;
+		if (re.source == '') re.source = lastRE.source;
+		this.replace(re, string(re.replacement)).bounds('EOL');
+		lastSubstitutionRE = Object.assign({}, re); // clone, so 
 	},
 
 	sw: 'tabsize',
@@ -661,7 +640,7 @@ var commands = bililiteRange.ex.commands = {
 	'&': 'substitute',
 
 	'~': function (parameter, variant){
-		lastRE = new RegExp (lastRE.rest, 'g');
+		lastSubstitutionRE.source = lastRE.source;
 		commands.substitute.call (this, parameter, variant);
 	},
 	
@@ -736,7 +715,7 @@ createOption.RegExp = function (name){
 		if (parameter == '?' || parameter === true || !parameter){
 			this.data.stdout (JSON.stringify(this.data[name]));
 		}else{
-			this.data[name] = createRE(parameter, this.data.ignorecase);
+			this.data[name] = createRE(parameter);
 		}
 	}
 }
