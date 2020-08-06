@@ -135,8 +135,7 @@ Specifying the `g` flag will replace all occurences of `search`. Specifying the 
 flag is set; in that case it will only match the end of the range. The algorithm for searching for matches is as though
 the `r` flag were set; it only replaces text inside the range.
 
-`b` without `g` ought to just change the *last* occurence of `search`, but doesn't.
-
+`b` without `g` just changes the *last* occurence of `search`.
 
 ## `bililiteRange.bounds` extensions
 

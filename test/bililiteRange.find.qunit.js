@@ -162,4 +162,7 @@ multitest("Testing bililiteRange replace", function (rng, el, text, i, assert){
 	rng.all (text).bounds('all');
 	rng.replace('[ab]', match => match.toUpperCase(), 'vg');
 	assert.equal(rng.all(), 'ABcdefABc', 'replace global with function, flags parameter');
+	rng.all (text).bounds('all');
+	rng.replace('b', '.', 'b');
+	assert.equal(rng.all(), 'abcdefa.c', 'replace backward not global');
 });

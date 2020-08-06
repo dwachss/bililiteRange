@@ -110,6 +110,7 @@ function parseFlags (range, flags){
 		flags: (flagobject.g ? 'g' : '') + (flagobject.i ? 'i' : '') + (flagobject.m ? 'm' : '') +
 			(flagobject.s ? 's' : '') + (flagobject.u ? 'u' : '') + (flagobject.y ? 'y' : ''),
 		backward: flagobject.b,
+		global: flagobject.g,
 		magic: flagobject.v,
 		restricted: flagobject.r,
 		wrapscan: flagobject.w,
@@ -172,9 +173,14 @@ function replaceprimitive (search, flagobject, text, replace, from, to){
 		search = '(?:' + search + String.raw`)(?=[\s\S]{` + (text.length - to) + '})';
 	}
 	if (flagobject.sticky && flagobject.backward){
-		flagobject.flags = flagobject.flags.replace('y', '');
+		flagobject.flags = flagobject.flags.replace(/[gy]/g, '');
 		// make sure we don't have too many characters after the match
 		search = '(?:' + search + String.raw`)(?![\s\S]{` + (text.length - to + 1) + '})';
+	}else if (flagobject.backward && ! flagobject.global){
+		// would anyone ever do this? Replace only the last match?
+		const match = findprimitiveback (search, flagobject.flags+'g', text, from, to);
+		if (!match) return text.slice (from, to); // no match, no change
+		search = String.raw`(?<=[\s\S]{` + match.index + '})(?:' + search + ')';
 	}
 	const re = new RegExp (search, flagobject.flags);
 	re.lastIndex = from; // only relevant for sticky && !backward
