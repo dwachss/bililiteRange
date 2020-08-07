@@ -77,13 +77,13 @@ If you really want to stringify *all* of `range.data`, use `JSON.stringify( Obje
 
 The following are `data` fields used by this package:
 
-`bililiteRange.js`: `mousetime`, `oldText`, `selection`, `sendkeysBounds`, `sendkeysOriginalText`
+`bililiteRange.js`: `mousetime`, `liveRanges`, `oldText`, `selection`, `sendkeysBounds`, `sendkeysOriginalText`
 
 `bililiteRange.undo.js`: `undos`
 
 `bililiteRange.lines.js`: `autoindent`, `tabsize`
 
-`bililiteRange.find.js`: `bigwords`, `dotall`, `ignorecase`, `magic`, `multiline`, `sections`, 
+`bililiteRange.find.js`: `bigwords`, `dotall`, `global`, `ignorecase`, `magic`, `multiline`, `sections`, 
 `sentences`, `unicode`, `words`, `wrapscan`
 
 `bililiteRange.ex.js`: `directory`, `file`, `reader`, `stderr`, `stderr`, `savestatus`, `writer`

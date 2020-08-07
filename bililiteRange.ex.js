@@ -414,6 +414,11 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	global: function (parameter, variant){
+		if (parameter == '?' || /^[a-z]/.test(parameter)){
+			// we are referring to the global option, not the command
+			createOption.Boolean('global').call(this, parameter, variant);
+			return;
+		}
 		// TODO: make this work correctly, even with multiple added lines.
 		var re = createRE(parameter);
 		re.flags += 'r'; // search within the line

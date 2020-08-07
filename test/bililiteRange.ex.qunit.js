@@ -253,24 +253,27 @@ multitest ('Testing ex global', function (rng, el, text, i, assert, done){
 	rng.ex('%g/one|two/ "a foo | .-1 d"'); 
 	assert.equal (rng.all(), 'foo\nfoo\nthree', 'global append and delete');
 });
-multitest ('Testing ex undo/redo', function (rng, el, text, i, assert, done){
+multitest ('Testing ex undo/redo', function (rng, el, text, i, assert){
+	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0); 
 	rng.ex();
 	rng.all(text);
 	rng.all('');
-	setTimeout ( () =>{
-		rng.ex('undo');
-		assert.equal(rng.all(), text, 'ex undo works');
-		rng.ex('redo');
-		setTimeout ( () => assert.equal(rng.all(), '', 'ex redo works') + done() );
-	});
-}, true);
+	rng.ex('undo');
+	assert.equal(rng.all(), text, 'ex undo works');
+	rng.ex('redo');
+	assert.equal(rng.all(), '', 'ex redo works');
+	rng.all('').ex('a one\ntwo\nthree | 1c 1 | undo');
+	assert.equal(rng.all(), 'one\ntwo\nthree\n', 'ex inline append and undo');
+	bililiteRange(rng.element).ex('redo');
+	assert.equal(rng.all(), '1\ntwo\nthree\n', 'ex redo on different range');	
+});
 multitest ('Testing ex sendkeys', function (rng, el, text, i, assert, done){
 	if (i == 3) return assert.expect(0);
 	rng.all(text).bounds('start').ex('%%sendkeys {Delete}!');
 	assert.equal (rng.all(), '!' + text.slice(1), 'ex sendkeys');
 });
 multitest ('Testing ex search with flags', function (rng, el, text, i, assert, done){
-	if (i == 2 || i == 3) return assert.expect(0);
+	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0); 
 	rng.all('1 a\n2 b\n3 c\n2 d\n1 e');
 	rng.bounds('start').ex('/3/');
 	assert.equal(rng.line(), 3, 'address by RegExp');
@@ -281,4 +284,16 @@ multitest ('Testing ex search with flags', function (rng, el, text, i, assert, d
 	rng.ex('/3/bw');
 	assert.equal(rng.line(), 3, 'address by RegExp, backward wrapscan');
 });
-
+multitest ('Testing ex global syntax', function (rng, el, text, i, assert, done){
+	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0); 
+	rng.data.stdout = message => rng.exMessage = message;
+	const linecount = rng.all(text).bounds('end').line();
+	rng.ex('%g/^/gm c foo');
+	assert.equal(rng.all(), 'foo\n'.repeat(linecount).slice(0,-1), 'global command syntax'); // the slice removes the last newline
+	rng.ex('g on | g ?');
+	assert.equal(rng.data.global, true, 'global option syntax');	
+	assert.equal(rng.exMessage, 'on', 'global option syntax output');	
+	rng.ex('set noglobal | set g?');
+	assert.equal(rng.data.global, false, 'set global option');	
+	assert.equal(rng.exMessage, 'off', 'set global option output');	
+});

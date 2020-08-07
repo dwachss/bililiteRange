@@ -55,6 +55,7 @@ bililiteRange = function(el){
 		// So we enhance input events with that information. 
 		// the "newText" should always be the same as the 'data' field, if it is defined
 		data.oldText = ret.all();
+		data.liveRanges = new Set();
 		ret.listen('input', evt => {
 			const newText = ret.all();
 			if (!evt.bililiteRange){
@@ -65,6 +66,30 @@ bililiteRange = function(el){
 				}
 			}
 			data.oldText = newText;
+			
+			// Also update live ranges on this element
+			data.liveRanges.forEach( rng => {
+				const start = evt.bililiteRange.start;
+				const oldend = start + evt.bililiteRange.oldText.length;
+				const newend = start + evt.bililiteRange.newText.length;
+				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
+				let [b0, b1] = rng.bounds();
+				if (b0 <= start){
+					// no change
+				}else if (b0 > oldend){
+					b0  += newend - oldend;
+				}else{
+					b0  = newend;
+				}
+				if (b1 < start){
+					// no change
+				}else if (b1 >= oldend){
+					b1 += newend - oldend;
+				}else{
+					b1 = start;
+				}
+				rng.bounds([b0, b1]);				
+			})
 		});
 		
 		// we need to insert newlines rather than create new elements, so character-based calculations work
@@ -78,11 +103,11 @@ bililiteRange = function(el){
 			}
 		});
 		ret.listen('keydown', function(evt){
-			if (!evt.defaultPrevented) {
-				if (evt.key == 'Enter' && !evt.defaultPrevented){
-					ret.clone().bounds('selection').text('\n', {select: 'end', inputType: 'insertLineBreak'}).select();
-					evt.preventDefault();
-				}
+			if (evt.ctrlKey || evt.altKey || evt.shiftKey || evt.metaKey) return;
+			if (evt.defaultPrevented) return;
+			if (evt.key == 'Enter'){
+				ret.clone().bounds('selection').text('\n', {select: 'end', inputType: 'insertLineBreak'}).select();
+				evt.preventDefault();
 			}
 		});
 
@@ -199,8 +224,7 @@ Range.prototype = {
 		event.target = this._el;
 		event.view = this._win;
 		for (let prop in opts) try { event[prop] = opts[prop] } catch(e){}; // ignore read-only errors for properties that were copied in the previous line
-		// dispatch event asynchronously (in the sense of on the next turn of the event loop; still should be fired in order of dispatch
-		setTimeout( () => this._el.dispatchEvent(event) );
+		this._el.dispatchEvent(event); // note that the event handlers will be called synchronously, before the "return this;"
 		return this;
 	},
 	get document() {
@@ -217,43 +241,7 @@ Range.prototype = {
 		return this._el[this._textProp].length;
 	},
 	live (on = true){
-		if (on){
-			if (this._inputHandler) return this; // don't double-bind
-			const handler = evt => {
-				var start, oldend, newend;
-				if (evt.bililiteRange.unchanged) return;
-				start = evt.bililiteRange.start;
-				oldend = start + evt.bililiteRange.oldText.length;
-				newend = start + evt.bililiteRange.newText.length;
-				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
-				let [b0, b1] = this.bounds();
-				if (b0 <= start){
-					// no change
-				}else if (b0 > oldend){
-					b0  += newend - oldend;
-				}else{
-					b0  = newend;
-				}
-				if (b1 < start){
-					// no change
-				}else if (b1 >= oldend){
-					b1 += newend - oldend;
-				}else{
-					b1 = start;
-				}
-				this.bounds([b0, b1]);
-			};
-			// we only want to listen to changes that happened *after* we went live, so start listening asynchronously
-			setTimeout ( () => {
-				this._inputHandler = handler;
-				this.listen('input', handler)
-			});
-		}else{
-			setTimeout ( () => {
-				this.dontlisten('input', this._inputHandler);
-				delete this._inputHandler;
-			});
-		}
+		this.data.liveRanges[on ? 'add' : 'delete'](this);
 		return this;
 	},
 	listen: function (type, func = console.log){
