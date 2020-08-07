@@ -1,16 +1,18 @@
 multitest("Testing bililiteRange", function (rng, el, text, i, assert){
 	rng.all('');
 	assert.equal (rng.text(), '' , "element should be empty" );
-	rng.text(text, {select: 'all'});
+	rng.text(text);
 	assert.equal (rng.text(), text, 'text set');
 	assert.equal (rng.length, text.length, 'length calculated');
 	assert.equal (rng.all(), text, 'all retains correct text');
+	rng.bounds([1,3]).text('123'); // replace 2 characters with three
+	assert.deepEqual(rng.bounds(), [1,4], 'text changes bounds');
 });
 multitest ("Testing bililiteRange bounds", function (rng, el, text, i, assert){
 	rng.text(text);
 	var b = [1, 10];
 	assert.deepEqual (rng.bounds(b).bounds(), b, 'bounds set');
-	assert.equal (rng.text(), text.substring.apply(text, b), 'bounds correspond to the correct text');
+	assert.equal (rng.text(), text.substring(...b), 'bounds correspond to the correct text');
 	rng.select();
 	rng.bounds([0,0]); // changing bounds should not change selection
 	rng.bounds('selection');
@@ -134,7 +136,7 @@ multitest ('Testing bililiteRange bounds examples', function (range, el, text, i
 	bililiteRange.bounds.nthchar = (name, n) => [+n, n+1];
 	assert.equal(range.all('ABCDE').bounds('nthchar', 2).text(), 'C', 'second example');
 	bililiteRange.bounds.wrap = function (name, before, after) {
-		return this.text(before + this.text() + after, {select: 'all'}).bounds();
+		return this.text(before + this.text() + after).bounds();
 	}
 	assert.equal(range.all('ABCDE').bounds('firstchar').bounds('wrap', 'foo', 'bar').text(), 'fooAbar', 'third example');
 	bililiteRange.bounds.endofline = function () {

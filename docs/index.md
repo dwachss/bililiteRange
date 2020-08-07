@@ -31,7 +31,7 @@ Returns the entire text of the element without changing the bounds of the range.
 
 ### `all(text: string)`
 
-Sets the entire text of the element to text without changing the bounds of the range.
+Sets the entire text of the element to `text` and sets the bounds to cover the entire range.
 
 ### `bounds()`
 
@@ -85,6 +85,11 @@ in Microsoft Word, except that deleting the entire text of the range does not re
 
 `live(false)` removes the input listener, so the range is no longer adjusted.
 
+Under the hood, there is a single input listener that goes through a 
+[`Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) of ranges that are adjusted.
+That means there is a potential memory leak: any live range will not be garbage collected. Do `range.live(false)` to remove the
+reference.
+
 ### `scrollIntoView([fn: function])`
 Does its best to scroll the beginning of the range into the visible part of the element, by analogy to `Element.scrollIntoView()`.
 Note that it does not move the element itself, just sets `element.scrollTop` so
@@ -120,12 +125,7 @@ See the [full documentation](sendkeys.md).
 Returns the text of the current range.
 
 ### `text(s: string, [opts])`
-Sets the text of the current range to `s`. If `opts.select` is defined, it also sets the bounds depending on the value:
-`opts.select == 'start'` sets it to the start of the inserted text,
-`opts.select == 'end'`
-the end of the inserted text (what happens with the usual "paste" command), and 
-`opts.select == 'all'`
-or the entire inserted text. Any other value is ignored. Follow this with `select()` to actually set the selection.
+Sets the text of the current range to `s`. The bounds are adjusted to cover the new text.
 
 For
 consistency with [Input Events](https://www.w3.org/TR/input-events-1/), also triggers `beforeinput` and `input` events on the element.
@@ -210,8 +210,10 @@ Creates an event of type `opts.type`, then extends it with the rest of `opts`, a
 ````js
 let event =  new Event(opts.type);
 for (let key in opts) event[key] = opts[key];
-this.element.dispatchEvent(event); // but actually does this asynchronously, on the event queue
+this.element.dispatchEvent(event);
 ````
+
+Note that dispatchEvent is *synchronous*, meaning that the event handlers will all be run before returning from `range.dispatch()`.
 
 ### `listen(s, fn)`
 

@@ -137,9 +137,9 @@ the next matched line but match the newly inserted `foo`.
 The algorithm as described in the manual does two passes: first mark all the matching lines, *then* do the commands
 on each of them. I'm not sure how to do that with `bililiteRange`.
 
-There is a `bililiteRange` option `global`, that is used for regular expression searches. Rather than have to deal with
-the conflict of trying to distinguish `ex('global on')` for the option and `ex('global /x/ d')` for the command, I left
-the option out of `ex`. Use `range.data.global = true; ex('s/foo/bar/');` to use the default.
+There is a `bililiteRange` option `global`, that is used for regular expression searches. The `global` command will allow
+it to be set like an option: `global on`, `global off`, `set global`, `set noglobal`, etc. and to send the value to
+`stdout` with `global ?` or `set global ?`. There is no ambiguity with the command `global`: `global /RegExp/`.
 
 ### `list`
 

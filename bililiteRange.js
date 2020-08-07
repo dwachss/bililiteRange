@@ -185,11 +185,7 @@ Range.prototype = {
 	},
 	all: function(text){
 		if (arguments.length){
-			let eventparams = [this._el[this._textProp], text, 0, 'insertReplacementText'];
-			this.dispatch (inputEventInit('beforeinput',...eventparams));
-			this._el[this._textProp] = text;
-			this.dispatch (inputEventInit('input',...eventparams));
-			return this;
+			return this.bounds('all').text(text, {inputType: 'insertReplacementText'});
 		}else{
 			return this._el[this._textProp];
 		}
