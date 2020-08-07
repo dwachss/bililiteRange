@@ -347,10 +347,9 @@ var commands = bililiteRange.ex.commands = {
 
 	append: function (parameter, variant){
 		this.bounds('EOL').text(parameter, {
-			select: 'end',
 			ownline: true,
 			autoindent: variant ? 'invert' : undefined
-		});
+		}).bounds('endbounds');
 	},
 
 	c: 'change',
@@ -361,9 +360,8 @@ var commands = bililiteRange.ex.commands = {
 		pushRegister (this.text());
 		const indentation = this.indentation();
 		this.text(parameter, {
-			select: 'end',
 			inputType: 'insertReplacementText'
-		});
+		}).bounds('endbounds');
 		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
 		if (!variant != !this.data.autoindent) this.indent(indentation);
 	},
@@ -375,10 +373,9 @@ var commands = bililiteRange.ex.commands = {
 		var parsed = parseCommand(parameter, '.');
 		interpretAddresses(targetrng, parsed.addresses);
 		targetrng.bounds('endbounds').text(parameter, {
-			select: 'end',
 			ownline: true,
 			inputType: 'insertFromPaste'
-		});
+		}).bounds('endbounds');
 		this.bounds(targetrng.bounds());
 	},
 
@@ -391,7 +388,7 @@ var commands = bililiteRange.ex.commands = {
 			this.bounds('line', lines[1], lines[1]+Math.max(1, parseInt(match[2]))-1);
 		}
 		pushRegister(this.text(), match[1]);
-		this.bounds('andnewline').text('', {select: 'end', inputType: 'deleteContent'});
+		this.bounds('andnewline').text('', {inputType: 'deleteContent'}).bounds('endbounds');
 	},
 
 	'delete': 'del',
@@ -444,10 +441,9 @@ var commands = bililiteRange.ex.commands = {
 	insert: function (parameter, variant){
 		// go to right before the beginning of this line
 		this.bounds('BOL').bounds(this[0]-1).text(parameter, {
-			select: 'end',
 			ownline: true,
 			autoindent: variant ? 'invert' : undefined
-		});
+		}).bounds('endbounds');
 	},
 
 	ic: 'ignorecase',
@@ -464,9 +460,8 @@ var commands = bililiteRange.ex.commands = {
 		var replacement = variant ? '' : ' '; // just one space. Doesn't do what the ex manual says about not inserting a space before a ')'
 		this.bounds('line', lines[0], lines[1]);
 		this.text(this.text().replace(re, replacement), {
-			select: 'start',
 			inputType: 'insertReplacementText'
-		});
+		}).bounds('startbounds');
 	},
 
 	k: 'mark',

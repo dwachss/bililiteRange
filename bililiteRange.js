@@ -97,7 +97,8 @@ bililiteRange = function(el){
 			if (!evt.defaultPrevented) {
 				// windows adds \r's to clipboard!
 				ret.clone().bounds('selection').
-					text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), {select: 'end', inputType: 'insertFromPaste'}).
+					text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), {inputType: 'insertFromPaste'}).
+					bounds('endbounds').
 					select();
 				evt.preventDefault();
 			}
@@ -106,7 +107,7 @@ bililiteRange = function(el){
 			if (evt.ctrlKey || evt.altKey || evt.shiftKey || evt.metaKey) return;
 			if (evt.defaultPrevented) return;
 			if (evt.key == 'Enter'){
-				ret.clone().bounds('selection').text('\n', {select: 'end', inputType: 'insertLineBreak'}).select();
+				ret.clone().bounds('selection').text('\n', {inputType: 'insertLineBreak'}).bounds('endbounds').select();
 				evt.preventDefault();
 			}
 		});
@@ -267,7 +268,7 @@ Range.prototype = {
 	},
 	selection: function(text){
 		if (arguments.length){
-			return this.bounds('selection').text(text, {select: 'end'}).select();
+			return this.bounds('selection').text(text).bounds('endbounds').select();
 		}else{
 			return this.bounds('selection').text();
 		}
@@ -277,26 +278,19 @@ Range.prototype = {
 		this.data.sendkeysBounds = undefined;
 		function simplechar (rng, c){
 			if (/^{[^}]*}$/.test(c)) c = c.slice(1,-1);	// deal with unknown {key}s
-			rng.text(c, {select: 'end'});
+			rng.text(c).bounds('endbounds');
 		}
 		text.replace(/{[^}]*}|[^{]+|{/g, part => (bililiteRange.sendkeys[part] || simplechar)(this, part, simplechar) );
 		this.bounds(this.data.sendkeysBounds);
 		this.dispatch({type: 'sendkeys', detail: text});
 		return this;
 	},
-	text: function(text, { select = undefined, inputType = 'insertText'} = {}){
+	text: function(text, {inputType = 'insertText'} = {}){
 		if ( text !== undefined ){
 			let eventparams = [this.text(), text, this[0], inputType];
 			this.dispatch (inputEventInit('beforeinput',...eventparams));
 			this._nativeSetText(text, this._nativeRange(this.bounds()));
-			if (select == 'start'){
-				this[1] = this[0];
-			}else if (select == 'end'){
-				this[0] += text.length;
-				this[1] = this[0];
-			}else if (select == 'all'){
-				this[1] = this[0]+text.length;
-			}
+			this[1] = this[0]+text.length;
 			this.dispatch (inputEventInit('input',...eventparams));
 			return this; // allow for chaining
 		}else{
@@ -363,17 +357,17 @@ bililiteRange.sendkeys = {
 		simplechar(rng, '\t'); // useful for inserting what would be whitespace
 	},
 	'{newline}': function (rng){
-		rng.text('\n', {select: 'end', inputType: 'insertLineBreak'});
+		rng.text('\n', {inputType: 'insertLineBreak'}).bounds('endbounds');
 	},
 	'{backspace}': function (rng){
 		var b = rng.bounds();
 		if (b[0] == b[1]) rng.bounds([b[0]-1, b[0]]); // no characters selected; it's just an insertion point. Remove the previous character
-		rng.text('', {select: 'end', inputType: 'deleteContentBackward'}); // delete the characters and update the selection
+		rng.text('', {inputType: 'deleteContentBackward'}); // delete the characters and update the selection
 	},
 	'{del}': function (rng){
 		var b = rng.bounds();
 		if (b[0] == b[1]) rng.bounds([b[0], b[0]+1]); // no characters selected; it's just an insertion point. Remove the next character
-		rng.text('', {select: 'end', inputType: 'deleteContentForward'}); // delete the characters and update the selection
+		rng.text('', {inputType: 'deleteContentForward'}).bounds('endbounds'); // delete the characters and update the selection
 	},
 	'{rightarrow}':  function (rng){
 		var b = rng.bounds();
@@ -390,7 +384,7 @@ bililiteRange.sendkeys = {
 	},
 	'{selection}': function (rng){
 		// insert the characters without the sendkeys processing
-		rng.text(rng.data.sendkeysOriginalText, {select: 'end'});
+		rng.text(rng.data.sendkeysOriginalText).bounds('endbounds');
 	},
 	'{mark}': function (rng){
 		rng.data.sendkeysBounds = rng.bounds();

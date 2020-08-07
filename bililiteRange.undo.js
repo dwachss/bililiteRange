@@ -38,15 +38,17 @@ bililiteRange.extend({
 		if (undos.atStart) return this; // silently do nothing
 		const state = undos.state;
 		undos.back();
-		this.bounds([state.start, state.start+state.newText.length]).text(state.oldText, {select: 'end', inputType: 'historyUndo'});
+		this.bounds([state.start, state.start+state.newText.length]).text(state.oldText, {inputType: 'historyUndo'});
+		this.bounds(state.start+state.oldText.length);
 		if (select) this.select();
-		return this;
+	return this;
 	},
 	redo(select = true) {
 		const undos = this.data.undos;
 		if (undos.atEnd) return this; // silently do nothing
 		const state = undos.forward();
-		this.bounds([state.start, state.start+state.oldText.length]).text(state.newText, {select: 'end', inputType: 'historyRedo'});
+		this.bounds([state.start, state.start+state.oldText.length]).text(state.newText, {inputType: 'historyRedo'});
+		this.bounds(state.start+state.newText.length);
 		if (select) this.select();
 		return this;
 	}
