@@ -417,6 +417,7 @@ InputRange.prototype._nativeEOL = function(){
 	this.text('\n');
 };
 InputRange.prototype._nativeTop = function(rng){
+	if (rng[0] == 0) return 0; // the range starts at the top
 	// I can't remember where I found this clever hack to find the location of text in a text area
 	var clone = this._el.cloneNode(true);
 	clone.style.visibility = 'hidden';
