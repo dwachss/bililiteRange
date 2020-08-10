@@ -29,7 +29,7 @@ bililiteRange.prototype.executor = function (command){
 	 ex(command || text, '%%').
 	 select().
 	 scrollIntoView().
-	 element().
+	 element.
 	 focus();
 };
 
