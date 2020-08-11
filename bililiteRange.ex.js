@@ -5,8 +5,6 @@ bililiteRange.ex = {}; // namespace for exporting utility functions
 
 const exkey = Symbol(); // marker that an element has been processed already
 
-const version = '3.0';
-
 bililiteRange.createOption ('stdout', {value: console.log, enumerable: false});
 bililiteRange.createOption ('stderr', {value: console.error, enumerable: false});
 bililiteRange.createOption ('reader', {
@@ -36,7 +34,7 @@ bililiteRange.prototype.executor = function (command){
 bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.'){
 	const data = this.data;
 	if (!this.element[exkey]){
-		this.element[exkey] = version;
+		this.element[exkey] = bililiteRange.version;
 		this.initUndo();
 		data.directory = this.window.location.protocol + '//' + this.window.location.hostname;
 		data.file = this.window.location.pathname;

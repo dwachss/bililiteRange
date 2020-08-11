@@ -36,6 +36,8 @@ bililiteRange = function(el){
 	return ret;
 }
 
+bililiteRange.version = 3.1;
+
 const startupHooks = new Set();
 bililiteRange.addStartupHook = fn => startupHooks.add(fn);
 startupHooks.add (signalAllMonitors);
