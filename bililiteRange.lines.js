@@ -61,6 +61,9 @@ bililiteRange.override ('text', function (text, opts = {}){
 });
 
 bililiteRange.createOption ('tabsize', { value: 8, monitored: true }); // 8 is the browser default
+bililiteRange.addStartupHook ( (element, range, data) => {
+	range.listen('data-tabsize', evt => element.style.tabSize = evt.detail);
+});
 
 bililiteRange.extend({
 	char: function(){
