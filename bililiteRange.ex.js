@@ -280,7 +280,7 @@ function createRE(s, substitute = false){
 	source = s.substring(1, i);
 	s = s.substring(i+1);
 	if (substitute) {
-		for (i = 1; i < s.length; ++i){
+		for (i = 0; i < s.length; ++i){
 			let c = s.charAt(i);
 			if (escaper.test(c)) ++i;
 			if (c == delim) break;

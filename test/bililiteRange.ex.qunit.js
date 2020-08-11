@@ -297,3 +297,17 @@ multitest ('Testing ex global syntax', function (rng, el, text, i, assert, done)
 	assert.equal(rng.data.global, false, 'set global option');	
 	assert.equal(rng.exMessage, 'off', 'set global option output');	
 });
+multitest ('Testing ex substitute', function (rng, el, text, i, assert, done){
+	if (i == 3) return assert.expect(0);
+	rng.all('abcdef');
+	rng.ex('%s/a//g');
+	assert.equal(rng.all(), 'bcdef', 'blank replacement text works');
+	rng.ex(String.raw`%s/\w//g`);
+	assert.equal(rng.all(), '', 'blank replacement text with special characters works');
+	rng.all('ABCD.EF');
+	rng.ex('s');
+	assert.equal(rng.all(), '.', 'blank regular expression repeats substitution');
+	rng.all('ABCD.EF');
+	rng.ex('~');
+	assert.equal(rng.all(), 'BCD.EF', 'blank regular expression with ~ repeats substitution without flags');
+});
