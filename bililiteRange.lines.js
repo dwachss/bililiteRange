@@ -60,7 +60,8 @@ bililiteRange.override ('text', function (text, opts = {}){
 	return this.super(text, opts);
 });
 
-bililiteRange.createOption ('tabsize', {value: 8}); // 8 is the browser default
+bililiteRange.createOption ('tabsize', { value: 8, monitored: true }); // 8 is the browser default
+
 bililiteRange.extend({
 	char: function(){
 		return this[0] - this.clone().bounds('BOL')[0];

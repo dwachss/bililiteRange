@@ -32,6 +32,7 @@ bililiteRange = function(el){
 	if (!(el[datakey])){ // we haven't processed this element yet
 	
 		const data = createDataObject (el);
+		signalAllMonitors (el);
 	
 		// track the selection.
 		data.selection = [0,0];
@@ -594,20 +595,24 @@ NothingRange.prototype._nativeWrap = function() {throw new Error("Wrapping not i
 // data for elements, similar to jQuery data, but allows for monitoring with custom events
 const monitored = new Set();
 
+function signalMonitor(prop, value, element){
+	const attr = `data-${prop}`;
+	element.dispatchEvent(new CustomEvent(attr, {bubbles: true, detail: value}));
+	try{
+		element.setAttribute (attr, value); // illegal attribute names will throw. Ignore it			
+	} finally { /* ignore */ }
+}
+
+function signalAllMonitors (element){
+	monitored.forEach( prop => signalMonitor (prop, element[datakey][prop], element) )
+}
+
 function createDataObject (el){
 	return el[datakey] = new Proxy(new Data(el), {
 		set(obj, prop, value) {
 			obj[prop] = value;
-			if (monitored.has(prop)){
-				// signal in two ways
-				const attr = `data-${prop}`;
-				obj.sourceElement.dispatchEvent(new CustomEvent(attr, {bubbles: true, detail: value}));
-				try{
-					obj.sourceElement.setAttribute (attr, value); // illegal attribute names will throw. Ignore it			
-				} finally { /* ignore */ }
-			}
-		},
-		
+			if (monitored.has(prop)) signalMonitor(prop, value, obj.sourceElement);
+		}
 	});
 }
 
@@ -636,15 +641,13 @@ Object.defineProperty(Data.prototype, 'all', {
 	}
 });
 
-
-
 bililiteRange.createOption = function (name, desc = {}){
 	desc = Object.assign({
 		enumerable: true, // use these as the defaults
 		writable: true,
 		configurable: true
 	}, Object.getOwnPropertyDescriptor(Data.prototype, name), desc);
-	monitored[desc.monitored ? 'add' : 'delete'](name);
+	if ('monitored' in desc) monitored[desc.monitored ? 'add' : 'delete'](name);
 	Object.defineProperty(Data.prototype, name, desc);
 }
 
