@@ -222,6 +222,59 @@ Shorthand for `this.element.addEventListener(s, fn)`.
 ### `dontlisten(s, fn)`
 Shorthand for `this.element.removeEventListener(s, fn)`.
 
+## "Globals"
+
+There are a few methods and fields defined on the `bililiteRange` namespace, that act as "global" variables, applicable to all
+`bililiteRanges`
+
+### `bililiteRange.addStartupHook`
+
+`bililiteRange.addStartupHook ( fn )` adds `fn` to a `Set` of functions that are run when a `bililiteRange` is defined on an element for
+the first time. The function is called with `fn (element, range, data)`, the HTMLELement, the range that is being created, and `range.data`.
+This is how to add listeners for [monitored data](data.md#monitored-options):
+
+```js
+bililiteRange.createOption ('size', {value: 100, monitored: true});
+bililiteRange.addStartupHook( (element, range, data) => {
+	console.log (`starting an element with size = ${data.size}`); // the listener below will only be called on changes to the data
+	element.addEventListener ( 'data-size', evt => console.log (`changing size to ${evt.detail}`);
+});
+
+### `bililiteRange.bounds`
+
+See the [bounds documentation](bounds.md#custom-functions).
+
+### `bililiteRange.createOption`
+
+See the [data documentation](data.md#options).
+
+### `bililiteRange.diff`
+
+`bililiteRange.diff (oldText, newText)` is a convenience function that compares two texts and returns an object:
+
+```js
+{
+	unchanged, // true if oldText == newText, false otherwise
+	start, // character position where the two texts start to differ
+	oldText, // part of oldText that has been removed
+	newText // part of newText that has been added
+}
+```
+
+### `bililiteRange.override`
+
+See [above](#bililiterangeoverride-name-fn).
+
+### `bililiteRange.sendkeys`
+
+See the [sendkeys documentation](sendkeys.md#plugins).
+
+### `bililiteRange.version`
+
+Returns the version number.
+
+
+
 ## Other files
 
 ### `bililiteRange.find.js`
