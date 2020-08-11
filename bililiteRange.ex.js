@@ -665,7 +665,7 @@ var commands = bililiteRange.ex.commands = {
 /*********************** the options *********************************/
 
 function createOption (name, value){
-	bililiteRange.createOption(name, {value: value});
+	value = bililiteRange.createOption(name, value !== undefined ? {value: value} : {});
 	// now create a command to set the value, based on value's type
 	var constructor = value.constructor.name;
 	bililiteRange.ex.commands[name] = (createOption[constructor] || createOption.generic)(name);
@@ -720,11 +720,11 @@ createOption.RegExp = function (name){
 	}
 }
 
-createOption ('autoindent', false);
-createOption ('ignorecase', false);
-createOption ('magic', true);
-createOption ('tabsize', 8);
-createOption ('wrapscan', true);
+createOption ('autoindent');
+createOption ('ignorecase');
+createOption ('magic');
+createOption ('tabsize');
+createOption ('wrapscan');
 createOption ('directory', '');
 createOption ('file', 'document');
 

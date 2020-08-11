@@ -40,7 +40,6 @@ bililiteRange.version = 3.1;
 
 const startupHooks = new Set();
 bililiteRange.addStartupHook = fn => startupHooks.add(fn);
-startupHooks.add (signalAllMonitors);
 startupHooks.add (trackSelection);
 startupHooks.add (fixInputEvents);
 startupHooks.add (correctNewlines);
@@ -608,10 +607,6 @@ function signalMonitor(prop, value, element){
 	} finally { /* ignore */ }
 }
 
-function signalAllMonitors (element){
-	monitored.forEach( prop => signalMonitor (prop, element[datakey][prop], element) )
-}
-
 function createDataObject (el){
 	return el[datakey] = new Proxy(new Data(el), {
 		set(obj, prop, value) {
@@ -654,6 +649,7 @@ bililiteRange.createOption = function (name, desc = {}){
 	}, Object.getOwnPropertyDescriptor(Data.prototype, name), desc);
 	if ('monitored' in desc) monitored[desc.monitored ? 'add' : 'delete'](name);
 	Object.defineProperty(Data.prototype, name, desc);
+	return Data.prototype[name]; // return the default value
 }
 
 })();
