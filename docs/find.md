@@ -179,6 +179,9 @@ range.bounds('selection').bounds('to', '()', true).bounds('endbounds').select();
 
 ```
 
+Note that `word` uses `/\b/`, which is a zero-length separator, so `outer` is irrelevant, and repeatedly searching for it (as with
+`range.('to', 'word', true).bounds('endbounds')) will not move forward as it would with other separators.
+
 ### `bounds('from', separator: RegExp, outer = false)`
 
 Extends the beginning of the range back to the immediately preceding `separator` (forces `backward` to be true and `wrapscan` to be false). Does not include the

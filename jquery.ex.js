@@ -47,24 +47,55 @@ bililiteRange.prototype.exEditor = function($toolbar, $statusbar){
 		return false;
 	});
 	
-	// TODO: evim mapping
+	// A variation on VIM keys, in evim mode (starts with ctrl-o)
 	const vimobjects = {
-		w: 'words',
-		W: 'bigwords',
-		s: 'sentences',
-		p: 'paragraphs',
-		'[': 'sections',
-		'"': /"/,
-		"'": /;/
+		w: 'word',
+		W: 'bigword',
+		s: 'sentence',
+		p: 'paragraph',
+		'[': 'section',
+		'"': '"',
+		"'": "'",
+		'(': '()'
 	}
-	const evim = /ctrl-o v ([ai]) ([wWsp'"])/;
-	$element.on('keydown', keys: evim, evt => {
+	const vimverbs = {
+		// [ verb, outer, bounds to set ]
+		'': ['to', true, 'endbounds'],
+		B: ['from', true, 'startbounds'],
+		a: ['whole', true, undefined],
+		b: ['from', false, 'startbounds'],
+		i: ['whole', false, undefined],
+		t: ['to', false, 'endbounds'],
+	};
+	
+	const evim = RegExp (`ctrl-o ([${Object.keys(vimverbs).join('')}]) ([${Object.keys(vimobjects).join('')}])`);
+	$element.on('keydown', {keys: evim}, evt => {
 		const match = evim.exec(evt.hotkeys);
-		const outer = match[1] == 'a';
-		const item = vimobjects[match[2]];
-		if (item) this.bounds('selection').bounds('whole', item, outer).select();
+		const verb = vimverbs[match[1]];
+		this.bounds('selection').bounds(verb[0], vimobjects[match[2]], verb[1]);
+		this.bounds(verb[2]);
+		this.select();
 		return false;
 	});
+	const evim2 = RegExp (`ctrl-o ([${Object.keys(vimobjects).join('')}])`);
+	// no verb; means move to next 
+	$element.on('keydown', {keys: evim2}, evt => {
+		const match = evim2.exec(evt.hotkeys);
+		const verb = vimverbs[''];
+		this.bounds('selection').bounds(verb[0], vimobjects[match[1]], verb[1]);
+		this.bounds(verb[2]);
+		this.select();
+		return false;
+	});
+	const evim3 = /ctrl-o ([fF]) (.)/;
+	$element.on('keydown', {keys: evim3}, evt => {
+		const match = evim3.exec(evt.hotkeys);
+		const flags = match[1] == 'F' ? 'b' : '';
+		this.bounds('selection').bounds('find', match[2], flags);
+		this.select();
+		return false;
+	});
+	
 	
 	this.ex('%%source .exrc');
 	
