@@ -141,14 +141,19 @@ function correctNewlines (element, range, data){
 		range.clone().bounds('selection').
 			text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), {inputType: 'insertFromPaste'}).
 			bounds('endbounds').
-			select();
+			select().
+			scrollIntoView();
 		evt.preventDefault();
 	});
 	range.listen('keydown', function(evt){
 		if (evt.ctrlKey || evt.altKey || evt.shiftKey || evt.metaKey) return;
 		if (evt.defaultPrevented) return;
 		if (evt.key == 'Enter'){
-			range.clone().bounds('selection').text('\n', {inputType: 'insertLineBreak'}).bounds('endbounds').select();
+			range.clone().bounds('selection').
+				text('\n', {inputType: 'insertLineBreak'}).
+				bounds('endbounds').
+				select().
+				scrollIntoView();
 			evt.preventDefault();
 		}
 	});

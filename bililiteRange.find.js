@@ -33,14 +33,21 @@ bililiteRange.prototype.replace = function (search, replace, flags = ''){
 	);
 }		
 
-bililiteRange.createOption ('words', {value: /\b/});
-bililiteRange.createOption ('bigwords', {value: /\s+/});
-bililiteRange.createOption ('sentences', {value: /\n\n|\.\s/});
-bililiteRange.createOption ('paragraphs', {value: /\n\n/});
-bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
+bililiteRange.createOption ('word', {value: /\b/});
+bililiteRange.createOption ('bigword', {value: /\s+/});
+bililiteRange.createOption ('sentence', {value: /\n\n|\.\s/});
+bililiteRange.createOption ('paragraph', {value: /\n\n/});
+bililiteRange.createOption ('section', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
+bililiteRange.createOption ('()', {value: [/\(/, /\)/] });
+bililiteRange.createOption ('[]', {value: [/\[/, /]/] });
+bililiteRange.createOption ('{}', {value: [/\{/, /}/] });
+bililiteRange.createOption ('"', {value: [/"/, /"/] });
+bililiteRange.createOption ("'", {value: [/'/, /'/] });
 
 bililiteRange.bounds.to = function(name, separator, outer = false){
 	if (separator in this.data) separator = this.data[separator];
+	if (separator.length == 2) separator = separator[1];
+	if (!(separator instanceof RegExp)) separator = new RegExp (quoteRegExp (separator));
 	// end of text counts as a separator
 	const match = findprimitive(`(${separator.source})|$`, 'g'+separator.flags, this.all(), this[1],  this.length);
 	return this.bounds('union', outer ? match.index + match[0].length : match.index);
@@ -48,6 +55,7 @@ bililiteRange.bounds.to = function(name, separator, outer = false){
 
 bililiteRange.bounds.from = function(name, separator, outer = false){
 	if (separator in this.data) separator = this.data[separator];
+	if (separator.length == 2) separator = separator[0];
 	if (!(separator instanceof RegExp)) separator = new RegExp (quoteRegExp (separator));
 	// start of text counts as a separator
 	const match = findprimitiveback(`(${separator.source})|^`, 'g'+separator.flags, this.all(), 0,  this[0]);
@@ -55,7 +63,8 @@ bililiteRange.bounds.from = function(name, separator, outer = false){
 };
 
 bililiteRange.bounds.whole = function(name, separator, outer = false){
-	return this.bounds('union', 'from', separator).bounds('union', 'to', separator, outer);
+	// if it's a two-part separator (like parentheses or quotes) then "outer" should include both.
+	return this.bounds('union', 'from', separator, outer && this.data[separator]?.length == 2).bounds('union', 'to', separator, outer);
 };
 
 //------- private functions -------
