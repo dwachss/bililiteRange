@@ -239,6 +239,7 @@ bililiteRange.addStartupHook( (element, range, data) => {
 	console.log (`starting an element with size = ${data.size}`); // the listener below will only be called on changes to the data
 	element.addEventListener ( 'data-size', evt => console.log (`changing size to ${evt.detail}`);
 });
+```
 
 ### `bililiteRange.bounds`
 
