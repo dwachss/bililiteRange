@@ -89,7 +89,7 @@ localStorage.setItem('.exrc', `
 command [`map`](ex.md#map) triggers a `map` event with a left hand side and a right hand side (they are separated by the first space; use
 quotes to include spaces in the left hand side.
 
-For key mappings, the left hand side is the key descriptor to pass to the `keydown` handler, using my [`keymap`](../../keymap/README.md)
+For key mappings, the left hand side is the key descriptor to pass to the `keydown` handler, using my [`keymap`](../../keymap/)
  jQuery plugin. The right hand side is the `ex` command to execute with the current selection as the default address.
 
 So, in the `,exrc` above, control-S is mapped to `range.ex('%%write')` (the `%%` address means the current selection).
@@ -139,5 +139,5 @@ toolbar.observerElement(button, 'data-savestatus');
 and the `savestatus` option is set to `dirty` when the text is edited and `clean` when it is saved, so the class of the button will change and you can use CSS to
 style it appropriately.
 
-See the [documentation for `toolbar`](../../toolbar/README.md) for the details about toolbars and buttons.
+See the [documentation for `toolbar`](../../toolbar/) for the details about toolbars and buttons.
 

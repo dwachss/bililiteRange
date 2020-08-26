@@ -43,7 +43,7 @@ manual.
 ## `bililiteRange.prototype.executor`
 
 Convenience function that returns a function that calls `bililiteRange.prototype.ex`. Useful as an event handler, or 
-a [`toolbar`](../../toolbar/README.md) `run` function.
+a [`toolbar`](../../toolbar/) `run` function.
 
 ### Usage
 
