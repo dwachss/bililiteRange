@@ -166,7 +166,7 @@ Since I use Markdown so much, the defaults are:
 bililiteRange.createOption ('word', {value: /\b/});
 bililiteRange.createOption ('bigword', {value: /\s+/});
 bililiteRange.createOption ('sentence', {value: /\n\n|\.\s/});
-bililiteRange.createOption ('paragraph', {value: /\n\n/});
+bililiteRange.createOption ('paragraph', {value: /\n\s*\n/});
 bililiteRange.createOption ('section', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
 bililiteRange.createOption ('()', {value: [/\(/, /\)/] });
 bililiteRange.createOption ('[]', {value: [/\[/, /]/] });
