@@ -196,5 +196,5 @@ the word but leaves the initial whitespace in place.
 For two-item separators, `outer` applies to both ends. So `range.bounds('whole', '"', true).text('')` deletes the entire quote, including the surrounding double quotes.
 
 ```js
-range.bounds('selection').bounds('whole', 'sections').select(); // select the entire current section
+range.bounds('selection').bounds('whole', 'section').select(); // select the entire current section
 ```

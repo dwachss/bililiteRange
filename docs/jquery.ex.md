@@ -30,9 +30,13 @@ $('#editor').ex($('#toolbar'), $('#statusbar'));
 The first argument to $.fn.ex is the element to contain the toolbar, and the second is the element to contain the message line and 
 the input element for `ex` commands.
 
+### Demo
+
+[An editor with live Markdown conversion and some silly toolbar buttons and key mappings](../test/littleeditor.html).
+
 ## Key Mappings
 
-It includes a number of keymappings that are based on [VIM](https://vimhelp.org/), but that I found more useful. 
+It includes a number of key mappings that are based on [VIM](https://vimhelp.org/), but that I found more useful. 
 
 All commands start with `ctrl-o` (like [evim](https://vimhelp.org/starting.txt.html#evim-keys)).
 
@@ -85,9 +89,55 @@ localStorage.setItem('.exrc', `
 command [`map`](ex.md#map) triggers a `map` event with a left hand side and a right hand side (they are separated by the first space; use
 quotes to include spaces in the left hand side.
 
-For keymappings, the left hand side is the key descriptor to pass to the `keydown` handler, using my [`keymap`](../../keymap/README.md)
+For key mappings, the left hand side is the key descriptor to pass to the `keydown` handler, using my [`keymap`](../../keymap/README.md)
  jQuery plugin. The right hand side is the `ex` command to execute with the current selection as the default address.
 
 So, in the `,exrc` above, control-S is mapped to `range.ex('%%write')` (the `%%` address means the current selection).
 control-B is mapped to a [`sendkeys` command](index.md#sendkeyss-string) to surround the selection with the `<strong>` tag.
+
+To map multiple keys, put the left hand side in quotes:
+
+```js
+rng.ex('map "^o j" join');
+```
+
+For buttons, the left hand side is the name of the button. There are two syntaxes for the right hand side. The simple one is just the command:
+
+```js
+rng.ex('map! Hello append Hello');
+```
+
+This does:
+
+```js
+toolbar.button(lefthandside, righthandside); // in this case, toolbar.button('Hello', 'append Hello'); 
+```
+
+The complex syntax is in the form: `command="command string" title="Tooltip title" observe="attribute to observe"` (in any order, and all but `command` are optional).
+
+This does:
+
+```js
+button = toolbar.button(lefthandside, command, title);
+if (observe) toolbar.observerElement(button, observe);
+```
+So buttons can be set to observe changes in the element (remembering that monitored bililiteRange data changes attributes named, for instance `data-foo`). The button will
+then get a class equal to the value of the attribute of the range element named `observe`.
+
+So
+
+```js
+rng.ex('map! Save command=write observe=data-savestatus' title="Save the text to the current file");`
+```
+
+will do:
+
+```js
+button = toolbar.button('Save', 'write', 'Save the text to the current file');
+toolbar.observerElement(button, 'data-savestatus');
+```
+and the `savestatus` option is set to `dirty` when the text is edited and `clean` when it is saved, so the class of the button will change and you can use CSS to
+style it appropriately.
+
+See the [documentation for `toolbar`](../../toolbar/README.md) for the details about toolbars and buttons.
 

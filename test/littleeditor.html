@@ -89,6 +89,7 @@
 		}
 		#statusbar input {
 			flex: auto;
+			bidi: bidi-override;
 		}
 		#statusbar .success {
 			color: green;
@@ -105,20 +106,42 @@
 		button.dirty {
 			color: red;
 		}
+		button.Direction::before {
+			content: 'A→';
+		}
+		button.Direction.rtl::before {
+			content: '←א';
+		}
 	</style>
 </head>
 <body>
 	<div id=toolbar></div>
 	<pre  id=editor contenteditable spellcheck=false >
-# bililiteRange
+# The little editor
 
-A Javascript library for text ranges. Features:
-
-* Select arbitrary sequences of characters.
-* Replace text
-* Find text in elements
-* Implements the 
-[ex](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/ex.html) line editor
+All commands start with `ctrl-o` (like [evim](https://vimhelp.org/starting.txt.html#evim-keys)).
+There are really only three commands:
+1. `ctrl-o :` allows entry of any [ex](ex.md) command.
+2. `ctrl-o [fF] any-character` Finds the next (for `f`) or previous (for `F`) occurence of the character. Works for printable characters
+only, not space, tab or newline.
+3. `ctrl-o [verb] [object]` uses `bililiteRange` [`find`](../find.md) to select "objects". Possible values for `verb` include:
+ * nothing: go to the beginning of the next object
+ * `t`: go to the end of the current object
+ * `b`: go to the beginning of the current object
+ * `B`: go to the end of the previous object
+ * `i`: select the entire current object (but not the separators)
+ * `a`: select the entire current object and its separators (for some objects, only the ending separators. see the description of
+[`range.bounds('whole', object, true)`](../docs/find.md#boundswhole-separator-regexp-outer)
+	
+	Possible values for `object` include (see the [documentation](../docs/find.md#options-for-separators) for the definitions of these objects):
+	* `w`: word
+	* `W`: bigword
+	* `s`: sentence
+	* `p`: paragraph
+	* `[`: section
+	* `(`: parentheses
+	* `'`: single-quote delimited quote
+	* `"`: double-quote delimited quote
 
 </pre>
 	<div id=statusbar><span id=wordcount></span></div>
@@ -142,14 +165,18 @@ A Javascript library for text ranges. Features:
 		const editor = $editor[0];
 		localStorage.setItem('.exrc', `
 			map ^s write
-			map ^r reverse
-			map! Save command=write observe=savestatus
+			map ^b sendkeys "**{selection}{mark}**"
+			map ^r .reverse
+			map "^o j" join
+			map! Save command=write observe=data-savestatus
 			map! Global global toggle
-			map! Ping sendkeys Ping
+			map! Ping append Ping
 			map! Spellcheck spellcheck toggle
+			map! Direction command="!Toolbar.toggleAttribute (this.element, 'style.direction', ['ltr', 'rtl']);" observe=style.direction title="Toggle Text Direction"
 			map! "BiDi Off" command="bidi toggle" title="Toggle the Bidirectional Text Algorithm"
 		`);
-		const rng = bililiteRange(editor).exEditor($('#toolbar'), $('#statusbar'));
+		const rng = bililiteRange(editor);
+		$editor.ex($('#toolbar'), $('#statusbar'));
 		
 
 		bililiteRange.ex.commands.reverse = function (){
