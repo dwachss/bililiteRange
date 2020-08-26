@@ -152,25 +152,35 @@ range.all('123\n456').bounds([4,5]).bounds('to', /\n/); // range.text() is '456'
 range.all('123\n456').bounds('start').bounds('to', /\n/, true); // range.text() is '123\n'
 ```
 
-`separator` is either a RegExp or a string (which is taken literally).
+`separator` is either a RegExp or a string (which is taken literally), or an array of two of those: the first is the starting delimiter and the second is the ending delimiter.
+That is used for things like parentheses. `bounds('to')` uses the second; `bounds('from')` uses the first.
 
 #### Options for separators
 
 If `separator` is the name of a `bililiteRange` option (i.e. `range.data[separator]` exists), then that value is used as the separator. This is meant to be used like
-[vi](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/vi.html)'s paragraph and section boundary searches. For consistency with that, the predefined `RegExp`s
-are `words, `bigwords`, `sentences`, `paragraphs` and `sections`, rather than `word`, etc. Think of them as being short for `wordseparator` etc.
+[vi](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/vi.html)'s paragraph and section boundary searches.
 
 Since I use Markdown so much, the defaults are:
 
 ```js
-bililiteRange.createOption ('words', {value: /\b/});
-bililiteRange.createOption ('bigwords', {value: /\s+/});
-bililiteRange.createOption ('sentences', {value: /\n\n|\.\s/});
-bililiteRange.createOption ('paragraphs', {value: /\n\n/});
-bililiteRange.createOption ('sections', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
+bililiteRange.createOption ('word', {value: /\b/});
+bililiteRange.createOption ('bigword', {value: /\s+/});
+bililiteRange.createOption ('sentence', {value: /\n\n|\.\s/});
+bililiteRange.createOption ('paragraph', {value: /\n\n/});
+bililiteRange.createOption ('section', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
+bililiteRange.createOption ('()', {value: [/\(/, /\)/] });
+bililiteRange.createOption ('[]', {value: [/\[/, /]/] });
+bililiteRange.createOption ('{}', {value: [/\{/, /}/] });
+bililiteRange.createOption ('"', {value: [/"/, /"/] });
+bililiteRange.createOption ("'", {value: [/'/, /'/] });
 
-range.bounds('selection').bounds('to', 'paragraphs').bounds('endbounds').select(); // jump to end of current paragraph
+range.bounds('selection').bounds('to', 'paragraph').bounds('endbounds').select(); // jump to end of current paragraph
+range.bounds('selection').bounds('to', '()', true).bounds('endbounds').select(); // jump to just after the next closng parenthesis
+
 ```
+
+Note that `word` uses `/\b/`, which is a zero-length separator, so `outer` is irrelevant, and repeatedly searching for it (as with
+`range.('to', 'word', true).bounds('endbounds')) will not move forward as it would with other separators.
 
 ### `bounds('from', separator: RegExp, outer = false)`
 
@@ -180,9 +190,11 @@ separator itself unless `outer` is true. `separator` is the same as for `bounds(
 ### `bounds('whole', separator: RegExp, outer)`
 
 Does `range.bounds('union', 'from', separator).bounds('union', 'to', separator, outer)`.
-Note that `outer` applies only to the final separator, not the initial one. So `range.bounds('whole', 'word', true).text('')` deletes
+For single item separators, `outer` applies only to the final separator, not the initial one. So `range.bounds('whole', 'word', true).text('')` deletes
 the word but leaves the initial whitespace in place.
 
+For two-item separators, `outer` applies to both ends. So `range.bounds('whole', '"', true).text('')` deletes the entire quote, including the surrounding double quotes.
+
 ```js
-range.bounds('selection').bounds('whole', 'sections').select(); // select the entire current section
+range.bounds('selection').bounds('whole', 'section').select(); // select the entire current section
 ```

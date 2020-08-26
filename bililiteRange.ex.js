@@ -5,8 +5,6 @@ bililiteRange.ex = {}; // namespace for exporting utility functions
 
 const exkey = Symbol(); // marker that an element has been processed already
 
-const version = '3.0';
-
 bililiteRange.createOption ('stdout', {value: console.log, enumerable: false});
 bililiteRange.createOption ('stderr', {value: console.error, enumerable: false});
 bililiteRange.createOption ('reader', {
@@ -23,20 +21,24 @@ bililiteRange.createOption ('writer', {
 // range.data.writer = async (text, file, dir) => $.post(file, {text: text});
 bililiteRange.createOption ('savestatus', { monitored: true, value: 'clean' });
 
-bililiteRange.prototype.executor = function (command){
+bililiteRange.prototype.executor = function (command, returnvalue){
 	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
-	return text => this.bounds('selection').
-	 ex(command || text, '%%').
-	 select().
-	 scrollIntoView().
-	 element.
-	 focus();
+	const el = this.element;
+	return text => {		
+		bililiteRange(el).bounds('selection').
+		 ex(command || text, '%%').
+		 select().
+		 scrollIntoView().
+		 element.
+		 focus();
+		return returnvalue;
+	}
 };
 
 bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.'){
 	const data = this.data;
 	if (!this.element[exkey]){
-		this.element[exkey] = version;
+		this.element[exkey] = bililiteRange.version;
 		this.initUndo();
 		data.directory = this.window.location.protocol + '//' + this.window.location.hostname;
 		data.file = this.window.location.pathname;
@@ -397,7 +399,7 @@ var commands = bililiteRange.ex.commands = {
 	
 	edit: function (parameter, variant){
 		if (this.data.savestatus == 'dirty' && !variant){
-			throw new Error (file + 'not saved. Use edit! to force reloading');
+			throw new Error (this.data.file + ' not saved. Use edit! to force reloading');
 		}
 		const file = parameter || this.data.file;
 		this.data.reader(file, this.data.directory).then( text => {
@@ -470,8 +472,8 @@ var commands = bililiteRange.ex.commands = {
 	
 	map: function (parameter, variant){
 		const parameters = splitCommands (parameter, ' ');
-		const rhs = string(parameters.shift());
-		const lhs = string(parameters.join(' '));
+		const lhs = string(parameters.shift());
+		const rhs = string(parameters.join(' '));
 		this.dispatch ({type: 'map', detail: { command: 'map', variant, rhs, lhs }});
 	},
 
@@ -489,10 +491,9 @@ var commands = bililiteRange.ex.commands = {
 		targetrng.bounds('endbounds');
 		this.bounds('andnewline').text('', {inputType: 'deleteByDrag'});
 		targetrng.text(text, {
-			select: 'start',
 			ownline: true,
 			inputType: 'insertFromDrop'
-		});
+		}).bounds('startbounds');
 		if (targetrng[0] >= this[0]) targetrng[0] -= text.length; // account for the removed text
 		this.bounds(targetrng[0]);
 	},
@@ -506,18 +507,16 @@ var commands = bililiteRange.ex.commands = {
 	put: function (parameter, variant){
 		this.bounds('EOL').text(popRegister(parameter), {
 			inputType: 'insertFromYank',
-			select: 'end',
 			ownline: true
-		});
+		}).bounds('endbounds');
 	},
 	
 	read: function (parameter, variant){
 		const file = parameter || this.data.file;
 		this.data.reader(file, this.data.directory).then( text => {
 			this.bounds('EOL').text(text, {
-				select: 'end',
 				ownline: true
-			});
+			}).bounds('endbounds');
 			this.data.stdout(file + ' read');
 		}).catch(
 			err => this.data.stderr(new Error (file + ' not read'))
@@ -565,9 +564,10 @@ var commands = bililiteRange.ex.commands = {
 	source: function (parameter, variant){
 		if (!parameter) throw new Error ('No file named in source');
 		this.data.reader(parameter, this.data.directory).then( sourcefile => {
-			sourcefile.split('\n').forEach ( line => this.ex(line) );
+			// blank lines should be ignored, not interpreted as print
+			sourcefile.split('\n').filter( line => line.trim() ).forEach ( line => this.ex(line) );
 		}).catch(
-			err => this.data.stderr(new Error (file + ' not read in source'))
+			err => console.error(err) // this.data.stderr(new Error (parameter + ' not read in source'))
 		);
 	},
 
@@ -660,14 +660,14 @@ var commands = bililiteRange.ex.commands = {
 	
 	'!': function (parameter, variant){
 		// not a shell escape but a Javascript escape
-		this.text(Function (parameter).call(this), {select: 'end'});
+		this.text(Function (parameter).call(this));
 	}
 };
 
 /*********************** the options *********************************/
 
 function createOption (name, value){
-	bililiteRange.createOption(name, {value: value});
+	value = bililiteRange.createOption(name, value !== undefined ? {value: value} : {});
 	// now create a command to set the value, based on value's type
 	var constructor = value.constructor.name;
 	bililiteRange.ex.commands[name] = (createOption[constructor] || createOption.generic)(name);
@@ -722,11 +722,11 @@ createOption.RegExp = function (name){
 	}
 }
 
-createOption ('autoindent', false);
-createOption ('ignorecase', false);
-createOption ('magic', true);
-createOption ('tabsize', 8);
-createOption ('wrapscan', true);
+createOption ('autoindent');
+createOption ('ignorecase');
+createOption ('magic');
+createOption ('tabsize');
+createOption ('wrapscan');
 createOption ('directory', '');
 createOption ('file', 'document');
 

@@ -29,93 +29,76 @@ bililiteRange = function(el){
 	// There's no good way to do this. I just assume that a mousedown (or a drag and drop
 	// into the element) within 100 ms of the focus event must have caused the focus, and
 	// therefore we should not restore the selection.
-	if (!(el[datakey])){ // we haven't processed this element yet
-	
+	if (!(el[datakey])){ // we haven't processed this element yet	
 		const data = createDataObject (el);
-		signalAllMonitors (el);
-	
-		// track the selection.
-		data.selection = [0,0];
-		ret.listen('focusout', () => data.selection = ret._nativeSelection() );
-		
-		ret.listen('mousedown', evt => {
-			data.mousetime = evt.timeStamp;
-		})
-		ret.listen('drop', evt => {
-			data.mousetime = evt.timeStamp;
-		})
-		ret.listen('focus', evt => {
-			if ('mousetime' in data && evt.timeStamp - data.mousetime < 100) return;
-			ret._nativeSelect(ret._nativeRange(data.selection))
-		})
-
-		// DOM 3 input events, https://www.w3.org/TR/input-events-1/
-		// have a data field with the text inserted, but thatisn't enough to fully describe the change;
-		// we need to know the old text (or at least its length)
-		// and *where* the new text was inserted.
-		// So we enhance input events with that information. 
-		// the "newText" should always be the same as the 'data' field, if it is defined
-		data.oldText = ret.all();
-		data.liveRanges = new Set();
-		ret.listen('input', evt => {
-			const newText = ret.all();
-			if (!evt.bililiteRange){
-				evt.bililiteRange = diff (data.oldText, newText);
-				if (evt.bililiteRange.unchanged){
-					// no change. Assume that whatever happened, happened at the selection point (and use whatever data the browser gives us).
-					evt.bililiteRange.start = ret.clone().bounds('selection')[1] - (evt.data || '').length;
-				}
-			}
-			data.oldText = newText;
-			
-			// Also update live ranges on this element
-			data.liveRanges.forEach( rng => {
-				const start = evt.bililiteRange.start;
-				const oldend = start + evt.bililiteRange.oldText.length;
-				const newend = start + evt.bililiteRange.newText.length;
-				// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
-				let [b0, b1] = rng.bounds();
-				if (b0 <= start){
-					// no change
-				}else if (b0 > oldend){
-					b0  += newend - oldend;
-				}else{
-					b0  = newend;
-				}
-				if (b1 < start){
-					// no change
-				}else if (b1 >= oldend){
-					b1 += newend - oldend;
-				}else{
-					b1 = start;
-				}
-				rng.bounds([b0, b1]);				
-			})
-		});
-		
-		// we need to insert newlines rather than create new elements, so character-based calculations work
-		ret.listen('paste', evt => {
-			if (!evt.defaultPrevented) {
-				// windows adds \r's to clipboard!
-				ret.clone().bounds('selection').
-					text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), {inputType: 'insertFromPaste'}).
-					bounds('endbounds').
-					select();
-				evt.preventDefault();
-			}
-		});
-		ret.listen('keydown', function(evt){
-			if (evt.ctrlKey || evt.altKey || evt.shiftKey || evt.metaKey) return;
-			if (evt.defaultPrevented) return;
-			if (evt.key == 'Enter'){
-				ret.clone().bounds('selection').text('\n', {inputType: 'insertLineBreak'}).bounds('endbounds').select();
-				evt.preventDefault();
-			}
-		});
-
-	}
-	
+		startupHooks.forEach ( hook => hook (el, ret, data) );
+	}	
 	return ret;
+}
+
+bililiteRange.version = 3.1;
+
+const startupHooks = new Set();
+bililiteRange.addStartupHook = fn => startupHooks.add(fn);
+startupHooks.add (trackSelection);
+startupHooks.add (fixInputEvents);
+startupHooks.add (correctNewlines);
+
+function trackSelection (element, range, data){
+	data.selection = [0,0];
+	range.listen('focusout', evt => data.selection = range._nativeSelection() );	
+	range.listen('mousedown', evt => data.mousetime = evt.timeStamp );
+	range.listen('drop', evt => data.mousetime = evt.timeStamp );
+	range.listen('focus', evt => {
+		if ('mousetime' in data && evt.timeStamp - data.mousetime < 100) return;
+		range._nativeSelect(range._nativeRange(data.selection))
+	})
+}
+
+function fixInputEvents (element, range, data){
+	// DOM 3 input events, https://www.w3.org/TR/input-events-1/
+	// have a data field with the text inserted, but thatisn't enough to fully describe the change;
+	// we need to know the old text (or at least its length)
+	// and *where* the new text was inserted.
+	// So we enhance input events with that information. 
+	// the "newText" should always be the same as the 'data' field, if it is defined
+	data.oldText = range.all();
+	data.liveRanges = new Set();
+	range.listen('input', evt => {
+		const newText = range.all();
+		if (!evt.bililiteRange){
+			evt.bililiteRange = diff (data.oldText, newText);
+			if (evt.bililiteRange.unchanged){
+				// no change. Assume that whatever happened, happened at the selection point (and use whatever data the browser gives us).
+				evt.bililiteRange.start = range.clone().bounds('selection')[1] - (evt.data || '').length;
+			}
+		}
+		data.oldText = newText;
+		
+		// Also update live ranges on this element
+		data.liveRanges.forEach( rng => {
+			const start = evt.bililiteRange.start;
+			const oldend = start + evt.bililiteRange.oldText.length;
+			const newend = start + evt.bililiteRange.newText.length;
+			// adjust bounds; this tries to emulate the algorithm that Microsoft Word uses for bookmarks
+			let [b0, b1] = rng.bounds();
+			if (b0 <= start){
+				// no change
+			}else if (b0 > oldend){
+				b0  += newend - oldend;
+			}else{
+				b0  = newend;
+			}
+			if (b1 < start){
+				// no change
+			}else if (b1 >= oldend){
+				b1 += newend - oldend;
+			}else{
+				b1 = start;
+			}
+			rng.bounds([b0, b1]);				
+		})
+	});
 }
 
 function diff (oldText, newText){
@@ -149,6 +132,32 @@ function diff (oldText, newText){
 	}
 };
 bililiteRange.diff = diff; // expose
+
+function correctNewlines (element, range, data){
+	// we need to insert newlines rather than create new elements, so character-based calculations work
+	range.listen('paste', evt => {
+		if (evt.defaultPrevented) return;
+		// windows adds \r's to clipboard!
+		range.clone().bounds('selection').
+			text(evt.clipboardData.getData("text/plain").replace(/\r/g,''), {inputType: 'insertFromPaste'}).
+			bounds('endbounds').
+			select().
+			scrollIntoView();
+		evt.preventDefault();
+	});
+	range.listen('keydown', function(evt){
+		if (evt.ctrlKey || evt.altKey || evt.shiftKey || evt.metaKey) return;
+		if (evt.defaultPrevented) return;
+		if (evt.key == 'Enter'){
+			range.clone().bounds('selection').
+				text('\n', {inputType: 'insertLineBreak'}).
+				bounds('endbounds').
+				select().
+				scrollIntoView();
+			evt.preventDefault();
+		}
+	});
+}
 
 // convenience function for defining input events
 function inputEventInit(type, oldText, newText, start, inputType){
@@ -603,10 +612,6 @@ function signalMonitor(prop, value, element){
 	} finally { /* ignore */ }
 }
 
-function signalAllMonitors (element){
-	monitored.forEach( prop => signalMonitor (prop, element[datakey][prop], element) )
-}
-
 function createDataObject (el){
 	return el[datakey] = new Proxy(new Data(el), {
 		set(obj, prop, value) {
@@ -649,6 +654,7 @@ bililiteRange.createOption = function (name, desc = {}){
 	}, Object.getOwnPropertyDescriptor(Data.prototype, name), desc);
 	if ('monitored' in desc) monitored[desc.monitored ? 'add' : 'delete'](name);
 	Object.defineProperty(Data.prototype, name, desc);
+	return Data.prototype[name]; // return the default value
 }
 
 })();

@@ -96,6 +96,11 @@ Returns the line number (1-indexed) of the start of the range.
 
 Returns an array of `[start, end]`, the line numbers of the start and end of the range.
 
+## `tabsize`
+
+`range.data.tabsize` is a [monitored option](data.md#monitored-options), with an event listener that changes the 
+[CSS `tab-size`](https://developer.mozilla.org/en-US/docs/Web/CSS/tab-size) option on the
+element (note that it is spelled `tabsize`, not `tabSize` or `tab-size`).
 
 ## `sendkeys` extensions
 

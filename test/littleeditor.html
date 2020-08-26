@@ -1,0 +1,201 @@
+
+<!doctype html5>
+<html>
+<head>
+	<title>bililiteRange Editor</title>
+	<meta charset="utf-8" />
+	<style>
+		html {
+			height: 100vh;
+		}
+		body {
+			display: flex;
+			flex-direction: column;
+			margin: 0;
+			height: 100vh;
+			font-size: 18px;
+		}
+		#editor {
+			flex: 2;
+			border: 1px solid black;
+			padding: 5px;
+			margin: 2px;
+			overflow: auto;
+		}
+		#output {
+			flex: 1;
+			padding: 5px;
+			overflow: auto;
+		}
+		[role="toolbar"]{
+			counter-reset: buttoncounter;
+			margin: 2px 10px;
+		}
+		[role="toolbar"] button {
+			height: 1.3em;
+			position: relative;
+			padding: 1px 4px 14px;
+			min-width: 1.5em;
+			vertical-align: bottom;
+			counter-increment: buttoncounter;
+			outline: none; /* we will use the highlighting below to indicate focus */
+		}
+		[role="toolbar"] button::before {
+			content: attr(name);
+			position: relative;
+			bottom: 0.1em;
+		}
+		[role="toolbar"] button::after {
+			position: absolute;
+			right: 0;
+			width: 100%;
+			text-align: center;
+			bottom: 0.1em;
+		}
+		[role="toolbar"].capturing-menu:focus-within:not(:active) button::after {
+			content: counter(buttoncounter, upper-alpha);
+			position: absolute;
+			opacity: 20%;
+			z-index: 1;
+			top: -0.3em;
+			left: 0;
+			width: 100%;
+			font-size: 36px;
+			font-family: sans-serif;
+			font-style: normal;
+			color: black;
+			font-weight: bold;
+			animation: none;
+		}
+		[role="toolbar"] button.highlight , [role="toolbar"] button[aria-pressed="true"]{
+			background: linear-gradient(ThreeDHighlight, ThreeDHighlight, ButtonFace);
+			border: 2px inset buttonface;
+			border-radius: 4px;
+		}
+		[role="toolbar"] button:focus {
+			background: linear-gradient(ThreeDHighlight, ThreeDHighlight, ButtonFace);
+			border: 2px inset black;
+			border-radius: 4px;
+		}	
+		#statusbar {
+			padding: 2px;
+		}
+		#statusbar label {
+			display: flex;
+		}
+		#statusbar label strong {
+			/* the prompt */
+			padding-right: 2px;
+		}
+		#statusbar input {
+			flex: auto;
+			bidi: bidi-override;
+		}
+		#statusbar .success {
+			color: green;
+			padding: 0 2px;
+		}
+		#statusbar .failure {
+			color: red;
+			padding: 0 2px;
+		}
+		#wordcount {
+			float: right;
+			margin: 0 1em;
+		}
+		button.dirty {
+			color: red;
+		}
+		button.Direction::before {
+			content: 'A→';
+		}
+		button.Direction.rtl::before {
+			content: '←א';
+		}
+	</style>
+</head>
+<body>
+	<div id=toolbar></div>
+	<pre  id=editor contenteditable spellcheck=false >
+# The little editor
+
+All commands start with `ctrl-o` (like [evim](https://vimhelp.org/starting.txt.html#evim-keys)).
+There are really only three commands:
+1. `ctrl-o :` allows entry of any [ex](ex.md) command.
+2. `ctrl-o [fF] any-character` Finds the next (for `f`) or previous (for `F`) occurence of the character. Works for printable characters
+only, not space, tab or newline.
+3. `ctrl-o [verb] [object]` uses `bililiteRange` [`find`](../find.md) to select "objects". Possible values for `verb` include:
+ * nothing: go to the beginning of the next object
+ * `t`: go to the end of the current object
+ * `b`: go to the beginning of the current object
+ * `B`: go to the end of the previous object
+ * `i`: select the entire current object (but not the separators)
+ * `a`: select the entire current object and its separators (for some objects, only the ending separators. see the description of
+[`range.bounds('whole', object, true)`](../docs/find.md#boundswhole-separator-regexp-outer)
+	
+	Possible values for `object` include (see the [documentation](../docs/find.md#options-for-separators) for the definitions of these objects):
+	* `w`: word
+	* `W`: bigword
+	* `s`: sentence
+	* `p`: paragraph
+	* `[`: section
+	* `(`: parentheses
+	* `'`: single-quote delimited quote
+	* `"`: double-quote delimited quote
+
+</pre>
+	<div id=statusbar><span id=wordcount></span></div>
+	<div id=output></div>
+
+	<script src=http://code.jquery.com/jquery-3.5.1.js ></script>
+	<script src="../../historystack/history.js"></script>
+	<script src="../bililiteRange.js"></script>
+	<script src="../bililiteRange.undo.js"></script>
+	<script src="../bililiteRange.lines.js"></script>
+	<script src="../bililiteRange.find.js"></script>
+	<script src="../bililiteRange.ex.js"></script>
+	<script src="../../toolbar/toolbar.js"></script>
+	<script src="../../status/jquery.status.js"></script>
+	<script src="../../keymap/jquery.keymap.js"></script>
+	<script src="../jquery.ex.js"></script>
+	<script src="http://cdn.jsdelivr.net/npm/marked"></script>
+	
+	<script>
+		const $editor = $('#editor');
+		const editor = $editor[0];
+		localStorage.setItem('.exrc', `
+			map ^s write
+			map ^b sendkeys "**{selection}{mark}**"
+			map ^r .reverse
+			map "^o j" join
+			map! Save command=write observe=data-savestatus
+			map! Global global toggle
+			map! Ping append Ping
+			map! Spellcheck spellcheck toggle
+			map! Direction command="!Toolbar.toggleAttribute (this.element, 'style.direction', ['ltr', 'rtl']);" observe=style.direction title="Toggle Text Direction"
+			map! "BiDi Off" command="bidi toggle" title="Toggle the Bidirectional Text Algorithm"
+		`);
+		const rng = bililiteRange(editor);
+		$editor.ex($('#toolbar'), $('#statusbar'));
+		
+
+		bililiteRange.ex.commands.reverse = function (){
+			this.text(this.text().split('\n').map(function(s){
+				return s.split(/[ ]+/).reverse().join(' ');
+			}).join('\n'));
+		};
+		
+		bililiteRange.ex.createAttributeOption ('spellcheck', ['true', 'false']);
+		bililiteRange.ex.createAttributeOption ('bidi', ['normal', 'bidi-override'], 'style.unicodeBidi');
+		
+		const $output = $('#output');
+		$editor.on('input', evt => $output.html(marked(rng.all())));
+		$editor.on('input', evt => {
+			var wc = rng.all().split(/\s+/).length - 1;
+			$('#wordcount').text(wc+' words')
+		});
+		
+		$editor.trigger('input').focus(); // trigger an input event to set up the wordcount display
+	</script>
+</body>
+</html>

@@ -40,6 +40,30 @@ The "current line" is set to the line containing the *start* of `range.bounds()`
 After executing the command, the bounds of the range are set to the end of the "current line" as defined in the *ex*
 manual.
 
+## `bililiteRange.prototype.executor`
+
+Convenience function that returns a function that calls `bililiteRange.prototype.ex`. Useful as an event handler, or 
+a [`toolbar`](../../toolbar/README.md) `run` function.
+
+### Usage
+
+```js
+button.addEventListener ('click', range.executor (command, returnValue) );
+```
+
+`range.executor (command, returnValue)` returns a function that runs `ex(command)` on the selection (the selection at the time the
+selection is run), with a default address of `'%%'` (meaning the selection, not the current line), and returns `returnValue`. If `command`
+is not defined, then the function takes a single argument that is the command to be run. Thus:
+
+```js
+Promise.resolve( prompt('Enter a command')).then( range.executor() );
+```
+
+`returnValue` is necessary because event handlers may want to return `false` to prevent further handling, but `Promise.then` functions
+should return `undefined` to pass the result through unchanged.
+
+Note that `ex` acts on the *range*, independent of the actual selection, `executor` acts on the *selection*.
+
 ## "Files"
 
 Javascript is not directly connected to the file system, so `bililiteRange.ex` creates several options:

@@ -58,6 +58,8 @@ and other methods for dealing with line-oriented text. Depends on `bililiteRange
 `bililiteRange.prototype.redo()`. Depends on `bililiteRange.js`.
 - [ex.md](docs/ex.md): documentation of `bililite.ex.js` that implements (sort of) the 
 [*ex* line editor](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/ex.html).
+- [jquery.ex.md](docs/jquery.ex.md): documentation of `jquery.ex.js` that integrates ex with jQuery. Creates a sort 
+of [evim](https://vimhelp.org/starting.txt.html#evim-keys) (easy VIM editor).
 
 ## Upgrade guide
 

@@ -213,8 +213,8 @@ multitest ('Testing ex map', function (rng, el, text, i, assert, done){
 	rng.listen ('map', evt => {
 		assert.equal (evt.detail.command, 'map', 'map command');
 		assert.equal (evt.detail.variant, false, 'map variant');
-		assert.equal (evt.detail.rhs, 'alt-f o', 'map lhs');
-		assert.equal (evt.detail.lhs, 'open file', 'map rhs');
+		assert.equal (evt.detail.lhs, 'alt-f o', 'map lhs');
+		assert.equal (evt.detail.rhs, 'open file', 'map rhs');
 		done();
 	});
 	rng.all(text).ex('map "alt-f o" open file');
@@ -224,8 +224,8 @@ multitest ('Testing ex map variant', function (rng, el, text, i, assert, done){
 	rng.listen ('map', evt => {
 		assert.equal (evt.detail.command, 'map', 'map command');
 		assert.equal (evt.detail.variant, true, 'map variant');
-		assert.equal (evt.detail.rhs, 'alt-f o', 'map lhs');
-		assert.equal (evt.detail.lhs, 'command|with\t separator and special characters', 'map rhs');
+		assert.equal (evt.detail.lhs, 'alt-f o', 'map lhs');
+		assert.equal (evt.detail.rhs, 'command|with\t separator and special characters', 'map rhs');
 		done();
 	});
 	rng.all(text).ex(String.raw`map! "alt-f o" "command|with\t separator and special characters"`);
