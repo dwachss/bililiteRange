@@ -295,8 +295,14 @@ See the [documentation](undo.md).
 ### `bililiteRange.ex.js`
 
 Implements the [ex line-editor](http://ex-vi.sourceforge.net/ex.html). Depends on `bililiteRange.js`, `bililiteRange.util.js` and
-`bililiteRange.undo.js`. Works better with my [toolbar](https://github.com/dwachss/toolbar) and
-[status](https://github.com/dwachss/status). See the [documentation](ex.md).
+`bililiteRange.undo.js`. See the [documentation](ex.md).
+
+### `jquery.ex.js`
+
+Implements all the pieces to use `bililite.ex.js`, with keystroke mapping, toolbar buttons, and jQuery integration. Works
+with my [toolbar](https://github.com/dwachss/toolbar) and
+[status](https://github.com/dwachss/status).
+See the [documentation](jquery.ex.md).
 
 ### `jquery.sendkeys.js`
 jQuery wrapper for `bililiteRange.prototype.sendkeys`, with a `keydown` handler that allows for synthetic (untrusted) `keydown` events to
