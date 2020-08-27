@@ -17,9 +17,9 @@
 		}
 	</style>
 </head>
-<body>
+<body class=editorcontainer>
 	<div id=toolbar></div>
-	<pre  id=editor contenteditable spellcheck=false >
+	<pre  class=editor contenteditable spellcheck=false >
 # The little editor
 
 All commands start with `ctrl-o` (like [evim](https://vimhelp.org/starting.txt.html#evim-keys)).
@@ -64,7 +64,7 @@ only, not space, tab or newline.
 	<script src="http://cdn.jsdelivr.net/npm/marked"></script>
 	
 	<script>
-		const $editor = $('#editor');
+		const $editor = $('.editor');
 		const editor = $editor[0];
 		localStorage.setItem('.exrc', `
 			map ^s write

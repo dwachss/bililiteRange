@@ -1,11 +1,11 @@
-body {
+.editorcontainer {
 	display: flex;
 	flex-direction: column;
 	margin: 0;
 	height: 100vh;
 	font-size: 18px;
 }
-#editor {
+.editor {
 	flex: 2;
 	border: 1px solid black;
 	padding: 5px;
