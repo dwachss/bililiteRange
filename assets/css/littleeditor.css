@@ -19,7 +19,6 @@
 }
 [role="toolbar"]{
 	counter-reset: buttoncounter;
-	margin: 2px 10px;
 }
 [role="toolbar"] button {
 	height: 1.3em;
