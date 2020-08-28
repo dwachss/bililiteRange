@@ -21,10 +21,10 @@
 	counter-reset: buttoncounter;
 }
 [role="toolbar"] button {
-	height: 1.3em;
+	height: 1.4em;
 	position: relative;
 	padding: 1px 4px 14px;
-	min-width: 1.5em;
+	min-width: 2.2em;
 	vertical-align: bottom;
 	counter-increment: buttoncounter;
 	outline: none; /* we will use the highlighting below to indicate focus */

@@ -603,7 +603,10 @@ var commands = bililiteRange.ex.commands = {
 			if (parameter) this.data.file = parameter;
 			this.data.stdout (file + ' saved');
 		}).catch(
-			err => this.data.stderr(new Error (file + ' not saved'))
+			err => {
+				this.data.savestatus = 'failed';
+				this.data.stderr(new Error (file + ' not saved'));
+			}
 		);
 	},
 
