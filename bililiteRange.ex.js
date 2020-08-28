@@ -567,7 +567,7 @@ var commands = bililiteRange.ex.commands = {
 			// blank lines should be ignored, not interpreted as print
 			sourcefile.split('\n').filter( line => line.trim() ).forEach ( line => this.ex(line) );
 		}).catch(
-			err => console.error(err) // this.data.stderr(new Error (parameter + ' not read in source'))
+			err => this.data.stderr(new Error (parameter + ' not read in source'))
 		);
 	},
 
