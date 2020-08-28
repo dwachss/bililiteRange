@@ -32,7 +32,7 @@
 [role="toolbar"] button::before {
 	content: attr(name);
 	position: relative;
-	bottom: 0.1em;
+	bottom: 0.2em;
 }
 [role="toolbar"] button::after {
 	position: absolute;
