@@ -36,7 +36,7 @@ $.fn.ex = function($toolbar, $statusbar){
 				// hotkey
 				if (command == 'map'){
 					$element.off('keydown', {keys: lhs});
-					$element.on('keydown', {keys: lhs}, rng.executor(rhs, false));
+					$element.on('keydown', {keys: lhs}, rng.executor({command: rhs, returnvalue: false}));
 				}else if (command == 'unmap'){
 					$element.off('keydown', {keys: lhs});
 				}
@@ -44,7 +44,7 @@ $.fn.ex = function($toolbar, $statusbar){
 		});
 		
 		$element.on('keydown', {keys: 'ctrl-o :'}, evt => {
-			$statusbar.prompt(':').then( rng.executor() ).
+			$statusbar.prompt(':').then( rng.executor({defaultaddress: '.'}) ).
 			 then(...$statusbar.statusDisplayer()).
 			 finally(() => $element.focus());
 			return false;

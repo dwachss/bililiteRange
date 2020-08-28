@@ -43,16 +43,18 @@ manual.
 ## `bililiteRange.prototype.executor`
 
 Convenience function that returns a function that calls `bililiteRange.prototype.ex`. Useful as an event handler, or 
-a [`toolbar`](../../toolbar/) `run` function.
+a [`toolbar`](../../toolbar/) `run` function. Intended to be used directly in the user interface, so it acts on the 
+selection.
 
 ### Usage
 
 ```js
-button.addEventListener ('click', range.executor (command, returnValue) );
+button.addEventListener ('click', range.executor (opts) );
 ```
+The possible options are `{command: string, defaultaddress: string = '%%', returnvalue: anything}`.
 
-`range.executor (command, returnValue)` returns a function that runs `ex(command)` on the selection (the selection at the time the
-selection is run), with a default address of `'%%'` (meaning the selection, not the current line), and returns `returnValue`. If `command`
+`range.executor (opts)` returns a function that runs `ex(opts.command, opts.defaultaddress)` on the selection (the selection at the time the
+function is run), and returns `returnValue`. If `command`
 is not defined, then the function takes a single argument that is the command to be run. Thus:
 
 ```js
@@ -61,6 +63,8 @@ Promise.resolve( prompt('Enter a command')).then( range.executor() );
 
 `returnValue` is necessary because event handlers may want to return `false` to prevent further handling, but `Promise.then` functions
 should return `undefined` to pass the result through unchanged.
+
+If `defaultaddress` is not set, then `'%%'` is used, meaning the entire selection, not the whole line.
 
 Note that `ex` acts on the *range*, independent of the actual selection, `executor` acts on the *selection*.
 

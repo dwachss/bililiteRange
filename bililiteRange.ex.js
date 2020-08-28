@@ -21,12 +21,12 @@ bililiteRange.createOption ('writer', {
 // range.data.writer = async (text, file, dir) => $.post(file, {text: text});
 bililiteRange.createOption ('savestatus', { monitored: true, value: 'clean' });
 
-bililiteRange.prototype.executor = function (command, returnvalue){
+bililiteRange.prototype.executor = function ({command, returnvalue, defaultaddress = '%%'} = {}){
 	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
 	const el = this.element;
 	return text => {		
 		bililiteRange(el).bounds('selection').
-		 ex(command || text, '%%').
+		 ex(command || text, defaultaddress).
 		 select().
 		 scrollIntoView().
 		 element.
