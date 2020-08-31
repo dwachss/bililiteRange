@@ -64,6 +64,7 @@ only, not space, tab or newline.
 	<script src="http://cdn.jsdelivr.net/npm/marked"></script>
 	
 	<script>
+
 		const $editor = $('.editor');
 		const editor = $editor[0];
 		localStorage.setItem('.exrc', `
@@ -77,19 +78,21 @@ only, not space, tab or newline.
 			map! Spellcheck spellcheck toggle
 			map! Direction command="!Toolbar.toggleAttribute (this.element, 'style.direction', ['ltr', 'rtl']);" observe=style.direction title="Toggle Text Direction"
 			map! "BiDi Off" command="bidi toggle" title="Toggle the Bidirectional Text Algorithm"
+			! this.data.trigger()
 		`);
 		const rng = bililiteRange(editor);
 		$editor.ex($('#toolbar'), $('#statusbar'));
 		
+		bililiteRange.ex.createAttributeOption ('global');
+		bililiteRange.ex.createAttributeOption ('spellcheck', ['true', 'false']);
+		bililiteRange.ex.createAttributeOption ('bidi', ['bidi-override', 'normal'], 'style.unicodeBidi');
+
 
 		bililiteRange.ex.commands.reverse = function (){
 			this.text(this.text().split('\n').map(function(s){
 				return s.split(/[ ]+/).reverse().join(' ');
 			}).join('\n'));
 		};
-		
-		bililiteRange.ex.createAttributeOption ('spellcheck', ['true', 'false']);
-		bililiteRange.ex.createAttributeOption ('bidi', ['normal', 'bidi-override'], 'style.unicodeBidi');
 		
 		const $output = $('#output');
 		$editor.on('input', evt => $output.html(marked(rng.all())));

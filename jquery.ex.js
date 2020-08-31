@@ -18,16 +18,9 @@ $.fn.ex = function($toolbar, $statusbar){
 			const {command, variant, lhs, rhs} = evt.detail;
 			if (variant){
 				if (command == 'map'){
-					let button;
 					const parsedrhs = parseToolbarCommand(rhs);
-					const toggle = /(?:set\s+)?([a-zA-Z]+)\s+toggle/.exec(parsedrhs.command);
-					if (toggle){
-						button = toolbar.toggleButton(lhs, parsedrhs.command);
-						button.setAttribute('aria-pressed', data[toggle[1]] ? 'true' : 'false');
-					}else{
-						button = toolbar.button(lhs, parsedrhs.command);
-						if (parsedrhs.observe) toolbar.observerElement(button, parsedrhs.observe);
-					}
+					const button = toolbar.button(lhs, parsedrhs.command);
+					if (parsedrhs.observe) toolbar.observerElement(button, parsedrhs.observe);
 					if (parsedrhs.title) button.setAttribute('title', parsedrhs.title);
 				}else if (command == 'unmap'){
 					$(`button[name=${JSON.stringify(lhs)}]`, $toolbar).remove();
@@ -105,18 +98,30 @@ $.fn.ex = function($toolbar, $statusbar){
 	});
 };
 
-bililiteRange.ex.createAttributeOption = function (name, states, attrname = name){
-	bililiteRange.createOption(name, {monitored: true});
-	bililiteRange.ex.commands[name] = function (parameter, variant){
+bililiteRange.ex.createAttributeOption = function (name, [on, off] = [true, false], attrname = name){
+	bililiteRange.createOption(name, {monitored: true, value: off});
+	if (!bililiteRange.ex.commands[name]) bililiteRange.ex.commands[name] = function (parameter, variant){
 		const el = this.element;
 		if (parameter=='?'){
 			this.data.stdout (Toolbar.getAttribute(el, attrname));
+			return;
 		}else if (parameter == 'toggle'){
-			Toolbar.toggleAttribute (el, attrname, states);
+			Toolbar.toggleAttribute (el, attrname, [on, off]);
+		}else if (parameter == on || parameter == 'on' || parameter == ''){
+			Toolbar.setAttribute (el, attrname, on);
+		}else if (parameter == off || parameter == 'off'){
+			Toolbar.setAttribute (el, attrname, off);
 		}else{
-			Toolbar.setAttribute (el, attrname, parameter);
+			throw new Error (`${name}: Invalid value '${parameter}'`);
 		}
+		this.data[name] = Toolbar.getAttribute(el, attrname);
 	};
+	$('body').on(`data-${name}`, evt => {
+		const toolbar = Toolbar.for(evt.target);
+		if (!toolbar) return;
+		const button = $('button');
+		$(`button[data-command^=${JSON.stringify(name)}]`, toolbar).attr('aria-pressed', evt.detail == on ? 'true' : 'false');
+	});
 }
 
 function parseToolbarCommand(string){

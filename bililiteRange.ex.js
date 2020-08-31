@@ -19,18 +19,17 @@ bililiteRange.createOption ('writer', {
 // to use jQuery:
 // range.data.reader = async (file, dir) => $.get(file);
 // range.data.writer = async (text, file, dir) => $.post(file, {text: text});
-bililiteRange.createOption ('savestatus', { monitored: true, value: 'clean' });
+bililiteRange.createOption ('savestatus', { monitored: true, value: 'clean', enumerable: false });
 
 bililiteRange.prototype.executor = function ({command, returnvalue, defaultaddress = '%%'} = {}){
 	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
 	const el = this.element;
-	return text => {		
+	return text => {
+		el.focus();
 		bililiteRange(el).bounds('selection').
 		 ex(command || text, defaultaddress).
 		 select().
-		 scrollIntoView().
-		 element.
-		 focus();
+		 scrollIntoView();
 		return returnvalue;
 	}
 };

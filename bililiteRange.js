@@ -645,6 +645,11 @@ Object.defineProperty(Data.prototype, 'all', {
 		return ret;
 	}
 });
+Object.defineProperty(Data.prototype, 'trigger', {
+	value: function(){
+		monitored.forEach(prop => signalMonitor (prop, this[prop], this.sourceElement));
+	}
+});
 
 bililiteRange.createOption = function (name, desc = {}){
 	desc = Object.assign({
