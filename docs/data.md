@@ -48,6 +48,12 @@ adds a `set` handler for `prop` that, whenever `prop` is set (as in `range.data[
 2. ``range.element.setAttribute(`data-${prop}`, newValue)`` for use with MutationObservers. Note that attributes have very limited legal
 characters, so this will silently fail if `data-${prop}` is not a legal attribute name.
 
+### `data.trigger`
+
+The function `range.data.trigger()` will trigger the `CustomEvent` and `setAttribute` for all monitored options. This is useful for initializing
+things after defining the data, without setting options to differ from their defaults. Call this after all your `bililiteRange.createOption`s
+(the program can't call this automatically since there's no way to know when the user is done).
+
 ## JSON
 
 `bililiteRange.prototype.ex` uses 
