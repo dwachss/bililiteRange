@@ -110,7 +110,7 @@ bililiteRange.ex.createAttributeOption = function (name, states, attrname = name
 	bililiteRange.ex.commands[name] = function (parameter, variant){
 		const el = this.element;
 		if (parameter=='?'){
-			data.stdout (Toolbar.getAttribute(el, attrname));
+			this.data.stdout (Toolbar.getAttribute(el, attrname));
 		}else if (parameter == 'toggle'){
 			Toolbar.toggleAttribute (el, attrname, states);
 		}else{
