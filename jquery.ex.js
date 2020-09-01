@@ -117,9 +117,10 @@ bililiteRange.ex.createAttributeOption = function (name, [on, off] = [true, fals
 		this.data[name] = Toolbar.getAttribute(el, attrname);
 	};
 	$('body').on(`data-${name}`, evt => {
-		const toolbar = Toolbar.for(evt.target);
-		if (!toolbar) return;
-		$(`button[data-command^=${JSON.stringify(name)}]`, toolbar).attr('aria-pressed', evt.detail == on ? 'true' : 'false');
+		const targetid = evt.target.getAttribute('id');
+		$(`button[data-command^=${JSON.stringify(name)}]`).
+		 filter( (index, element) => element.parentNode.getAttribute('aria-controls') == targetid ).
+		 attr('aria-pressed', evt.detail == on ? 'true' : 'false');
 	});
 }
 
