@@ -117,9 +117,7 @@ bililiteRange.ex.createAttributeOption = function (name, [on, off] = [true, fals
 		this.data[name] = Toolbar.getAttribute(el, attrname);
 	};
 	$('body').on(`data-${name}`, evt => {
-		console.log (name, evt.detail);
 		const toolbar = Toolbar.for(evt.target);
-		console.log(toolbar);
 		if (!toolbar) return;
 		$(`button[data-command^=${JSON.stringify(name)}]`, toolbar).attr('aria-pressed', evt.detail == on ? 'true' : 'false');
 	});
