@@ -1,3 +1,6 @@
+'use strict';
+
+let bililiteRange; // create one global variable
 
 (function(){
 	
@@ -228,7 +231,6 @@ Range.prototype = {
 	},
 	dispatch: function(opts = {}){
 		var event = new Event (opts.type, opts);
-		event.target = this._el;
 		event.view = this._win;
 		for (let prop in opts) try { event[prop] = opts[prop] } catch(e){}; // ignore read-only errors for properties that were copied in the previous line
 		this._el.dispatchEvent(event); // note that the event handlers will be called synchronously, before the "return this;"
@@ -617,6 +619,7 @@ function createDataObject (el){
 		set(obj, prop, value) {
 			obj[prop] = value;
 			if (monitored.has(prop)) signalMonitor(prop, value, obj.sourceElement);
+			return true; // in strict mode, 'set' returns a success flag 
 		}
 	});
 }

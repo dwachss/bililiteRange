@@ -1,3 +1,5 @@
+'use strict';
+
 (function($){
 
 $.fn.sendkeys = function (x){

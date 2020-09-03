@@ -1,3 +1,5 @@
+'use strict';
+
 (function($){
 const editorkey = Symbol(); // marker
 

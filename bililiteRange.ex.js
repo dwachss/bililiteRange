@@ -1,3 +1,5 @@
+'use strict';
+
 (function(undefined){
 
 /*********************** the actual ex plugin *********************************/

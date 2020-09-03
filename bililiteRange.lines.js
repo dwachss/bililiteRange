@@ -1,3 +1,5 @@
+'use strict';
+
 (function(){
 // a line goes from after the newline to before the next newline. The newline is not included in that line! It's
 // a separator only.

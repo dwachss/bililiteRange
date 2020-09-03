@@ -1,4 +1,6 @@
-(function(){
+'use strict';
+
+(function(bililiteRange){
 
 bililiteRange.createOption('dotall', {value: false});
 bililiteRange.createOption('gloabl', {value: false});
@@ -197,4 +199,4 @@ function replaceprimitive (search, flagobject, text, replace, from, to){
 	return text.replace (re, replace).slice(from, to-text.length || undefined);
 }
 
-})();
+})(bililiteRange);
