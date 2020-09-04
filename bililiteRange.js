@@ -39,7 +39,7 @@ bililiteRange = function(el){
 	return ret;
 }
 
-bililiteRange.version = 3.1;
+bililiteRange.version = 3.2;
 
 const startupHooks = new Set();
 bililiteRange.addStartupHook = fn => startupHooks.add(fn);
