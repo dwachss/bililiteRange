@@ -3,7 +3,7 @@
 (function(bililiteRange){
 
 bililiteRange.createOption('dotall', {value: false});
-bililiteRange.createOption('gloabl', {value: false});
+bililiteRange.createOption('global', {value: false});
 bililiteRange.createOption('ignorecase', {value: false});
 bililiteRange.createOption('magic', {value: true});
 bililiteRange.createOption('multiline', {value: false});
