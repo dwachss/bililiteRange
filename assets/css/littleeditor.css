@@ -78,7 +78,7 @@
 }
 #statusbar input {
 	flex: auto;
-	bidi: bidi-override;
+	unicode-bidi: bidi-override;
 }
 #statusbar .success {
 	color: green;
