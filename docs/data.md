@@ -18,7 +18,7 @@ range.data.hilighter = 'Prism';
 
 // elsewhere in the code
 let range2 = bililiteRange( document.querySelector('div.editor') );
-console.log(range.data.hilighter); // 'Prism'
+console.log(range2.data.hilighter); // 'Prism'
 ````
 
 ## Options
