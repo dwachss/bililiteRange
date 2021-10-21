@@ -52,7 +52,7 @@ To manually autoindent inserted text (i.e. prepend the whitespace before each in
 
 ```js
 range.text(string, {autoindent: true}); // string will have range.indentation() prepended to each line of string
-range.text(string, {autoindent: false}); // string will not range.indentation() prepended to each line of string (no matter what the value of range.data.autoindent)
+range.text(string, {autoindent: false}); // string will not have range.indentation() prepended to each line of string (no matter what the value of range.data.autoindent)
 range.text(string, {autoindent: 'invert'}); // the value of autoindent will be set to !range.data.autoindent
 range.text(string, {autoindent: undefined, inputType: 'insertLineBreak'}); // the value of autoindent will be set to range.data.autoindent
 range.text(string, {autoindent: undefined, inputType: 'anything else'}); // the value of autoindent will be set to false
