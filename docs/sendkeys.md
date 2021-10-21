@@ -73,7 +73,7 @@ So, for example (these are slightly simplified):
 
 ```js
 bililiteRange.sendkeys['{tab}'] = function (range, c, simplechar) { simplechar(rng, '\t') };
-bililiteRange['{Backspace}'] = function (range, c, simplechar){
+bililiteRange.sendkeys['{Backspace}'] = function (range, c, simplechar){
   var b = rng.bounds();
   if (b[0] == b[1]) rng.bounds([b[0]-1, b[0]]); // no characters selected; it's just an insertion point. Remove the previous character
   rng.text(''); // delete the characters and update the selection
@@ -84,7 +84,7 @@ bililiteRange.sendkeys['{selectall}'] = function (range, c, simplechar) { rng.bo
 So to have a reverse-string command:
 
 ```js
-bililiteRange['{reverse}'] = function (range, c, simplechar){
+bililiteRange.sendkeys['{reverse}'] = function (range, c, simplechar){
   simplechar(range, range.sendkeysOriginalText.split('').reverse().join(''));
 };
 ```
@@ -92,7 +92,7 @@ bililiteRange['{reverse}'] = function (range, c, simplechar){
 Or, to annoy the anti-WordPress crowd, a Hello, Dolly command:
 
 ```js
-bililiteRange['{dolly}'] = function (range, c, simplechar){
+bililiteRange.sendkeys['{dolly}'] = function (range, c, simplechar){
   var lyrics = [
     "Hello, Dolly",
     "Well, hello, Dolly",
