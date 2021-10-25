@@ -77,7 +77,7 @@ will fail if there is no match before this range.
 
 ```js
 range.all('A A B B').bounds(1); // range.bounds is [1,1], after the first 'A'
-range.bounds(a/, 'iw'); // range.bounds is [2.3], the second 'A'.
+range.bounds(/a/, 'iw'); // range.bounds is [2.3], the second 'A'.
 range.bounds(/a/, 'iw'); // range.bounds is [0.1], the first 'A'. We have wrapped around
 
 range.bounds(3); // range.bounds() is [3,3], after the second 'A'
