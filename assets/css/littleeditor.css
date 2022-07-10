@@ -58,7 +58,7 @@
 }
 [role="toolbar"] button.highlight , [role="toolbar"] button[aria-pressed="true"]{
 	/* background: linear-gradient(ThreeDHighlight, ThreeDHighlight, ButtonFace); CSS system colors are deprecated */
-	background: linear-gradient(grey, grey, rgb(240,240,240));
+	background: linear-gradient(lightgrey, lightgrey, rgb(240,240,240));
 	border: 2px inset rgb(240,240,240);
 	border-radius: 4px;
 }
