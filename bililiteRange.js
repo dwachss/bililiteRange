@@ -60,7 +60,7 @@ function trackSelection (element, range, data){
 
 function fixInputEvents (element, range, data){
 	// DOM 3 input events, https://www.w3.org/TR/input-events-1/
-	// have a data field with the text inserted, but thatisn't enough to fully describe the change;
+	// have a data field with the text inserted, but that isn't enough to fully describe the change;
 	// we need to know the old text (or at least its length)
 	// and *where* the new text was inserted.
 	// So we enhance input events with that information. 
