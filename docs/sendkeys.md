@@ -18,6 +18,13 @@ but I've implemented the following:
 <dd>Move the insertion point to the left</dd>
 <dt><code>Enter</code></dt>
 <dd>Insert a newline</dd>
+<dt><code>ctrl-Home</code></dt>
+<dd>Move the insertion point to the start of the range. In a browser textarea, <code>Home</code> moves to the start of the line,
+and <code>ctrl-Home</code> moves to the very top. <code>sendkeys('{Home}')</code> is implemented in 
+<a href=lines.md>lines.bililiteRange.js</a>.</dd>
+<dt><code>ctrl-End</code></dt>
+<dd>Move the insertion point to the end of the range. Similarly, <code>sendkeys('{end}')</code> is implemented in
+<a href=lines.md>lines.bililiteRange.js</a>.</dd>
 </dl>
 For backwards-compatibility with older versions, the following synonyms also work: `backspace`, `del`, `rightarrow`, `leftarrow` and `enter`.
 

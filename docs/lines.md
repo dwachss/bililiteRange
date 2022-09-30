@@ -104,8 +104,15 @@ element (note that it is spelled `tabsize`, not `tabSize` or `tab-size`).
 
 ## `sendkeys` extensions
 
-`bililiteRange.lines.js` implements two more [`sendkeys`](sendkeys.md) special keys: `'{ArrowUp}'` and `'{ArrowDown}'`, with aliases `'{uparrow}'` and `'{downarrow}'`.
+`bililiteRange.lines.js` implements several more [`sendkeys`](sendkeys.md) special keys.
+
+### `'{ArrowUp}'` and `'{ArrowDown}'`, with aliases `'{uparrow}'` and `'{downarrow}'`
+
 They move to the range to the line above or below the *start* of the range, in the same *character* position. This is much less sophisticated than a real
 up/down arrow, for two reasons: it does not know about glyph widths, so it moves based on character count rather than position on the screen. Secondly, it does not
 remember where the column *ought* to be, so going from the end of a long line to a short line, the new position will be at the end of the short line. Going to another
 line, even if it is longer, will be at the character position corresponding to the end of the short line.
+
+### `'{Home}'` and `'{End}'`
+
+Move the range to the start or end of the current line, respectively. Just does `bounds('BOL')` or `bounds('EOL')`.
