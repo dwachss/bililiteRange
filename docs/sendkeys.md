@@ -59,7 +59,7 @@ but there are circumstances when I wanted to avoid having to escape backslashes.
 
 ### `selection`
 
-Inserts the text of the original range (useful for creating "wrapping" functions, like `"{selection}"`).
+Inserts the text of the original range (useful for creating "wrapping" functions, like `"*{selection}*"`).
 
 ### `mark`
 

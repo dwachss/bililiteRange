@@ -93,10 +93,10 @@ promise that resolves when the text is "written". The defaults are :
 
 ```js
 bililiteRange.createOption ('reader', {
-	value: async (filename, directoryname) => localStorage.getItem(file)
+	value: async (filename, directoryname) => localStorage.getItem(filename)
 });
 bililiteRange.createOption ('writer', {
-	value: async (text, filename, directoryname) => localStorage.setItem(file, text)
+	value: async (text, filename, directoryname) => localStorage.setItem(filename, text)
 });
 ```
 
