@@ -48,7 +48,7 @@ Shortcut for `bounds([n,n])`.
 Sets the bounds of the current range to those of `r`.
 
 ### `bounds(s: string)`
-Looks for a function `bililiteRange[s]` that is called with `this` set to the current `bililiteRange`, and sets the bounds.
+Looks for a function `bililiteRange.bounds[s]` that is called with `this` set to the current `bililiteRange`, and sets the bounds.
 Predefined functions include:
 
 - `bounds('all')`: sets the range to cover the entire element.
@@ -64,7 +64,7 @@ Several other `bounds` functions are defined, and it is possible to create new `
 Return a new bililiteRange with the same bounds as this one.
 
 ### `data`
-Returns an object tied to the underlying element, useful for storing element (rather than per range). Similar to
+Returns an object tied to the underlying element, useful for storing information per element (rather than per range). Similar to
 jQuery's [`data`](https://api.jquery.com/data/). See the documentation for [bililiteRange data](data.md).
 
 ### `document`

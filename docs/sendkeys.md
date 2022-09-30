@@ -7,6 +7,7 @@ but interprets any text between braces (`'{key}'`) as a command representing a s
 For security reasons, the browser won't let you do anything outside of the text of the page itself,
 but I've implemented the following:
 
+{% raw %}
 <dl>
 <dt><code>Backspace</code></dt>
 <dd>Delete backwards</dd>
@@ -26,6 +27,8 @@ and <code>ctrl-Home</code> moves to the very top. <code>sendkeys('{Home}')</code
 <dd>Move the insertion point to the end of the range. Similarly, <code>sendkeys('{end}')</code> is implemented in
 <a href=lines.md>lines.bililiteRange.js</a>.</dd>
 </dl>
+{% endraw %}
+
 For backwards-compatibility with older versions, the following synonyms also work: `backspace`, `del`, `rightarrow`, `leftarrow` and `enter`.
 
 So, for example, `bililiteRange(el).sendkeys('foo')` replaces the current range with 'foo' and sets the range to just 
