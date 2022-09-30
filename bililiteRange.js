@@ -396,7 +396,9 @@ bililiteRange.sendkeys = {
 	},
 	'{mark}': function (rng){
 		rng.data.sendkeysBounds = rng.bounds();
-	}
+	},
+	'{ctrl-Home}': (rng, c, simplechar) => 	rng.bounds('start'),
+	'{ctrl-End}': (rng, c, simplechar) => 	rng.bounds('end')
 };
 // Synonyms from the DOM standard (http://www.w3.org/TR/DOM-Level-3-Events-key/)
 bililiteRange.sendkeys['{Enter}'] = bililiteRange.sendkeys['{enter}'] = bililiteRange.sendkeys['{newline}'];

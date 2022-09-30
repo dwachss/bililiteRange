@@ -108,3 +108,11 @@ multitest ("Testing character placement",  function (rng, el, text, i, assert){
 	rng.sendkeys('{ArrowDown}');
 	assert.deepEqual(rng.bounds(), [11,11], 'down arrow sendkeys stays unchanged at bottom');	
 });
+multitest("Testing sendkeys home/end lines", function (rng, el, text, i, assert){
+	if (el.nodeName.toLowerCase() == 'input') return assert.expect(0); // don't test newlines
+	rng.all('ab\ncd\nef');
+	rng.bounds([4,4]).sendkeys('{Home}');
+	assert.ok(rng[0] == 3 && rng[1] == 3, 'sendkeys Home');
+	rng.bounds([4,4]).sendkeys('{End}');
+	assert.ok(rng[0] == 5 && rng[1] == 5, 'sendkeys End');
+});

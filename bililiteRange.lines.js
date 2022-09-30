@@ -107,6 +107,12 @@ bililiteRange.sendkeys['{ArrowDown}'] = bililiteRange.sendkeys['{downarrow}'] = 
 	const c = rng.char();
 	rng.bounds('line', rng.line()+1).bounds('char', c);
 };
+bililiteRange.sendkeys['{Home}'] =  function (rng){
+	rng.bounds('BOL');
+};
+bililiteRange.sendkeys['{End}'] =  function (rng){
+	rng.bounds('EOL');
+};
 
 // utilities
 

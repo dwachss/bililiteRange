@@ -22,6 +22,14 @@ multitest("Testing sendkeys mark/selection", function (rng, el, text, i, assert)
 	rng.sendkeys('url');
 	assert.equal(rng.all(), 'a<a href="url">xb</a>c', 'sendkeys mark/selection');
 });
+multitest("Testing sendkeys home/end", function (rng, el, text, i, assert){
+	if (i == 3) return assert.expect(0); // can't set individual characters on date inputs
+	rng.all('abcdef');
+	rng.bounds([2,2]).sendkeys('{ctrl-Home}');
+	assert.ok(rng[0] == 0 && rng[1] == 0, 'sendkeys ctrl-Home');
+	rng.bounds([2,2]).sendkeys('{ctrl-End}');
+	assert.ok(rng[0] == 6 && rng[1] == 6, 'sendkeys ctrl-End');
+});
 multitest("Testing jquery.sendkeys", function (rng, el, text, i, assert){
 	if (i == 3) return assert.expect(0); // can't set individual characters on date inputs
 	rng.all(text);
