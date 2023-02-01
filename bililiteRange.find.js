@@ -177,21 +177,21 @@ function replaceprimitive (search, flagobject, text, replace, from, to){
 	if (!flagobject.magic) search = quoteRegExp (search);
 	if (from > 0){
 		// make sure we have at least (from) characters before the match
-		search = String.raw`(?<=[\s\S]{` + from + '})(?:' + search + ')';
+		search = String.raw`(?<=[\s\S]{${from}})(?:${search})`;
 	}
 	if (to < text.length){
 		// make sure we have at least (length - to) characters after the match
-		search = '(?:' + search + String.raw`)(?=[\s\S]{` + (text.length - to) + '})';
+		search = String.raw`(?:${search})(?=[\s\S]{${text.length - to}})`;
 	}
 	if (flagobject.sticky && flagobject.backward){
 		flagobject.flags = flagobject.flags.replace(/[gy]/g, '');
 		// make sure we don't have too many characters after the match
-		search = '(?:' + search + String.raw`)(?![\s\S]{` + (text.length - to + 1) + '})';
+		search = String.raw`(?:${search})(?![\s\S]{${text.length - to + 1}})`;
 	}else if (flagobject.backward && ! flagobject.global){
 		// would anyone ever do this? Replace only the last match?
 		const match = findprimitiveback (search, flagobject.flags+'g', text, from, to);
 		if (!match) return text.slice (from, to); // no match, no change
-		search = String.raw`(?<=[\s\S]{` + match.index + '})(?:' + search + ')';
+		search = String.raw`(?<=[\s\S]{${match.index}})(?:${search})`;
 	}
 	const re = new RegExp (search, flagobject.flags);
 	re.lastIndex = from; // only relevant for sticky && !backward
