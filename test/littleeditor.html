@@ -19,7 +19,7 @@
 </head>
 <body class=editorcontainer>
 	<div id=toolbar></div>
-	<pre  class=editor contenteditable spellcheck=false >
+	<textarea  class=editor  spellcheck=false >
 # The little editor
 
 All commands start with `ctrl-o` (like [evim](https://vimhelp.org/starting.txt.html#evim-keys)).
@@ -46,7 +46,7 @@ only, not space, tab or newline.
 	* `'`: single-quote delimited quote
 	* `"`: double-quote delimited quote
 
-</pre>
+</textarea>
 	<div id=statusbar><span id=wordcount></span></div>
 	<div id=output></div>
 
@@ -95,7 +95,7 @@ only, not space, tab or newline.
 		};
 		
 		const $output = $('#output');
-		$editor.on('input', evt => $output.html(marked(rng.all())));
+		$editor.on('input', evt => $output.html(marked.parse(rng.all())));
 		$editor.on('input', evt => {
 			var wc = rng.all().split(/\s+/).length - 1;
 			$('#wordcount').text(wc+' words')

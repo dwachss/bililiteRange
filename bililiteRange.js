@@ -262,6 +262,7 @@ Range.prototype = {
 		// scroll into position if necessary
 		if (this._el.scrollTop > top || this._el.scrollTop+this._el.clientHeight < top){
 			scroller.call(this._el, top);
+			console.log(this._el.scrollTop);
 		}
 		return this;
 	},
@@ -432,19 +433,16 @@ InputRange.prototype._nativeEOL = function(){
 };
 InputRange.prototype._nativeTop = function(rng){
 	if (rng[0] == 0) return 0; // the range starts at the top
-	// I can't remember where I found this clever hack to find the location of text in a text area
-	var clone = this._el.cloneNode(true);
-	clone.style.visibility = 'hidden';
-	clone.style.position = 'absolute';
-	this._el.parentNode.insertBefore(clone, this._el);
-	clone.style.height = '1px';
-	clone.value = this._el.value.slice(0, rng[0]);
-	var top = clone.scrollHeight;
-	// this gives the bottom of the text, so we have to subtract the height of a single line
-	clone.value = 'X';
-	top -= clone.scrollHeight;
-	clone.parentNode.removeChild(clone);
-	return top;
+	const el = this._el;
+	if (el.nodeName == 'INPUT') return 0; 
+	const text = el.value;
+	const selection = [el.selectionStart, el.selectionEnd];
+	// hack from https://code.google.com/archive/p/proveit-js/source/default/source, highlightLengthAtIndex function
+	el.value = text.slice(0, rng[0]);
+	el.scrollTop = Number.MAX_SAFE_INTEGER;
+	el.value = text;
+	el.setSelectionRange(...selection);
+	return el.scrollTop;
 }
 InputRange.prototype._nativeWrap = function() {throw new Error("Cannot wrap in a text element")};
 
