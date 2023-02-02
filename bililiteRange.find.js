@@ -138,7 +138,7 @@ function findprimitive (source, flags, text, from, to){
 	// code from https://github.com/idupree/bililiteRange/tree/findback-greedy-correctness
 	if (to < text.length){
 		// make sure that there are at least length-to characters after the match
-		source = '(?:' + source + ')(?=[\\s\\S]{' + (text.length-to) + '})';
+		source = `(?:${source})(?=[^]{${text.length-to}})`;
 	}
 	const re = new RegExp (source, flags);
 	re.lastIndex = from;
@@ -149,12 +149,12 @@ function findprimitiveback (source, flags, text, from, to){
 	// code from https://github.com/idupree/bililiteRange/tree/findback-greedy-correctness
 	if (to < text.length){
 		// make sure that there are at least length-to characters after the match
-		source = '(?:' + source + ')(?=[\\s\\S]{' + (text.length-to) + '})';
+		source = `(?:${source})(?=[^]{${text.length-to}})`;
 	}
 	if (/y/.test(flags)){
 		// sticky. Only match the end of the string.
 		flags = flags.replace('y','');
-		source = '(?:' + source + ')(?![\\s\\S]{' + (text.length-to+1) + '})'; // *don't* match too many characters
+		source = `(?:${source})(?![^]{${text.length-to+1}})`; // *don't* match too many characters
 		// this works even if $ won't, if multiline is true
 		const re = new RegExp (source, flags);
 		re.lastIndex = from;
@@ -177,21 +177,21 @@ function replaceprimitive (search, flagobject, text, replace, from, to){
 	if (!flagobject.magic) search = quoteRegExp (search);
 	if (from > 0){
 		// make sure we have at least (from) characters before the match
-		search = String.raw`(?<=[\s\S]{${from}})(?:${search})`;
+		search = `(?<=[^]{${from}})(?:${search})`;
 	}
 	if (to < text.length){
 		// make sure we have at least (length - to) characters after the match
-		search = String.raw`(?:${search})(?=[\s\S]{${text.length - to}})`;
+		search = `(?:${search})(?=[^]{${text.length - to}})`;
 	}
 	if (flagobject.sticky && flagobject.backward){
 		flagobject.flags = flagobject.flags.replace(/[gy]/g, '');
 		// make sure we don't have too many characters after the match
-		search = String.raw`(?:${search})(?![\s\S]{${text.length - to + 1}})`;
+		search = `(?:${search})(?![^]{${text.length - to + 1}})`;
 	}else if (flagobject.backward && ! flagobject.global){
 		// would anyone ever do this? Replace only the last match?
 		const match = findprimitiveback (search, flagobject.flags+'g', text, from, to);
 		if (!match) return text.slice (from, to); // no match, no change
-		search = String.raw`(?<=[\s\S]{${match.index}})(?:${search})`;
+		search = `(?<=[^]{${match.index}})(?:${search})`;
 	}
 	const re = new RegExp (search, flagobject.flags);
 	re.lastIndex = from; // only relevant for sticky && !backward
