@@ -1,5 +1,5 @@
 
-<!doctype html5>
+<!doctype html>
 <html>
 <head>
 	<title>bililiteRange Editor</title>
@@ -15,9 +15,19 @@
 		button.Direction.rtl::before {
 			content: '←א';
 		}
+		textarea, pre {
+			display: none;
+		}
+		textarea.editor, pre.editor {
+			display: block;
+		}
 	</style>
 </head>
 <body class=editorcontainer>
+	<fieldset>
+		<label><input type=radio checked name=editortype value=textarea /> TEXTAREA</label>
+		<label><input type=radio  name=editortype value=pre /> PRE contenteditable</label>
+	</fieldset>
 	<div id=toolbar></div>
 	<textarea  class=editor  spellcheck=false >
 # The little editor
@@ -46,11 +56,12 @@ only, not space, tab or newline.
 	* `'`: single-quote delimited quote
 	* `"`: double-quote delimited quote
 
-</textarea>
+	</textarea>
+	<pre contenteditable  spellcheck=false ></pre>
 	<div id=statusbar><span id=wordcount></span></div>
 	<div id=output></div>
 
-	<script src=http://code.jquery.com/jquery-3.5.1.js ></script>
+	<script src=http://code.jquery.com/jquery-3.5.1.js ></script> 
 	<script src="../../historystack/history.js"></script>
 	<script src="../bililiteRange.js"></script>
 	<script src="../bililiteRange.undo.js"></script>
@@ -64,6 +75,13 @@ only, not space, tab or newline.
 	<script src="http://cdn.jsdelivr.net/npm/marked"></script>
 	
 	<script>
+		$('pre').text($('textarea').val());
+		const type = (new URL(location.href)).searchParams.get('editortype');
+		if (type == 'pre'){
+			$('textarea').removeClass('editor');
+			$('pre').addClass('editor');
+			$('[name=editortype][value=pre]').prop('checked', true);
+		}
 
 		const $editor = $('.editor');
 		const editor = $editor[0];
@@ -93,6 +111,10 @@ only, not space, tab or newline.
 				return s.split(/[ ]+/).reverse().join(' ');
 			}).join('\n'));
 		};
+		
+		$('[name=editortype]').on('change', function(){
+			location.search = `editortype=${this.value}`;
+		});
 		
 		const $output = $('#output');
 		$editor.on('input', evt => $output.html(marked.parse(rng.all())));
