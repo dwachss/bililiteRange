@@ -257,12 +257,12 @@ Range.prototype = {
 		this._el.addEventListener(type, func);
 		return this;
 	},
-	scrollIntoView: function(scroller = (top => this._el.scrollTop = top) ){
+	scrollIntoView() {
 		var top = this.top();
+		// note that for TEXTAREA's, this.top() will do the scrolling and the following is irrelevant.
 		// scroll into position if necessary
 		if (this._el.scrollTop > top || this._el.scrollTop+this._el.clientHeight < top){
-			scroller.call(this._el, top);
-			console.log(this._el.scrollTop);
+			this._el.scrollTop = top;
 		}
 		return this;
 	},
@@ -438,6 +438,7 @@ InputRange.prototype._nativeTop = function(rng){
 	const text = el.value;
 	const selection = [el.selectionStart, el.selectionEnd];
 	// hack from https://code.google.com/archive/p/proveit-js/source/default/source, highlightLengthAtIndex function
+	// note that this results in the element being scrolled; the actual number returned is irrelevant
 	el.value = text.slice(0, rng[0]);
 	el.scrollTop = Number.MAX_SAFE_INTEGER;
 	el.value = text;

@@ -90,15 +90,15 @@ Under the hood, there is a single input listener that goes through a
 That means there is a potential memory leak: any live range will not be garbage collected. Do `range.live(false)` to remove the
 reference.
 
-### `scrollIntoView([fn: function])`
+### `scrollIntoView()`
 Does its best to scroll the beginning of the range into the visible part of the element, by analogy to `Element.scrollIntoView()`.
 Note that it does not move the element itself, just sets `element.scrollTop` so
 that the start of the range is within the visible part of the element. If it already visible, does nothing.
 This only scrolls vertically, not horizontally.
 
-The function passed in used to do the scrolling, with one parameter that is the target scrollTop, and `this` set to the element itself.
-So, to animate the scrolling, use `range.scrollIntoView( top => { $(this).animate({scrollTop: top}) })`. 
-The default function is `top => { this.scrollTop = top }`.
+This works differently for `<pre>` elements, which generally move the range to the top of the element, and `<textarea>` elements, which generally move the range to the bottom of the element.
+
+A previous version allowed you to pass a function to do animated scrolling, but it never worked consistently, so it has been removed.
 
 ### `select()`
 If the element is the same as `document.activeElement`, then set the window selection to the current range. 
@@ -147,11 +147,14 @@ e.bililiteRange = {
 ````
 `bililiteRange` also sets up event listeners on `InputEvents` to add this field to browser-generated event objects.
 
-### `top()`
+### `top()` *deprecated*
+This works for `<pre>` elements but not for `<textarea>` elements and is irrelevant for `<input>` elements. Since I have been unable
+to find any way to make this work consistently, and I've never used it, I'm deprecating it and will eventually remove it.
+
 Returns the `offsetTop` for the range--the pixels from the top of the padding box of the element to the beginning of the range.
 Will be negative if the element is scrolled so that the range is above the visible part of the element.
 To scroll the element so that the range is at the top of the element, set `range.element.scrollTop = range.top()`.
-See `range.scrollIntoView()` above.
+
 
 ### `window`
 Returns [`element.document.defaultView`](https://developer.mozilla.org/en-US/docs/Web/API/Document/defaultView).
