@@ -21,6 +21,8 @@ multitest("Testing bililiteRange ex", function (rng, el, text, i, assert){
 	rng.ex('put');
 	assert.equal (rng.all(), 'Three\nOne\nTwo\n', 'put'); // note that all the insertions will add newlines at the end of the file
 	// documentation does not specify new current line for put.
+	rng.all(text).ex('1copy $');
+	assert.equal (rng.all(), 'One\nTwo\nThree\nOne\n');
 	rng.all(text).ex('%g/e/ c foo');
 	assert.equal (rng.all(), 'foo\nTwo\nfoo', 'global');
 	rng.all(text).ex('%g!/e/ c foo');

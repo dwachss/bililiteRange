@@ -42,7 +42,7 @@ All commands start with `ctrl-o` (like [evim](https://vimhelp.org/starting.txt.h
 
 There are really only three commands:
 
-1. `ctrl-o :` allows entry of any [ex](ex.md) command.
+1. `ctrl-o :` allows entry of any [ex](ex.md) command. To accomodate my fat fingers, `ctrl-o ;`, `ctrl-o ctrl-:` and `ctrl-o ctrl-;` also bring up the command entry box.
 2. `ctrl-o [fF] any-character` Finds the next (for `f`) or previous (for `F`) occurence of the character. Works for printable characters
 only, not space, tab or newline.
 3. `ctrl-o [verb] [object]` uses `bililiteRange` [`find`](../find.md) to select "objects".

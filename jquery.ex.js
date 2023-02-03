@@ -38,7 +38,7 @@ $.fn.ex = function($toolbar, $statusbar){
 			}
 		});
 		
-		$element.on('keydown', {keys: 'ctrl-o :'}, evt => {
+		$element.on('keydown', {keys: /ctrl-o (?:ctrl-)?[:;]/}, evt => {
 			$statusbar.prompt(':').then( rng.executor({defaultaddress: '.'}) ).
 			 then(...$statusbar.statusDisplayer()).
 			 finally(() => $element.focus());

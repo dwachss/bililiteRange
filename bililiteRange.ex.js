@@ -375,7 +375,7 @@ var commands = bililiteRange.ex.commands = {
 		var targetrng = this.clone();
 		var parsed = parseCommand(parameter, '.');
 		interpretAddresses(targetrng, parsed.addresses);
-		targetrng.bounds('endbounds').text(parameter, {
+		targetrng.bounds('endbounds').text(this.text(), {
 			ownline: true,
 			inputType: 'insertFromPaste'
 		}).bounds('endbounds');
