@@ -95,7 +95,7 @@ only, not space, tab or newline.
 		};
 		
 		const $output = $('#output');
-		$editor.on('input', evt => $output.html(marked(rng.all())));
+		$editor.on('input', evt => $output.html(marked.parse(rng.all())));
 		$editor.on('input', evt => {
 			var wc = rng.all().split(/\s+/).length - 1;
 			$('#wordcount').text(wc+' words')
