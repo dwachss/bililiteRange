@@ -59,6 +59,7 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 			// from https://developer.chrome.com/blog/page-lifecycle-api/
 			if (data.savestatus == 'clean' || !data.file){
 				removeEventListener('beforeunload', unloadhandler);
+				console.log ('removing unload');
 			}else{
 				addEventListener('beforeunload', unloadhandler);
 			}
@@ -552,6 +553,8 @@ var commands = bililiteRange.ex.commands = {
 			if (!data.confirm(`${data.file} not saved. Do you want to leave?`)) return;
 		}
 		preserve(this);
+		data.savestatus = 'clean'; // force removal of unload handler. Ought to do this explicitly.
+		// TODO: clean up; remove visibilitychange handler and data[exkey]
 		this.window.dispatchEvent( new CustomEvent('quit', { detail: this.element }) );
 	},
 	
