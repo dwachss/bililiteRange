@@ -327,3 +327,13 @@ multitest ('Testing preserve/recover', function (rng, el, text, i, assert, done)
 	rng.ex('recover');
 	assert.equal(rng.all(), all, 'recover');
 });
+multitest ('Testing quit', function (rng, el, text, i, assert, done){
+	assert.expect(1);
+	function listener(event){
+		assert.equal(event.detail, el, 'quit event has correct element');
+		rng.window.removeEventListener('quit', listener);
+	}
+	rng.all(text);
+	rng.window.addEventListener('quit', listener);
+	rng.ex('quit');
+});

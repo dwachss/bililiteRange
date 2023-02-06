@@ -123,6 +123,8 @@ only, not space, tab or newline.
 			$('#wordcount').text(wc+' words')
 		});
 		
+		addEventListener('quit', evt => console.log('quit', evt.detail));
+		
 		$editor.trigger('input').focus(); // trigger an input event to set up the wordcount display
 	</script>
 </body>
