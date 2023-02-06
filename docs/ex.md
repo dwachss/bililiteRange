@@ -314,8 +314,8 @@ Like [`read`](#read) but does not replace the text. Does `Function (parameter).c
 ## Options
 
 All options are actually [`bililiteRange` options](data.md#options). So `autoindent` can be set with 
-`range.data.autoindent = true` or `range.ex('autoindent on')` or `range.ex('set autoindent')` and unset
-with `range.data.autoindent = false` or `range.ex('autoindent off')` or `range.ex('set noautoindent')`.
+` range.data.autoindent = true` or ` range.ex('autoindent on')` or `range.ex('set autoindent')` and unset
+with `range.data.autoindent = false` or `range.ex('autoindent off')` or ` range.ex('set noautoindent')`.
 
 ### `autoindent`
 
