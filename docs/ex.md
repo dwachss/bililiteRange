@@ -120,6 +120,8 @@ range.data.file = this.window.location.pathname;
 
 which is probably the most useful defaults for AJAX.
 
+**Note: if `file` is an empty string, then `preserve`, `read`, `recover` and `write` do nothing, and `quit` (and the `beforeunload` event listener) do not ask for confirmation on unsaved edits.** So to use `ex` but not have to worry about `beforeunload` confirmation dialogs, do `rng.data.file = ''`.
+
 ## Regular Expressions
 
 *ex* regular expressions are different from Javascript RegExp's. To make my life easier, `bililiteRange.ex` uses the
@@ -213,7 +215,9 @@ Just selects the lines.
 
 ### `quit`
 
-Not implemented.
+There's no way to actually "quit". If the text was not saved, put up a confirmation dialog. If it was saved, or the user confirms,
+then a 'quit' event with `{detail: rng.element}` is dispatched on `rng.window`. The window can listen for that event and remove the
+editor element if needed.
 
 ### `read`
 

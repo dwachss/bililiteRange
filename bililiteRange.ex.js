@@ -22,7 +22,7 @@ bililiteRange.createOption ('writer', {
 // range.data.reader = async (file, dir) => $.get(file);
 // range.data.writer = async (text, file, dir) => $.post(file, {text: text});
 bililiteRange.createOption ('savestatus', { monitored: true, value: 'clean', enumerable: false });
-bililiteRange.createOption ('confirm', {value: window.confirm, enumerable: false});
+bililiteRange.createOption ('confirm', { enumerable: false });
 
 bililiteRange.prototype.executor = function ({command, returnvalue, defaultaddress = '%%'} = {}){
 	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
@@ -43,12 +43,26 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 		this.element[exkey] = bililiteRange.version;
 		this.initUndo();
 		data.directory = this.window.location.origin;
-		data.file = this.window.location.pathname;
+		data.file = this.window.location.pathname; // if this is set to the empty string, then don't save anything.
+		data.confirm = this.window.confirm.bind (this.window);
 		document.addEventListener ('visibilitychange', evt => {
 			if (document.visibilityState == 'hidden') preserve(this);
 		});
 		data.savestatus = 'clean';
 		this.listen ('input', evt => data.savestatus = 'dirty');
+		const unloadhandler = evt => {
+			if (!data.file) return;
+			evt.preventDefault();
+			evt.returnValue = 'not saved'; // any nonempty string
+		};
+		this.listen ('data-savestatus', evt => {
+			// from https://developer.chrome.com/blog/page-lifecycle-api/
+			if (data.savestatus == 'clean' || !data.file){
+				removeEventListener('beforeunload', unloadhandler);
+			}else{
+				addEventListener('beforeunload', unloadhandler);
+			}
+		});
 		data.marks = {
 			"'": this.clone().live(), // this will record the last position in the text
 			"''": this.clone().live() // this records the current position; just so it can be copied into ' above
@@ -347,11 +361,13 @@ function popRegister (register){
 
 function preserve (rng) {
 	const data = rng.data;
+	if (!data.file) return;
 	localStorage.setItem(`ex-${data.directory}/${data.file}`, rng.all());
 }
 
 function recover (rng) {
 	const data = rng.data;
+	if (!data.file) return;
 	rng.all(localStorage.getItem(`ex-${data.directory}/${data.file}`));
 }
 
@@ -530,11 +546,21 @@ var commands = bililiteRange.ex.commands = {
 		}).bounds('endbounds');
 	},
 	
+	quit (parameter, variant){
+		const data = this.data;
+		if (data.file && !variant && data.savestatus != 'clean'){
+			if (!data.confirm(`${data.file} not saved. Do you want to leave?`)) return;
+		}
+		preserve(this);
+		this.window.dispatchEvent( new CustomEvent('quit', { detail: this.element }) );
+	},
+	
 	read: function (parameter, variant){
 		if (variant) {
 			this.text(Function (parameter).call(this));
 		}else{
 			const file = parameter || this.data.file;
+			if (!file) return;
 			this.data.reader(file, this.data.directory).then( text => {
 				this.bounds('EOL').text(text, {
 					ownline: true
@@ -623,6 +649,7 @@ var commands = bililiteRange.ex.commands = {
 	write: function (parameter, variant){
 		// unlike real ex, always writes the whole file.
 		const file = parameter || this.data.file;
+		if (!file) return;
 		this.data.writer (this.all(), file, this.data.directory).then( () => {
 			this.data.savestatus = 'clean';
 			if (parameter) this.data.file = parameter;
