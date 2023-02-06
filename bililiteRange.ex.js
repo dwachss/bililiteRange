@@ -23,7 +23,6 @@ bililiteRange.createOption ('writer', {
 // range.data.writer = async (text, file, dir) => $.post(file, {text: text});
 bililiteRange.createOption ('savestatus', { monitored: true, value: 'clean', enumerable: false });
 bililiteRange.createOption ('confirm', {value: window.confirm, enumerable: false});
-localStorage.ex ??= {};
 
 bililiteRange.prototype.executor = function ({command, returnvalue, defaultaddress = '%%'} = {}){
 	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
