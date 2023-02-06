@@ -44,7 +44,7 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 		this.initUndo();
 		data.directory = this.window.location.origin;
 		data.file = this.window.location.pathname; // if this is set to the empty string, then don't save anything.
-		data.confirm = this.window.confirm.bind (this.window);
+		data.confirm ??= this.window.confirm.bind (this.window);
 		document.addEventListener ('visibilitychange', evt => {
 			if (document.visibilityState == 'hidden') preserve(this);
 		});
