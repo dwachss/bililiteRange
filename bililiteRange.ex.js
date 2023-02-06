@@ -22,6 +22,8 @@ bililiteRange.createOption ('writer', {
 // range.data.reader = async (file, dir) => $.get(file);
 // range.data.writer = async (text, file, dir) => $.post(file, {text: text});
 bililiteRange.createOption ('savestatus', { monitored: true, value: 'clean', enumerable: false });
+bililiteRange.createOption ('confirm', {value: window.confirm, enumerable: false});
+localStorage.ex ??= {};
 
 bililiteRange.prototype.executor = function ({command, returnvalue, defaultaddress = '%%'} = {}){
 	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
@@ -41,8 +43,11 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 	if (!this.element[exkey]){
 		this.element[exkey] = bililiteRange.version;
 		this.initUndo();
-		data.directory = this.window.location.protocol + '//' + this.window.location.hostname;
+		data.directory = this.window.location.origin;
 		data.file = this.window.location.pathname;
+		document.addEventListener ('visibilitychange', evt => {
+			if (document.visibilityState == 'hidden') preserve(this);
+		});
 		data.savestatus = 'clean';
 		this.listen ('input', evt => data.savestatus = 'dirty');
 		data.marks = {
@@ -339,6 +344,18 @@ function popRegister (register){
 	return register ? registers[register.toLowerCase()] : registers.shift();
 }
 
+/*********************** preserve/recover *********************************/
+
+function preserve (rng) {
+	const data = rng.data;
+	localStorage.setItem(`ex-${data.directory}/${data.file}`, rng.all());
+}
+
+function recover (rng) {
+	const data = rng.data;
+	rng.all(localStorage.getItem(`ex-${data.directory}/${data.file}`));
+}
+
 /*********************** the actual editing commands *********************************/
 
 // a command is a function (parameter {String}, variant {Boolean})
@@ -504,6 +521,8 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	print: function() { this.select() },
+	
+	preserve () { preserve(this) },
 
 	put: function (parameter, variant){
 		this.bounds('EOL').text(popRegister(parameter), {
@@ -523,6 +542,8 @@ var commands = bililiteRange.ex.commands = {
 			err => this.data.stderr(new Error (file + ' not read'))
 		);
 	},
+	
+	recover () { recover(this) },
 
 	redo: function (parameter, variant){
 		// restores the text only, not any other aspects of state

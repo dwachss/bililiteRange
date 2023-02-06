@@ -193,9 +193,23 @@ The listener for this event can do what it wants with it, but must reverse it in
 
 **`map` without a parameter does *not* display the list of mappings.**
 
-### `next`, `number`, `open`, `preserve`, `print`
+### `next`, `number`, `open`
 
 Not implemented.
+
+###  `preserve`
+
+Saves the entire text to localStorage (the key is `` `ex-${data.directory}/${data.file}` ``, so change those if you want more than one 
+element to edit).
+
+Sets up an event listener for [`visibilitychange`](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API) to save the
+text whenever the page is hidden (or closed), so if the page is closed without saving, re-open it and do `rng.ex('recover')`. If you are paranoid, do ` rng.listen ('input', evt => rng.ex('recover'));`
+
+
+### `print`
+
+Just selects the lines.
+
 
 ### `quit`
 
@@ -205,7 +219,11 @@ Not implemented.
 
 The variant (`read!`) does nothing different.
 
-### `recover`, `rewind`
+### `recover`
+
+Resets the text to ``localStorage[`ex-${data.directory}/${data.file}`]``. See [`preserve`](#preserve)
+
+### `rewind`
 
 Not implemented.
 

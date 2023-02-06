@@ -313,3 +313,11 @@ multitest ('Testing ex substitute', function (rng, el, text, i, assert, done){
 	rng.ex('~');
 	assert.equal(rng.all(), 'BCD.EF', 'blank regular expression with ~ repeats substitution without flags');
 });
+multitest ('Testing preserve/recover', function (rng, el, text, i, assert, done){
+	const all = rng.all();
+	rng.ex('preserve');
+	rng.all('');
+	assert.equal(rng.all(), '', 'erase text');
+	rng.ex('recover');
+	assert.equal(rng.all(), all, 'recover');
+});
