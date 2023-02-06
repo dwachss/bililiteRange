@@ -217,7 +217,16 @@ Not implemented.
 
 ### `read`
 
-The variant (`read!`) does nothing different.
+`read` pulls the file in after the current lines. 
+
+`read!` is not a shell escape but a Javascript escape. Does `this.text(Function (parameter).call(this), {select: 'end'});`.
+So to reverse the first line of the element, do 
+
+```js
+range.ex('1read! return this.text().split("").reverse().join("")');
+```
+
+If the return value is undefined, then the text is unchanged.
 
 ### `recover`
 
@@ -296,14 +305,7 @@ Not implemented.
 
 ### `!`
 
-Not a shell escape but a Javascript escape. Does `this.text(Function (parameter).call(this), {select: 'end'});`.
-So to reverse the first line of the element, do 
-
-```js
-range.ex('1! return this.text().split("").reverse().join("")');
-```
-
-If the return value is undefined, then the text is unchanged.
+Like [`read`](#read) but does not replace the text. Does `Function (parameter).call(this)`.
 
 ### `@`
 

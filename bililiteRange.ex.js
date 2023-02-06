@@ -532,15 +532,19 @@ var commands = bililiteRange.ex.commands = {
 	},
 	
 	read: function (parameter, variant){
-		const file = parameter || this.data.file;
-		this.data.reader(file, this.data.directory).then( text => {
-			this.bounds('EOL').text(text, {
-				ownline: true
-			}).bounds('endbounds');
-			this.data.stdout(file + ' read');
-		}).catch(
-			err => this.data.stderr(new Error (file + ' not read'))
-		);
+		if (variant) {
+			this.text(Function (parameter).call(this));
+		}else{
+			const file = parameter || this.data.file;
+			this.data.reader(file, this.data.directory).then( text => {
+				this.bounds('EOL').text(text, {
+					ownline: true
+				}).bounds('endbounds');
+				this.data.stdout(file + ' read');
+			}).catch(
+				err => this.data.stderr(new Error (file + ' not read'))
+			);
+		}
 	},
 	
 	recover () { recover(this) },
@@ -685,7 +689,7 @@ var commands = bililiteRange.ex.commands = {
 	
 	'!': function (parameter, variant){
 		// not a shell escape but a Javascript escape
-		this.text(Function (parameter).call(this));
+		Function (parameter).call(this);
 	}
 };
 

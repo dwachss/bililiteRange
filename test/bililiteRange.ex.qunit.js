@@ -67,14 +67,19 @@ multitest("Testing bililiteRange multi-line commands", function (rng, el, text, 
 	assert.equal(rng.all(), '\tOne\n\tTwo\n\tfoo\n\tbar', 'multiple commands done');
 });
 multitest("Testing bililiteRange ex shell escape", function (rng, el, text, i, assert){
-	rng.text(text).ex('%! return this.text().toUpperCase()');
-	assert.equal(rng.all(), rng.all().toUpperCase(), '!');
+	rng.text(text).ex('%read! return this.text().toUpperCase()');
+	assert.equal(rng.all(), rng.all().toUpperCase(), 'read!');
 	if (el.nodeName.toLowerCase() == 'input') return;
-	rng.all('One\nTwo\nThree').ex('2! return this.text().split("").reverse().join("")');
-	assert.equal(rng.all(), 'One\nowT\nThree', 'shell escape replaces text');
-	rng.ex('! this.data.foo = true');
-	assert.equal(rng.all(), 'One\nowT\nThree', 'shell escape that returns undefined does not change text');
+	rng.all('One\nTwo\nThree').ex('2read! return this.text().split("").reverse().join("")');
+	assert.equal(rng.all(), 'One\nowT\nThree', 'read/shell escape replaces text');
+	rng.ex('read! this.data.foo = true');
+	assert.equal(rng.all(), 'One\nowT\nThree', 'read/shell escape that returns undefined does not change text');
 	assert.equal(rng.data.foo, true, 'shell escape that returns undefined has side effects');
+	rng.ex('! this.data.foo = "other"');
+	assert.equal(rng.all(), 'One\nowT\nThree', 'shell escape that returns undefined does not change text');
+	assert.equal(rng.data.foo, 'other', 'shell escape that returns undefined has side effects');
+	rng.ex('! return "lorem ipsum"');
+	assert.equal(rng.all(), 'One\nowT\nThree', 'shell escape that returns text does not change text');
 });
 multitest("Testing bililiteRange ex marks", function (rng, el, text, i, assert, done){
 	rng.data.stdout = message => rng.exMessage = message;
@@ -314,6 +319,7 @@ multitest ('Testing ex substitute', function (rng, el, text, i, assert, done){
 	assert.equal(rng.all(), 'BCD.EF', 'blank regular expression with ~ repeats substitution without flags');
 });
 multitest ('Testing preserve/recover', function (rng, el, text, i, assert, done){
+	rng.all(text);
 	const all = rng.all();
 	rng.ex('preserve');
 	rng.all('');
