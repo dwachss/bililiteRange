@@ -11,4 +11,4 @@ jobs:
     steps:
       - run: echo This is a test
       - run: pwd
-      - run: cat "hello" > test.txt
+      - run: echo "hello" > test.txt
