@@ -12,3 +12,4 @@ jobs:
       - run: echo This is a test
       - run: pwd
       - run: echo "hello" > test.txt
+      - run: cat test.txt
