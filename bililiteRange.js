@@ -27,11 +27,7 @@ bililiteRange = function(el){
 	ret._win = ret._doc.defaultView;
 	ret._bounds = [0, ret.length];
 	
-	// selection tracking. We want clicks to set the selection to the clicked location but tabbing in or element.focus() should restore
-	// the selection to what it was.
-	// There's no good way to do this. I just assume that a mousedown (or a drag and drop
-	// into the element) within 100 ms of the focus event must have caused the focus, and
-	// therefore we should not restore the selection.
+
 	if (!(el[datakey])){ // we haven't processed this element yet	
 		const data = createDataObject (el);
 		startupHooks.forEach ( hook => hook (el, ret, data) );
@@ -47,6 +43,11 @@ startupHooks.add (trackSelection);
 startupHooks.add (fixInputEvents);
 startupHooks.add (correctNewlines);
 
+// selection tracking. We want clicks to set the selection to the clicked location but tabbing in or element.focus() should restore
+// the selection to what it was.
+// There's no good way to do this. I just assume that a mousedown (or a drag and drop
+// into the element) within 100 ms of the focus event must have caused the focus, and
+// therefore we should not restore the selection.
 function trackSelection (element, range, data){
 	data.selection = [0,0];
 	range.listen('focusout', evt => data.selection = range._nativeSelection() );	
@@ -55,7 +56,7 @@ function trackSelection (element, range, data){
 	range.listen('focus', evt => {
 		if ('mousetime' in data && evt.timeStamp - data.mousetime < 100) return;
 		range._nativeSelect(range._nativeRange(data.selection))
-	})
+	});
 }
 
 function fixInputEvents (element, range, data){
