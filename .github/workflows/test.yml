@@ -16,3 +16,4 @@ jobs:
       - run: ls $PWD/test.txt
       - run: ls $GITHUB_ACTION_PATH
       - run: echo $GITHUB_ACTION_PATH
+      - run: git status
