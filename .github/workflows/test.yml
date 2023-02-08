@@ -1,0 +1,11 @@
+name: My workflow test
+run-name: ${{ github.actor }} is learning GitHub Actions
+on:
+  push:
+    branches: master
+jobs:
+  say_something:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo This is a test
+    
