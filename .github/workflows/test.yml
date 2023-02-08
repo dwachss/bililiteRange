@@ -9,4 +9,5 @@ jobs:
     steps:
       - run: echo This is a test
       - run: pwd
-    
+      - run: ls
+      - run: ls dist
