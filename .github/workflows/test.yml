@@ -13,3 +13,4 @@ jobs:
       - run: pwd
       - run: echo "hello" > test.txt
       - run: cat test.txt
+      - run: ls $PWD/test.txt
