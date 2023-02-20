@@ -158,6 +158,10 @@ Not implemented
 
 This is the same as `chdir` or `set directory`. It sets the `range.data.directory`
 
+#### `file`
+
+Treats `file` as an option rather than a command. This means that `file` with no parameters sets the file name to the empty string. To get the file name, use `file?`.
+
 ### `global`
 
 The algorithm may fail if lines are added *after* the line just after the line that is matched. `%g/^/ .+2 a foo` will
