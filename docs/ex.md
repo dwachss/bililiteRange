@@ -120,7 +120,6 @@ range.data.file = this.window.location.pathname;
 
 which is probably the most useful defaults for AJAX.
 
-**Note: if `file` is an empty string, then `preserve`, `read`, `recover` and `write` do nothing, and `quit` (and the `beforeunload` event listener) do not ask for confirmation on unsaved edits.** So to use `ex` but not have to worry about `beforeunload` confirmation dialogs, do `rng.data.file = ''`.
 
 ## Regular Expressions
 
@@ -158,7 +157,7 @@ Not implemented
 
 This is the same as `chdir` or `set directory`. It sets the `range.data.directory`
 
-#### `file`
+### `file`
 
 Treats `file` as an option rather than a command. This means that `file` with no parameters sets the file name to the empty string. To get the file name, use `file?`.
 
