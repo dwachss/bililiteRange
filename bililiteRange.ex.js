@@ -41,7 +41,7 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 	const data = this.data;
 	if (!this.element[exkey]){
 		this.element[exkey] = bililiteRange.version;
-		this.initUndo();
+		this.initUndo(false); // ex shouldn't affect key strokes
 		data.directory = this.window.location.origin;
 		data.file = this.window.location.pathname; // if this is set to the empty string, then don't save anything.
 		data.confirm = this.window.confirm.bind (this.window);

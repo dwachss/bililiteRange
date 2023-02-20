@@ -7,9 +7,10 @@ new text, so if the text changes without sending an input event, the undo stack 
 
 ## `initUndo (attachKeys = true)`
 
-Sets up the history stack and creates the input event listeners. Will only run once per element 
-(creates `range.data.undos` for the stack and checks for the existence of that). If `attachKeys` is true,
+Sets up the history stack and creates the input event listeners. If `attachKeys` is true,
 also sets up `keydown` event listeners for control-Z and control-Y and attaches them to `undo` and `redo`.
+
+`initUndo()` can be called multiple times, to add or remove the `keydown` handlers. The actual undo stack if created only once.
 
 Undo and redo input events are not put on the undo stack (undo then undo does two levels of undo; the second undo
 does not undo the first one. That would be a redo). Keydown input events (`eventType` == `insertText` and a single

@@ -1,8 +1,21 @@
 'use strict';
 (function(){
 
+function keyhandler(evt){
+	if (!evt.ctrlKey || evt.altKey || evt.shiftKey || evt.metaKey) return;
+	if (evt.code == 'KeyZ'){
+		bililiteRange(evt.target).undo();
+		evt.preventDefault();
+	}
+	if (evt.code == 'KeyY'){
+		bililiteRange(evt.target).redo();
+		evt.preventDefault();
+	}
+}
+
 bililiteRange.extend({
 	initUndo (attachKeys = true) {
+		this[attachKeys ? 'listen' : 'dontlisten']('keydown', keyhandler);
 		if (this.data.undos) return;
 		this.data.undos = new History({inputType: 'initial'});
 		this.listen('input', evt => {
@@ -19,19 +32,6 @@ bililiteRange.extend({
 			}
 			this.data.undos.pushState(Object.assign({inputType: evt.inputType}, evt.bililiteRange));
 		});
-		if (attachKeys){
-			this.listen('keydown', evt => {
-				if (!evt.ctrlKey || evt.altKey || evt.shiftKey || evt.metaKey) return;
-				if (evt.code == 'KeyZ'){
-					this.undo();
-					evt.preventDefault();
-				}
-				if (evt.code == 'KeyY'){
-					this.redo();
-					evt.preventDefault();
-				}
-			});
-		}
 		return this;
 	},
 	undo(select = true) {
