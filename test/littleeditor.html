@@ -20,6 +20,14 @@
 		}
 		textarea.editor, pre.editor {
 			display: block;
+			transition: all 0.2s ease-out;
+		}
+		.quit > :not(#output) {
+			height: 0px;
+			flex: 0;
+			overflow: hidden;
+			padding: 0px;
+			margin: 0px;
 		}
 	</style>
 </head>
@@ -123,7 +131,9 @@ only, not space, tab or newline.
 			$('#wordcount').text(wc+' words')
 		});
 		
-		addEventListener('quit', evt => console.log('quit', evt.detail));
+		addEventListener('quit', evt =>{
+			document.querySelector('.editorcontainer').classList.add("quit");
+		});
 		
 		$editor.trigger('input').focus(); // trigger an input event to set up the wordcount display
 	</script>

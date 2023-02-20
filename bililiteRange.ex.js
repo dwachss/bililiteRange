@@ -42,8 +42,8 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 	if (!this.element[exkey]){
 		this.element[exkey] = bililiteRange.version;
 		this.initUndo();
-		data.directory = this.window.location.origin;
-		data.file = this.window.location.pathname; // if this is set to the empty string, then don't save anything.
+		data.directory ??= this.window.location.origin;
+		data.file ??= this.window.location.pathname;
 		data.confirm ??= this.window.confirm.bind (this.window);
 		document.addEventListener ('visibilitychange', evt => {
 			if (document.visibilityState == 'hidden') preserve(this);
@@ -51,7 +51,6 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 		data.savestatus = 'clean';
 		this.listen ('input', evt => data.savestatus = 'dirty');
 		const unloadhandler = evt => {
-			if (!data.file) return;
 			evt.preventDefault();
 			evt.returnValue = 'not saved'; // any nonempty string
 		};
@@ -549,7 +548,7 @@ var commands = bililiteRange.ex.commands = {
 	
 	quit (parameter, variant){
 		const data = this.data;
-		if (data.file && !variant && data.savestatus != 'clean'){
+		if (!variant && data.savestatus != 'clean'){
 			if (!data.confirm(`${data.file} not saved. Do you want to leave?`)) return;
 		}
 		preserve(this);
@@ -563,7 +562,6 @@ var commands = bililiteRange.ex.commands = {
 			this.text(Function (parameter).call(this));
 		}else{
 			const file = parameter || this.data.file;
-			if (!file) return;
 			this.data.reader(file, this.data.directory).then( text => {
 				this.bounds('EOL').text(text, {
 					ownline: true
@@ -652,17 +650,14 @@ var commands = bililiteRange.ex.commands = {
 	write: function (parameter, variant){
 		// unlike real ex, always writes the whole file.
 		const file = parameter || this.data.file;
-		if (!file) return;
 		this.data.writer (this.all(), file, this.data.directory).then( () => {
 			this.data.savestatus = 'clean';
 			if (parameter) this.data.file = parameter;
 			this.data.stdout (file + ' saved');
-		}).catch(
-			err => {
-				this.data.savestatus = 'failed';
-				this.data.stderr(new Error (file + ' not saved'));
-			}
-		);
+		}).catch( err => {
+			this.data.savestatus = 'failed';
+			this.data.stderr(new Error (file + ' not saved'));
+		});
 	},
 
 	u: 'undo',
@@ -677,8 +672,25 @@ var commands = bililiteRange.ex.commands = {
 	version: function (parameter, variant){
 		this.data.stdout(this.element[exkey]);
 	},
+	
+	wq: 'xit',
 
 	ws: 'wrapscan',
+	
+	xit: function(parameter, variant){
+		// TODO: this is copied from write. DRY it.
+		const file = parameter || this.data.file;
+		this.data.writer (this.all(), file, this.data.directory).then( () => {
+			this.data.savestatus = 'clean';
+			if (parameter) this.data.file = parameter;
+			this.data.stdout (file + ' saved');
+			commands.quit.call(this, parameter, variant);
+		}).catch( err => {
+			this.data.savestatus = 'failed';
+			this.data.stderr(new Error (file + ' not saved'));
+			if (variant) commands.quit.call(this, parameter, variant);
+		});
+	}
 
 	yank: function (parameter, variant){
 		var match = /^([a-zA-Z]?)\s*(\d*)/.exec(parameter);
