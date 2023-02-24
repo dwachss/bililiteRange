@@ -50,18 +50,21 @@ Look in the [docs folder](docs/index.md). The documents are:
 - [sendkeys.md](docs/sendkeys.md): details of the `bililiteRange.prototype.sendkeys()` function.
 - [jquery.sendkeys.md](docs/jquery.sendkeys.md): documentation of `jquery.sendkeys.js`, a simple jQuery plugin that
 uses `bililiteRange.prototype.sendkeys()`. Depends on `bililiteRange.js`.
-- [find.md](docs/find.md): documentation of `bililite.find.js`, an extension to `bililiteRange.prototype.bounds()` 
+- [find.md](docs/find.md): documentation of `bililiteRange.find.js`, an extension to `bililiteRange.prototype.bounds()` 
 that allows searching with regular expressions. Depends on `bililiteRange.js`.
-- [lines.md](docs/lines.md): documentation of `bililite.lines.js`, with extension to `bililiteRange.prototype.bounds()`
+- [lines.md](docs/lines.md): documentation of `bililiteRange.lines.js`, with extension to `bililiteRange.prototype.bounds()`
 and other methods for dealing with line-oriented text. Depends on `bililiteRange.js`.
-- [undo.md](docs/undo.md): documentation of `bililite.undo.js`, that adds `bililiteRange.prototype.undo()` and 
+- [undo.md](docs/undo.md): documentation of `bililiteRange.undo.js`, that adds `bililiteRange.prototype.undo()` and 
 `bililiteRange.prototype.redo()`. Depends on `bililiteRange.js`.
-- [ex.md](docs/ex.md): documentation of `bililite.ex.js` that implements (sort of) the 
+- [ex.md](docs/ex.md): documentation of `bililiteRange.ex.js` that implements (sort of) the 
 [*ex* line editor](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/ex.html).
-- [jquery.ex.md](docs/jquery.ex.md): documentation of `jquery.ex.js` that integrates ex with jQuery. Creates a sort 
+- [evim.md](docs/evim.md): documentation of `bililiteRange.evim.js` that creates a sort 
 of [evim](https://vimhelp.org/starting.txt.html#evim-keys) (easy VIM editor).
 
 ## Upgrade guide
+
+The [version 3 release](https://github.com/dwachss/bililiteRange/releases/tag/v3.3) used [jQuery](https://jquery.com),
+and the visual editor was `jquery.ex.js` instead of `bililiteRange.evim.js`.
 
 Some people used verson 2 of `bililiteRange`; that is still available as the 
 [2.5.2 release](https://github.com/dwachss/bililiteRange/releases/tag/v2.5.2).
