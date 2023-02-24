@@ -39,31 +39,31 @@ bililiteRange.prototype.executor = function ({command, defaultaddress = '%%'} = 
 bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.'){
 	const data = this.data;
 	if (!this.element[exkey]){
-		this.element[exkey] = bililiteRange.version;
+		this.element[exkey] = new Set(); // for storing all the event handlers that need to be removed at quit
 
 		this.initUndo(false); // ex shouldn't affect key strokes
 
 		data.directory ??= this.window.location.origin;
 		data.file ??= this.window.location.pathname; // if this is set to the empty string, then don't save anything.
 		
-		const visibilityHandler = evt => {
+		addListener (this, 'visibilitychange', evt => {
 			if (document.visibilityState == 'hidden') preserve(this);
-		};
-		document.addEventListener ('visibilitychange',visibilityHandler );
+		}, document);
 		const unloadhandler = evt => {
 			evt.preventDefault();
 			return evt.returnValue = 'not saved'; // any nonempty string
 		};
-		data.savestatus = 'clean';
-		this.listen ('input', evt => data.savestatus = 'dirty');
-		this.listen ('data-savestatus', evt => {
+		addListener (this, 'input', evt => data.savestatus = 'dirty');
+		addListener(this, 'beforeunload', unloadhandler, window);
+		addListener (this, 'data-savestatus', evt => {
 			// from https://developer.chrome.com/blog/page-lifecycle-api/
 			if (data.savestatus == 'clean' || !data.confirm){
-				removeEventListener('beforeunload', unloadhandler);
+				this.dontlisten('beforeunload', unloadhandler, window);
 			}else{
-				addEventListener('beforeunload', unloadhandler);
+				this.listen('beforeunload', unloadhandler, window);
 			}
 		});
+		data.savestatus = 'clean';
 		data.marks = {
 			"'": this.clone().live(), // this will record the last position in the text
 			"''": this.clone().live() // this records the current position; just so it can be copied into ' above
@@ -358,7 +358,7 @@ function popRegister (register){
 	return register ? registers[register.toLowerCase()] : registers.shift();
 }
 
-/*********************** preserve/recover/write *********************************/
+/*********************** save and quit *********************************/
 
 function preserve (rng) {
 	const data = rng.data;
@@ -382,7 +382,15 @@ function writer (rng, parameter) {
 	});
 };
 
+function addListener (rng, ...handler){
+	rng.element[exkey].add(handler);
+	rng.listen(...handler);
+}
 
+function removeListeners (rng){
+	rng.element[exkey].forEach( handler => rng.dontlisten(...handler) );
+}
+	
 /*********************** the actual editing commands *********************************/
 
 // a command is a function (parameter {String}, variant {Boolean})
@@ -564,8 +572,10 @@ var commands = bililiteRange.ex.commands = {
 			if (!data.confirm(`${data.file} not saved. Do you want to leave?`)) return;
 		}
 		preserve(this);
-		data.savestatus = 'clean'; // force removal of unload handler. Ought to do this explicitly.
-		// TODO: clean up; remove visibilitychange handler and data[exkey]
+		removeListeners (this);
+		delete this.element[exkey];
+		Object.values(data.marks).forEach( rng => rng.live(false) );
+		data.marks = {};
 		this.window.dispatchEvent( new CustomEvent('quit', { detail: this.element }) );
 	},
 	

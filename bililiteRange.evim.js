@@ -12,6 +12,7 @@ bililiteRange.prototype.evim = function (toolbarContainer, statusbar){
 	const toolbar = toolbarContainer ? new Toolbar (toolbarContainer, element, rng.executor(), 'extoolbar') : undefined;
 	data.stdout = message => Promise.alert(message, statusbar);
 	data.stderr = error => Promise.alert(error, statusbar);
+	data.confirm = window.confirm.bind(window);
 	data.autoindent = true;
 	data.global = true;
 

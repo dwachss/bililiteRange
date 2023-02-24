@@ -117,7 +117,7 @@ function diff (oldText, newText){
 	}
 
 	const oldlen = oldText.length;
-	const	newlen = newText.length;
+	const newlen = newText.length;
 	for (var i = 0; i < newlen && i < oldlen; ++i){
 		if (newText.charAt(i) != oldText.charAt(i)) break;
 	}
@@ -240,8 +240,9 @@ Range.prototype = {
 	get document() {
 		return this._doc;
 	},
-	dontlisten: function (type, func = console.log){
-		this._el.removeEventListener(type, func);
+	dontlisten: function (type, func = console.log, target){
+		target ??= this._el;
+		target.removeEventListener(type, func);
 		return this;
 	},
 	get element() {
@@ -254,8 +255,9 @@ Range.prototype = {
 		this.data.liveRanges[on ? 'add' : 'delete'](this);
 		return this;
 	},
-	listen: function (type, func = console.log){
-		this._el.addEventListener(type, func);
+	listen: function (type, func = console.log, target){
+		target ??= this._el;
+		target.addEventListener(type, func);
 		return this;
 	},
 	scrollIntoView() {

@@ -94,6 +94,7 @@ only, not space, tab or newline.
 			map! Spellcheck spellcheck toggle
 			map! Direction command="!Toolbar.toggleAttribute (this.element, 'style.direction', ['ltr', 'rtl']);" observe=style.direction title="Toggle Text Direction"
 			map! "BiDi Off" command="bidi toggle" title="Toggle the Bidirectional Text Algorithm"
+			map! Close xit
 			! this.data.trigger()
 		`);
 		const rng = bililiteRange(editor);
@@ -127,7 +128,11 @@ only, not space, tab or newline.
 		editor.addEventListener('input', wordcount );
 		wordcount();
 				
-		addEventListener('quit', evt => console.log('quit', evt.detail));
+		addEventListener('quit', evt => {
+			document.getElementById('toolbar').style.display = 'none';
+			document.getElementById('statusbar').style.display = 'none';
+			editor.style.display = 'none';
+		});
 		
 		editor.focus();
 	</script>

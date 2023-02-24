@@ -218,12 +218,12 @@ this.element.dispatchEvent(event);
 
 Note that dispatchEvent is *synchronous*, meaning that the event handlers will all be run before returning from `range.dispatch()`.
 
-### `listen(s, fn)`
+### `listen(s, fn = console.log, target = this.element)`
 
-Shorthand for `this.element.addEventListener(s, fn)`.
+Shorthand for `target.addEventListener(s, fn)`.
 
-### `dontlisten(s, fn)`
-Shorthand for `this.element.removeEventListener(s, fn)`.
+### `dontlisten(s, n = console.log, target = this.element)`
+Shorthand for `target.removeEventListener(s, fn)`.
 
 ## "Globals"
 
