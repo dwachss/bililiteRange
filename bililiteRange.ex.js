@@ -746,7 +746,7 @@ var commands = bililiteRange.ex.commands = {
 // note that this createOption is for ex options, which are bililiteRange options with added ex commands.
 
 function createOption (name, value){
-	value = bililiteRange.createOption(name, value !== undefined ? {value: value} : {});
+	value = bililiteRange.createOption(name, arguments.length > 1 ? {value: value} : {});
 	// now create a command to set the value, based on value's type
 	var constructor = value.constructor.name;
 	bililiteRange.ex.commands[name] = (createOption[constructor] || createOption.generic)(name);
