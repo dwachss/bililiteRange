@@ -185,9 +185,9 @@ function parseCommand(command, defaultaddress){
 			return '';
 		});
 		// a comma separates addresses
-		if (/^\s*([,;])\s*/.test(command)){
-			if (/;/.test(command)) addresses.push(';'); // need to track semicolons since they change the value of '.'
-			command = command.replace(/^\s*([,;])\s*/, '');
+		if (/^\s*[,;]\s*/.test(command)){
+			if (/^\s*;/.test(command)) addresses.push(';'); // need to track semicolons since they change the value of '.'
+			command = command.replace(/^\s*[,;]\s*/, '');
 			addresses.push.apply(addresses, parseAddresses()); // recursively parse the whole list
 		}
 		return addresses;
