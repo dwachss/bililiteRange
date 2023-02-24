@@ -61,34 +61,32 @@ only, not space, tab or newline.
 	<div id=statusbar><span id=wordcount></span></div>
 	<div id=output></div>
 
-	<script src=https://code.jquery.com/jquery-3.5.1.js ></script> 
 	<script src="../../historystack/history.js"></script>
+	<script src="../../toolbar/toolbar.js"></script>
+	<script src="../../status/status.js"></script>
+	<script src="../../keymap/keymap.js"></script>
 	<script src="../bililiteRange.js"></script>
 	<script src="../bililiteRange.undo.js"></script>
 	<script src="../bililiteRange.lines.js"></script>
 	<script src="../bililiteRange.find.js"></script>
 	<script src="../bililiteRange.ex.js"></script>
-	<script src="../../toolbar/toolbar.js"></script>
-	<script src="../../status/jquery.status.js"></script>
-	<script src="../../keymap/jquery.keymap.js"></script>
-	<script src="../jquery.ex.js"></script>
+	<script src="../bililite.evim.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/marked"></script>
 	
 	<script>
-		$('pre').text($('textarea').val());
+		document.querySelector('pre').textContent = document.querySelector('textarea').textContent;
 		const type = (new URL(location.href)).searchParams.get('editortype');
 		if (type == 'pre'){
-			$('textarea').removeClass('editor');
-			$('pre').addClass('editor');
-			$('[name=editortype][value=pre]').prop('checked', true);
+			document.querySelector('textarea').classList.remove('editor');
+			document.querySelector('pre').classList.add('editor');
+			document.querySelector('[name=editortype][value=pre]').setAttribute('checked', 'checked');
 		}
 
-		const $editor = $('.editor');
-		const editor = $editor[0];
+		const editor = document.querySelector('.editor');
 		localStorage.setItem('.exrc', `
 			map ^s write
 			map ^b sendkeys "**{selection}{mark}**"
-			map ^r .reverse
+			map ^r reverse
 			map "^o j" join
 			map! Save command=write observe=data-savestatus
 			map! Global global toggle
@@ -99,7 +97,7 @@ only, not space, tab or newline.
 			! this.data.trigger()
 		`);
 		const rng = bililiteRange(editor);
-		$editor.ex($('#toolbar'), $('#statusbar'));
+		rng.evim(document.getElementById('toolbar'), document.getElementById('statusbar'));
 		
 		bililiteRange.ex.createAttributeOption ('global');
 		bililiteRange.ex.createAttributeOption ('spellcheck', ['true', 'false']);
@@ -112,20 +110,26 @@ only, not space, tab or newline.
 			}).join('\n'));
 		};
 		
-		$('[name=editortype]').on('change', function(){
-			location.search = `editortype=${this.value}`;
-		});
+		document.querySelectorAll('[name=editortype]').forEach( el => el.addEventListener('change', () => {
+			location.search = `editortype=${el.value}`;
+		}));
 		
-		const $output = $('#output');
-		$editor.on('input', evt => $output.html(marked.parse(rng.all())));
-		$editor.on('input', evt => {
+		const output = document.querySelector('#output');
+		function parse(){
+			output.innerHTML = marked.parse(rng.all());
+		}
+		editor.addEventListener('input', parse );
+		parse();
+		function wordcount(){
 			var wc = rng.all().split(/\s+/).length - 1;
-			$('#wordcount').text(wc+' words')
-		});
-		
+			document.getElementById('wordcount').textContent = wc+' words';
+		}
+		editor.addEventListener('input', wordcount );
+		wordcount();
+				
 		addEventListener('quit', evt => console.log('quit', evt.detail));
 		
-		$editor.trigger('input').focus(); // trigger an input event to set up the wordcount display
+		editor.focus();
 	</script>
 </body>
 </html>

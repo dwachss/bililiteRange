@@ -42,7 +42,7 @@ bililiteRange.createOption ('paragraph', {value: /\n\s*\n/});
 bililiteRange.createOption ('section', {value: /\n(<hr\/?>|(-|\*|_){3,})\n/i});
 bililiteRange.createOption ('()', {value: [/\(/, /\)/] });
 bililiteRange.createOption ('[]', {value: [/\[/, /]/] });
-bililiteRange.createOption ('{}', {value: [/\{/, /}/] });
+bililiteRange.createOption ('{}', {value: [/{/, /}/] });
 bililiteRange.createOption ('"', {value: [/"/, /"/] });
 bililiteRange.createOption ("'", {value: [/'/, /'/] });
 
@@ -65,8 +65,9 @@ bililiteRange.bounds.from = function(name, separator, outer = false){
 };
 
 bililiteRange.bounds.whole = function(name, separator, outer = false){
+	if (separator in this.data) separator = this.data[separator];
 	// if it's a two-part separator (like parentheses or quotes) then "outer" should include both.
-	return this.bounds('union', 'from', separator, outer && this.data[separator]?.length == 2).bounds('union', 'to', separator, outer);
+	return this.bounds('union', 'from', separator, outer && separator?.length == 2).bounds('union', 'to', separator, outer);
 };
 
 //------- private functions -------

@@ -71,16 +71,14 @@
 #statusbar {
 	padding: 2px;
 }
+#statusbar span[role=alert] {
+	transition: opacity 4s 2s;
+}
+#statusbar span[role=alert].hidden {
+	opacity: 0;
+}
 #statusbar label {
 	display: flex;
-}
-#statusbar label strong {
-	/* the prompt */
-	padding-right: 2px;
-}
-#statusbar input {
-	flex: auto;
-	unicode-bidi: bidi-override;
 }
 #statusbar .success {
 	color: green;
@@ -90,6 +88,15 @@
 	color: red;
 	padding: 0 2px;
 }
+#statusbar label strong {
+	/* the prompt */
+	padding-right: 2px;
+}
+#statusbar input {
+	flex: auto;
+	unicode-bidi: bidi-override;
+}
+
 #wordcount {
 	float: right;
 	margin: 0 1em;
