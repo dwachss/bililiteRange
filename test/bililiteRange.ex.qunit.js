@@ -123,9 +123,9 @@ multitest ('Testing ex read/write', function (rng, el, text, i, assert, done){
 	rng.data.directory = 'C:';
 	assert.equal (rng2.data.file, 'test file', 'file name set on element');
 	assert.equal (rng2.data.directory, 'C:', 'directory set on element');
-	rng.ex('file');
+	rng.ex('file?');
 	assert.equal (rng.exMessage, '"test file"', 'file name set in ex');
-	rng.ex('dir');
+	rng.ex('dir?');
 	assert.equal (rng.exMessage, '"C:"', 'directory set in ex');
 	rng.ex('dir D:');
 	assert.equal (rng.data.directory, 'D:', 'directory changed in ex');
