@@ -24,16 +24,15 @@ bililiteRange.createOption ('writer', {
 bililiteRange.createOption ('savestatus', { monitored: true, value: 'clean', enumerable: false });
 bililiteRange.createOption ('confirm', { enumerable: false, value: false });
 
-bililiteRange.prototype.executor = function ({command, returnvalue, defaultaddress = '%%'} = {}){
+bililiteRange.prototype.executor = function ({command, defaultaddress = '%%'} = {}){
 	// returns a function that will run commandstring (if not defined, then will run whatever command is passed in when executed)
 	const el = this.element;
 	return text => {
 		el.focus();
 		bililiteRange(el).bounds('selection').
-		 ex(command || text, defaultaddress).
+		 ex(command ?? text, defaultaddress).
 		 select().
 		 scrollIntoView();
-		return returnvalue;
 	}
 };
 
@@ -43,8 +42,9 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 		this.element[exkey] = bililiteRange.version;
 
 		this.initUndo(false); // ex shouldn't affect key strokes
-		data.directory = this.window.location.origin;
-		data.file = this.window.location.pathname; // if this is set to the empty string, then don't save anything.
+
+		data.directory ??= this.window.location.origin;
+		data.file ??= this.window.location.pathname; // if this is set to the empty string, then don't save anything.
 		
 		const visibilityHandler = evt => {
 			if (document.visibilityState == 'hidden') preserve(this);
@@ -362,13 +362,11 @@ function popRegister (register){
 
 function preserve (rng) {
 	const data = rng.data;
-	if (!data.file) return;
 	localStorage.setItem(`ex-${data.directory}/${data.file}`, rng.all());
 }
 
 function recover (rng) {
 	const data = rng.data;
-	if (!data.file) return;
 	rng.all(localStorage.getItem(`ex-${data.directory}/${data.file}`));
 }
 

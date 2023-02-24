@@ -300,12 +300,14 @@ See the [documentation](undo.md).
 Implements the [ex line-editor](http://ex-vi.sourceforge.net/ex.html). Depends on `bililiteRange.js`, `bililiteRange.util.js` and
 `bililiteRange.undo.js`. See the [documentation](ex.md).
 
-### `jquery.ex.js`
+### `bililiteRange.evim.js`
 
-Implements all the pieces to use `bililite.ex.js`, with keystroke mapping, toolbar buttons, and jQuery integration. Works
+Implements all the pieces to use `bililite.ex.js`, with keystroke mapping and toolbar buttons. Works
 with my [toolbar](https://github.com/dwachss/toolbar) and
 [status](https://github.com/dwachss/status).
-See the [documentation](jquery.ex.md).
+See the [documentation](evim.md).
+
+This is a subset of `vim` in [visual mode](https://vimhelp.org/visual.txt.html#Visual) with the key mappings I wanted.
 
 ### `jquery.sendkeys.js`
 jQuery wrapper for `bililiteRange.prototype.sendkeys`, with a `keydown` handler that allows for synthetic (untrusted) `keydown` events to
