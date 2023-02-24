@@ -15,7 +15,7 @@ $.fn.ex = function($toolbar, $statusbar){
 		[data.stdout, data.stderr] = $statusbar.statusDisplayer();
 		data.autoindent = true;
 		data.global = true;
-		
+				
 		$element.on('map', evt => {
 			const {command, variant, lhs, rhs} = evt.detail;
 			if (variant){
@@ -96,6 +96,7 @@ $.fn.ex = function($toolbar, $statusbar){
 		
 		
 		rng.ex('%%source .exrc');
+		rng.initUndo(true); // use ctrl-Z and ctrl-Y
 		
 	});
 };

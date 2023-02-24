@@ -41,10 +41,11 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 	const data = this.data;
 	if (!this.element[exkey]){
 		this.element[exkey] = bililiteRange.version;
-		this.initUndo();
-		data.directory ??= this.window.location.origin;
-		data.file ??= this.window.location.pathname;
-		data.confirm ??= this.window.confirm.bind (this.window);
+
+		this.initUndo(false); // ex shouldn't affect key strokes
+		data.directory = this.window.location.origin;
+		data.file = this.window.location.pathname; // if this is set to the empty string, then don't save anything.
+		data.confirm = this.window.confirm.bind (this.window);
 		document.addEventListener ('visibilitychange', evt => {
 			if (document.visibilityState == 'hidden') preserve(this);
 		});
@@ -736,6 +737,8 @@ var commands = bililiteRange.ex.commands = {
 
 /*********************** the options *********************************/
 
+// note that this createOption is for ex options, which are bililiteRange options with added ex commands.
+
 function createOption (name, value){
 	value = bililiteRange.createOption(name, value !== undefined ? {value: value} : {});
 	// now create a command to set the value, based on value's type
@@ -747,7 +750,7 @@ bililiteRange.ex.createOption = createOption;
 
 createOption.generic = function (name){
 	return function (parameter, variant){
-		if (parameter == '?' || parameter === true || !parameter){
+		if (parameter == '?' || parameter === true || parameter == undefined){
 			this.data.stdout (JSON.stringify(this.data[name]));
 		}else{
 			this.data[name] = parameter;

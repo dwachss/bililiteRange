@@ -120,7 +120,6 @@ range.data.file = this.window.location.pathname;
 
 which is probably the most useful defaults for AJAX.
 
-**Note: if `file` is an empty string, then `preserve`, `read`, `recover` and `write` do nothing, and `quit` (and the `beforeunload` event listener) do not ask for confirmation on unsaved edits.** So to use `ex` but not have to worry about `beforeunload` confirmation dialogs, do `rng.data.file = ''`.
 
 ## Regular Expressions
 
@@ -157,6 +156,10 @@ Not implemented
 ### `directory`
 
 This is the same as `chdir` or `set directory`. It sets the `range.data.directory`
+
+### `file`
+
+Treats `file` as an option rather than a command. This means that `file` with no parameters sets the file name to the empty string. To get the file name, use `file?`.
 
 ### `global`
 
@@ -318,8 +321,8 @@ Like [`read`](#read) but does not replace the text. Does `Function (parameter).c
 ## Options
 
 All options are actually [`bililiteRange` options](data.md#options). So `autoindent` can be set with 
-`range.data.autoindent = true` or `range.ex('autoindent on')` or `range.ex('set autoindent')` and unset
-with `range.data.autoindent = false` or `range.ex('autoindent off')` or `range.ex('set noautoindent')`.
+` range.data.autoindent = true` or ` range.ex('autoindent on')` or `range.ex('set autoindent')` and unset
+with `range.data.autoindent = false` or `range.ex('autoindent off')` or ` range.ex('set noautoindent')`.
 
 ### `autoindent`
 
