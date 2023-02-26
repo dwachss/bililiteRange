@@ -1,0 +1,17 @@
+name: Package
+run-name: Concatenate files for distribution
+on:
+  push:
+    branches: master
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run:|
+          git config user.name dwachss
+          git config user.email dwachss@prodigy.net
+          ./package.ps1
+          git add .
+          git commit -m "generate packages"
+          git push
