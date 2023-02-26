@@ -120,9 +120,9 @@ only, not space, tab or newline.
 		wordcount();
 				
 		addEventListener('quit', evt => {
-			document.getElementById('toolbar').style.display = 'none';
-			document.getElementById('statusbar').style.display = 'none';
-			editor.style.display = 'none';
+			document.getElementById('toolbar').remove();
+			document.getElementById('statusbar').remove();
+			editor.remove();
 		});
 		
 		editor.focus();
