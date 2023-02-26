@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - run:|
+      - run: |
           git config user.name dwachss
           git config user.email dwachss@prodigy.net
           ./package.ps1
