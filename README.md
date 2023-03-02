@@ -55,11 +55,20 @@ that allows searching with regular expressions. Depends on `bililiteRange.js`.
 - [lines.md](docs/lines.md): documentation of `bililiteRange.lines.js`, with extension to `bililiteRange.prototype.bounds()`
 and other methods for dealing with line-oriented text. Depends on `bililiteRange.js`.
 - [undo.md](docs/undo.md): documentation of `bililiteRange.undo.js`, that adds `bililiteRange.prototype.undo()` and 
-`bililiteRange.prototype.redo()`. Depends on `bililiteRange.js`.
+`bililiteRange.prototype.redo()`. Depends on `bililiteRange.js` and my [`historystack`](https://github.com/dwachss/historystack).
 - [ex.md](docs/ex.md): documentation of `bililiteRange.ex.js` that implements (sort of) the 
 [*ex* line editor](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/ex.html).
 - [evim.md](docs/evim.md): documentation of `bililiteRange.evim.js` that creates a sort 
 of [evim](https://vimhelp.org/starting.txt.html#evim-keys) (easy VIM editor).
+
+## Distribution versions
+
+The `dist/` folder has files that concatenate useful sets of this project with their dependences.
+
+- [`dist/bililiteRange.js`](dist/bililiteRange.js) combines the basic `bililiteRange.js` with `bililiteRange.find.js`.
+- [`dist/editor.js`](dist/editor.js) combines everything in the project except for `jquery.sendkeys.js`, along with the projects it depends on.
+
+`package.ps1` is a simple Powershell script that creates those files, and `.github\workflows\package.yml` is the github action that runs it.
 
 ## Upgrade guide
 
