@@ -1,6 +1,6 @@
-// bililiteRange.js 2023-02-26
+// bililiteRange.js 2023-03-02
 
-// bililiteRange.js commit d273c87
+// bililiteRange.js commit 9637a79
 'use strict';
 
 let bililiteRange; // create one global variable
@@ -674,7 +674,7 @@ bililiteRange.createOption = function (name, desc = {}){
 
 })();
 
-// bililiteRange.find.js commit d273c87
+// bililiteRange.find.js commit 9637a79
 'use strict';
 
 (function(bililiteRange){
