@@ -68,7 +68,7 @@ The `dist/` folder has files that concatenate useful sets of this project with t
 - [`dist/bililiteRange.js`](dist/bililiteRange.js) combines the basic `bililiteRange.js` with `bililiteRange.find.js`.
 - [`dist/editor.js`](dist/editor.js) combines everything in the project except for `jquery.sendkeys.js`, along with the projects it depends on.
 
-`package.ps1` is a simple Powershell script that creates those files, and [`.github\workflows\package.yml`](.github\workflows\package.yml)] is the github action that runs it.
+`package.ps1` is a simple Powershell script that creates those files, and [`.github\workflows\package.yml`](.github/workflows/package.yml)] is the github action that runs it.
 
 ## Upgrade guide
 
