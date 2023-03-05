@@ -483,6 +483,10 @@ W3CRange.prototype._nativeGetText = function (rng){
 W3CRange.prototype._nativeSetText = function (text, rng){
 	rng.deleteContents();
 	rng.insertNode (this._doc.createTextNode(text));
+	// Lea Verou's "super dirty fix" to #31
+	if(!/\n$/.test(this._el.textContent)) {
+		this.innerHTML = this.innerHTML + '\n';
+	}
 	this._el.normalize(); // merge the text with the surrounding text
 };
 W3CRange.prototype._nativeEOL = function(){
