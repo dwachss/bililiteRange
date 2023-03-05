@@ -1,6 +1,6 @@
-// bililiteRange.js 2023-03-02
+// bililiteRange.js 2023-03-05
 
-// bililiteRange.js commit 9637a79
+// bililiteRange.js commit ef1c276
 'use strict';
 
 let bililiteRange; // create one global variable
@@ -486,8 +486,13 @@ W3CRange.prototype._nativeGetText = function (rng){
 W3CRange.prototype._nativeSetText = function (text, rng){
 	rng.deleteContents();
 	rng.insertNode (this._doc.createTextNode(text));
+	// Lea Verou's "super dirty fix" to #31
+	if(text == '\n' && this[1]+1 == this._el.textContent.length) {
+		// inserting a newline at the end
+		this._el.innerHTML = this._el.innerHTML + '\n';
+	}
 	this._el.normalize(); // merge the text with the surrounding text
-};
+	};
 W3CRange.prototype._nativeEOL = function(){
 	var rng = this._nativeRange(this.bounds());
 	rng.deleteContents();
@@ -674,7 +679,7 @@ bililiteRange.createOption = function (name, desc = {}){
 
 })();
 
-// bililiteRange.find.js commit 9637a79
+// bililiteRange.find.js commit ef1c276
 'use strict';
 
 (function(bililiteRange){

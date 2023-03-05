@@ -1,4 +1,4 @@
-// editor.js 2023-03-02
+// editor.js 2023-03-05
 
 // dwachss/historystack/history.js commit 806bac52
 // Implements the History interface for use with things other than browser history. I don't know why they won't let us use 
@@ -489,7 +489,7 @@ Toolbar.prototype = {
 };
 
 
-// bililiteRange.js commit 9637a79
+// bililiteRange.js commit ef1c276
 'use strict';
 
 let bililiteRange; // create one global variable
@@ -975,8 +975,13 @@ W3CRange.prototype._nativeGetText = function (rng){
 W3CRange.prototype._nativeSetText = function (text, rng){
 	rng.deleteContents();
 	rng.insertNode (this._doc.createTextNode(text));
+	// Lea Verou's "super dirty fix" to #31
+	if(text == '\n' && this[1]+1 == this._el.textContent.length) {
+		// inserting a newline at the end
+		this._el.innerHTML = this._el.innerHTML + '\n';
+	}
 	this._el.normalize(); // merge the text with the surrounding text
-};
+	};
 W3CRange.prototype._nativeEOL = function(){
 	var rng = this._nativeRange(this.bounds());
 	rng.deleteContents();
@@ -1163,7 +1168,7 @@ bililiteRange.createOption = function (name, desc = {}){
 
 })();
 
-// bililiteRange.undo.js commit 9637a79
+// bililiteRange.undo.js commit ef1c276
 'use strict';
 (function(){
 
@@ -1223,7 +1228,7 @@ bililiteRange.extend({
 
 })();
 
-// bililiteRange.lines.js commit 9637a79
+// bililiteRange.lines.js commit ef1c276
 'use strict';
 
 (function(){
@@ -1364,7 +1369,7 @@ function unindent(str, count, tabsize){
 
 })();
 
-// bililiteRange.find.js commit 9637a79
+// bililiteRange.find.js commit ef1c276
 'use strict';
 
 (function(bililiteRange){
@@ -1569,7 +1574,7 @@ function replaceprimitive (search, flagobject, text, replace, from, to){
 
 })(bililiteRange);
 
-// bililiteRange.ex.js commit 9637a79
+// bililiteRange.ex.js commit ef1c276
 'use strict';
 
 (function(undefined){
@@ -2383,7 +2388,7 @@ createOption ('file', 'document');
 
 })();
 
-// bililiteRange.evim.js commit 9637a79
+// bililiteRange.evim.js commit ef1c276
 'use strict';
 
 (function(){
