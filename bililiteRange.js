@@ -484,11 +484,12 @@ W3CRange.prototype._nativeSetText = function (text, rng){
 	rng.deleteContents();
 	rng.insertNode (this._doc.createTextNode(text));
 	// Lea Verou's "super dirty fix" to #31
-	if(!/\n$/.test(this._el.textContent)) {
-		this.innerHTML = this.innerHTML + '\n';
+	if(text == '\n' && this[1]+1 == this._el.textContent.length) {
+		// inserting a newline at the end
+		this._el.innerHTML = this._el.innerHTML + '\n';
 	}
 	this._el.normalize(); // merge the text with the surrounding text
-};
+	};
 W3CRange.prototype._nativeEOL = function(){
 	var rng = this._nativeRange(this.bounds());
 	rng.deleteContents();
