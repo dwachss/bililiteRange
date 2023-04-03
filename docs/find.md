@@ -3,39 +3,59 @@
 `bililiteRange.find.js` adds the ability to search for a regular expression in an element. Usage:
 
 ```js
-range.bounds(re: RegExp, flags: string);
-range.bounds('find', s: string, flags: string);
+range.bounds('find', s: string, {flags: string});
+range.bounds(re: RegExp, {flags: string});
+range.bounds`Delimited Regular Expression string`;
 ```
 
 So:
 
 ```js
+range.bounds('find', 'foo');
+```
+
+searches for the next match of `'foo'` in the element, starting *after* the current bounds. This is meant to emulate how word processors search.
+If it is found, then the bounds of the range are set to that text, and `range.match` is set to the results of
+[`RegExp.prototype.exec`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec) on `range.all()`.
+
+If it is not found, then the range is unchanged and `range.match` is set to `false` (not `null`!).
+
+
+```js
 range.bounds(/foo/);
 ```
 
-will set the bounds of the range to the next match of `/foo/` in the element, starting *after* the current bounds.
-
-The program looks for a RegExp by [duck typing](https://en.wikipedia.org/wiki/Duck_typing) it, so anything
-with `source` and `flags` fields will work:
+searches for the given regular expression, and the [tagged template](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates) form accepts a delimited regular expression,
+the way PHP's [PCRE](https://pcre.org/)-based [preg_match](https://www.php.net/manual/en/function.preg-match.php) does:
 
 ```js
-range.bounds({source: 'foo$', flags: 'iV'})
+range.bounds`/foo/`;
+range.bounds`#foo#`
 ```
 
-uses the [extended flags](#flags) to match case-insensitive and "no magic", meaning the `$` is taken literally. This matches
-`'FOO$'`.
+Bracket style delimiters (``range.bounds`(foo)` `` or ``range.bounds`<foo>` ``) are *not* supported.
+[Flags](#flags) are after the delimiter: `` range.bounds`/foo/im` ``, or in a special non-delimited form (not PCRE-compatible, but inspired by it) `` range.bounds`(?im)foo` ``. Note there is no delimiter, just the `(?flags)`
+in the beginning.
 
-The difference between the two forms is that the `('find', string, flags)` form searches for the string literally. It creates a RegExp
-with all the special characters escaped (see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Escaping )
-and does `new RegExp (string, flags)`. 
+As with PCRE, the delimiter can be escaped with `\`:
 
-The `flags` parameter is prepended to the `re.flags` to create the final RegExp that is sought. It's there because `bililiteRange` allows for
-other flags than the standard. See [below](#flags).
+```js
+range.bounds`/http:\/\//`; // searches for 'http://'
+```
 
-`range.match` is set to the results of [`exec`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec) on `range.all()` if the
-search is successful. If it is not, `range.match` is set to `false` (not `undefined`).
+And delimiters in interpolated strings are automatically escaped:
 
-So
+```js
+range.bounds`/${'http://'}/`; // searches for 'http://'
+```
+
+Since the tagged template literal uses [`String.raw`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/raw), backslashes don't need to be themselves escaped;
+
+```js
+range.bounds`/\n/`; // searches for a newline
+```
+
+## summary
 
 ```js
 range.all('foo bar baz');
@@ -47,33 +67,74 @@ range.all('A A B B').bounds(1); // range.bounds is [1,1], after the first 'A'
 range.bounds(/a/i); // range.bounds is [2,3], the second 'A' (flags are respected).
 ```
 
-## flags
+## Flags
 
-The standard flags of `imsuy` are respected (though `y`, sticky, is treated differently). The `g` flag is ignored; the location of
-the search is determined by the bounds of the range.
+Flags can be part of the regular expression (`range.bounds(/foo/im)`) or after (`range.bounds(/foo/, 'im')` or both; the two strings are concatenated. The reason for having a separate `flags` parameter is that a number of
+nonstandard flags are supported, and negative flags are supported.
 
-Similar to vim, capital letters mean that the given flag is false. `bounds(/foo/, 'I')` means search that is *not* case-insensitive. For ordinary
-RegExps, there is no reason to explicitly put that in, but it is possible to change the default in `bililightRange`. A string with multiple letters
-is not an error; the last letter will be used. `'ImiM'` means `'iM'`.
+Each flag represents a Boolean that is by default negative, but can be set on `range.data` to a different default for all regular expressions on the element (and those can be overridden by the
+flags on the regular expression.
+
+### Standard Flags
+
+The standard flags are simply used directly:
+
+| flag | data field for default value |
+|------|------------------------------|
+| `d` | `range.data.hasIndices` |
+| `i` | `range.data.ignoreCase` |
+| `m` | `range.data.multiline` |
+| `s` | `range.data.dotAll` |
+| `u` | `range.data.unicode` |
+
+The `y` flag has special meaning (see [below](#search-flags)).
+The `g` flag (`range.data.global`) exists, but is ignored; `range.bounds(/foo/g)` still only finds a single instance.
+
+### Enhanced Flags
+
 
 Additional flags are defined:
 
-- `v`: magic. The flag abbreviation comes from 
-[vim's "Very Magic" mode](https://davitenio.wordpress.com/2009/01/17/avoid-the-need-to-escape-parenthesis-brackets-in-vim-regexes/),
-since 'm' was already taken. This means to use the special characters like `.*[]` etc. as documented. This is the default (but can be changed with
-the capital `V` flag or changing `range.data.magic`; see 
-[below](#default-values-for-flags)). 
-If it is false, then special characters will be taken literally.
+| flag | data field for default value |
+|------|------------------------------|
+| `n` | `range.data.explicitCapture` |
+| `q` | `range.data.quotedPattern` |
+| `x` | `range.data.freeSpacing` |
 
-  The `bounds('find', string, flags)` form prepends the `'V'` flag automatically, so the string has special characters escaped. Override this
-with `'v'`: `bounds('find', '[a-z]', 'v')` matches any single letter, where `bounds('find', '[a-z]')` matches `"[a-z]"` exactly.
+- `n`: inspired by [XRegExp](https://xregexp.com/flags/). Parentheses in the pattern are for grouping, and are not captured. Named captures like `/(?<group>.)\k<group>/` work, but 
+`/(.)\1/` will not. Turns `(...)` into `(?:...)`.
 
-- `b`: backward. Set to true to search backward from the start of the range.
+- `q`: all special characters in the pattern are escaped, so it just searches for the literal string. ``range.bounds`/[foo](baz)/q` `` will be turned into  ``range.bounds`/\[foo\]\(baz\)/q` ``. This is how
+`range.bounds('find', string, flags)` works; it basically calls `` range.bounds`/${string}/q${flags}` ``.
 
-- `r`: restricted. Set to true to search *within* the current range.
+- `x`: extended. Whitespace will be ignored, and `#` characters start a comment until the end of a line. For example:
 
-- `w`: wrapscan. Set to true to wrap around. If false, then a forward search will fail if there is no match after this range, and a backward search
-will fail if there is no match before this range.
+```js
+range.bounds`/[a-zA-Z] # match a letter
+              \w*      # then letters or digits
+            /x`;
+// this will search for /[a-zA-Z]\w*/
+```
+
+### Search Flags
+
+
+| flag | data field for default value |
+|------|------------------------------|
+| `b` | `range.data.backwardScan` |
+| `r` | `range.data.restrictedScan` |
+| `w` | `range.data.wrapScan` |
+| `y` | `range.data.sticky` |
+
+As mentioned above, the search starts *after* the current bounds. `y` means the match must start exactly at
+`range.bounds[1]` ([`lastIndex`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/lastIndex) is set to that). 
+
+If `b` is set, then the search goes *backward* from `range.bounds[0]`, and `y` means the match must end exactly at `range.bounds[1]`.
+
+If `r` is set, then the search is within the current bounds (either from the start or back from the end, depending on the `b` flag). `ry` anchors the match to the beginning of the range, and
+`bry` anchors it to end at the end.
+
+If `w` is set then if the initial scan fails, it will wrap around to the start or the end of the range. Ignored if `r` or `y` are set.
 
 ```js
 range.all('A A B B').bounds(1); // range.bounds is [1,1], after the first 'A'
@@ -84,45 +145,25 @@ range.bounds(3); // range.bounds() is [3,3], after the second 'A'
 range.bounds(/a/, 'ib'); // range.bounds is [2,3], the second 'A'. We searched backward
 ```
 
-### default values for flags
+### Negative Flags
 
-For actual Javascript RegExp flags, the defaults are all false. `bililiteRange` creates [options](data.md#options) for some of them,
-and you would need to override them (with, for instance, `'VW'`) if necessary.
+TODO
 
-```js
-bililiteRange.createOption('dotall', {value: false}); //  note that the flag for this is 's'
-bililiteRange.createOption('global', {value: false}); // this is only relevant for replace; find only finds one match
-bililiteRange.createOption('ignorecase', {value: false});
-bililiteRange.createOption('magic', {value: true}); // note that 'magic' defaults to true, and the flag is 'v'
-bililiteRange.createOption('multiline', {value: false});
-bililiteRange.createOption('unicode', {value: false});
-bililiteRange.createOption('wrapscan', {value: true}); // Note that 'wrapscan' defaults to true
+### Special tokens
 
-```
+These were were inspired by PCRE.
 
-And those can of course be changed for a given element with `range.data.ignorecase = true`. The flags that control the
-*location* of the search (`b`, `r` and `y`) do not have options; the default is always `false`.
+- `\A`: Matches the beginning of `range.all()`.
+- `\z`: Matches the end of `range.all()`.
+- `\Z`: Matches the end of `range.all()`, but before a final newline if there is one. These will match the extremes of the text even if `m` is set, and `^` and `$` change their meaning.
+- `\G`: Matches the start of the range.
+- `\g`: Matches the end of the range. These can be an alternative to the `y` flag.
+- `\Q...\E`: all special characters between `\Q` and `\E` are escaped. This can be an alternative to the `q` flag. Note that is no way to escape `\E`; it always marks the end of the quoted section.
+- `(?#....)`: Comment; will be replaced by `(?:)`.
 
-### The actual algorithm
+### Duck Typing
 
-Backward searching works by searching from the *start* of the search bounds, with a "global" search, and repeats until the search fails.
-The last successful match is returned.
-
-Search bounds are limited by using global searches, with `lastIndex` set to the start of the search bounds, and a look ahead set to
-match the correct number of characters to force the end of the search to be before a given index. Kudus to [Izzy Vivian Dupree](https://github.com/idupree)
-for figuring that out. If the text is `length` characters long and the match has to end *before* index `i`, then 
-`/foo(?=[\s\S]{n})/`, where `n` is `length - i`, will end at or before `i`. `/foo(?=[\s\S]{n})(?![\s\S]{n+1})/` will end *exactly* at `i`.
-
-Forward searches are limited to [`range[1]`, `range.length`]. Forward sticky searches will only match if the match *starts* at `range[1]`.
-
-Backward searches are limited to [`0`, `range[0]`]. Backward sticky searches will only match if the match *ends* at `range[0]`.
-
-Restricted searches are limited to [`range[0]`, `range[1]`], searching forward or backward as appropriate. Sticky restricted searches 
-match only the start or the end of [`range[0]`, `range[1]`], depending on whether the search is forward or backward.
-
-Wrap-around searches are only relevant if `restricted` and `sticky` are not set. If the search fails, sets the search bounds to the entire text and
-searches again, forward or backward.
-
+TODO
 
 ## `bililiteRange.prototype.replace`
 
@@ -131,9 +172,12 @@ but allows the use of the extended flags as above, and works correctly for `^` a
 element, not just the text of the range. `search` can be a string, interpreted as for `range.bounds('find', search, flags)`
 and it can be anything that has a `source` and `flags` field, as for `range.bounds(search)` above.
 
-Specifying the `g` flag will replace all occurences of `search`. Specifying the `b` flag does nothing except if the `y`
-flag is set; in that case it will only match the end of the range. The algorithm for searching for matches is as though
-the `r` flag were set; it only replaces text inside the range.
+Since `replace` only replaces text *inside* the range, the `r` flag is redundant and ignored.
+
+``range.replace`/pattern/replacement/flags` `` uses the syntax from `vim`; as with ``bounds`/pattern/flags` ``, other characters can be used as delimiters.
+
+Specifying the `g` flag will replace all occurences of `search`. Specifying `bg` flag does nothing except if the `y`
+flag is set; in that case it will only match the end of the range.
 
 `b` without `g` just changes the *last* occurence of `search`.
 

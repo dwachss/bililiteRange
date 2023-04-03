@@ -2,35 +2,57 @@
 
 (function(bililiteRange){
 
-bililiteRange.createOption('dotall', {value: false});
-bililiteRange.createOption('global', {value: false});
-bililiteRange.createOption('ignorecase', {value: false});
-bililiteRange.createOption('magic', {value: true});
-bililiteRange.createOption('multiline', {value: false});
-bililiteRange.createOption('unicode', {value: false});
-bililiteRange.createOption('wrapscan', {value: true});
+const FLAGS = {
+	// flag: [name, native?]
+	b:	['backwardScan', false],
+	d:	['hasIndices', true],
+	g:	['global', true],
+	i:	['ignoreCase', true],
+	m:	['multiline', true],
+	n:	['explicitCapture', false],
+	q:	['quotedPattern', false],
+	r:	['restrictedScan', false],
+	s:	['dotAll', true],
+	u:	['unicode', true],
+	w:	['wrapScan', false],
+	x:	['freeSpacing', false],
+	y:	['sticky', true],
+};
 
-bililiteRange.bounds.find = function (name, restring, flags = ''){
-	return find (this, restring, 'V'+flags);
+for (const flag in FLAGS){
+	bililiteRange.createOption(FLAGS[flag][0], {value: false});
+}
+
+bililiteRange.bounds.find = function (name, string, flags = ''){
+	return find (this, string, 'q'+flags);
 };
 
 bililiteRange.override('bounds', function (re, flags = ''){
-	// duck typed RegExps are OK, allows for flags to be part of re
-	if (!(re instanceof Object && 'source' in re && 'flags' in re)) return this.super(...arguments);
-	return find (this, re.source, flags + re.flags);
+	if (re instanceof Object && 'source' in re && 'flags' in re){ 
+		return find (this, re.source, flags + re.flags);
+	}
+	if (re instanceof Object && 'raw' in re){
+		const {source, flags} = parseRE(String.raw(...arguments), blanks(...arguments))
+		return find (this, source, flags);
+	}
+	return this.super(...arguments);
 });
 
-bililiteRange.prototype.replace = function (search, replace, flags = ''){
+bililiteRange.prototype.replace = function (search, replacement, flags = ''){
 	if (search instanceof Object && 'source' in search && 'flags' in search){
 		// a RegExp or similar
 		flags = flags + search.flags;
 		search = search.source;
+	}else if (search instanceof Object && 'raw' in search){
+		({source:search, replacement, flags} = parseRE(String.raw(...arguments), blanks(...arguments)));
 	}else{
 		search = search.toString();
-		flags = 'V' + flags;
+		flags = 'q' + flags;
 	}
+	const flagObject = parseFlags(this, flags);
+	search = flagObject.quotedPattern ? quoteRegExp(search) : processTokens(search, flagObject, this);
 	return this.text(
-		replaceprimitive (search, parseFlags(this, flags), this.all(), replace, this[0], this[1]),
+		replaceprimitive (search, flagObject, this.all(), replacement, this[0], this[1]),
 		{ inputType: 'insertReplacementText' }
 	);
 }		
@@ -72,67 +94,124 @@ bililiteRange.bounds.whole = function(name, separator, outer = false){
 
 //------- private functions -------
 
+// In a string template literal, replace interpolated strings with blanks so we don't try to parse them
+function blanks(strs,...values){
+	return String.raw(strs,...values.map(s=> ' '.repeat(String(s).length)));
+}
+
+function parseRE(str, template){
+	const delimiterRE = char => new RegExp(String.raw`(?<![^\\](?:\\\\)*\\)${quoteRegExp(char)}`, 'g'); // not preceded by an odd number of backslashes
+	const prefixRE = /^\(\?([-a-zA-Z]+)\)/; // flags as prefix rather than suffix
+	let source = '', replacement = '', flags = '', rest = '';
+	if (prefixRE.test(str)){
+		source = str.replace(prefixRE, (prefix, prefixedFlags) => {
+			flags = prefixedFlags;
+			return '';
+		});
+		return {source, replacement, flags, rest}; 
+	}
+	const delim = template[0];
+	if (/[\s\w(]/.test(delim)) throw new SyntaxError(`Illegal Delimiter in parse: ${delim}`);
+	const matches = [...template.matchAll(delimiterRE(delim))].map( match => match.index );
+	source = str.substring(1, matches[1]);
+	if (matches.length > 1){
+		rest = str.substring(matches[1]+1, matches[2]);
+	}
+	if (matches.length > 2){
+		replacement = rest;
+		rest = str.substring(matches[2]+1);
+	}
+	rest = rest.replace (/([-a-zA-Z]*)\s*/, (_, f) =>{
+		flags = f;
+		return '';
+	});
+	return {source, replacement, flags, rest};
+}
+
 function find (range, source, sourceflags){
+	const flagObject =  parseFlags (range, sourceflags + 'g');
 	const {
-		backward,
-		magic,
-		restricted,
+		backwardScan,
+		quotedPattern,
+		restrictedScan,
 		sticky,
-		wrapscan,
-		flags
-	} = parseFlags (range, sourceflags + 'g');
-	if (!magic) source = quoteRegExp (source);
-	const findfunction = backward ? findprimitiveback : findprimitive;
+		wrapScan,
+		nativeFlags
+	} = flagObject;
+	source = quotedPattern ? quoteRegExp(source) : processTokens(source, flagObject, range);
+	const findfunction = backwardScan ? findprimitiveback : findprimitive;
 	let from, to;
-	if (restricted){
+	if (restrictedScan){
 		from = range[0];
 		to = range[1];
-	}else if (backward){
+	}else if (backwardScan){
 		from = 0;
 		to = range[0];
 	}else{
 		from = range[1];
 		to = range.length;
 	}
-	let match = findfunction (source, flags, range.all(), from, to);
-	if (!match && wrapscan && !sticky && !restricted){
-		match = findfunction(source, flags, range.all(), 0, range.length);
+	let match = findfunction (source, nativeFlags, range.all(), from, to);
+	if (!match && wrapScan && !sticky && !restrictedScan){
+		match = findfunction(source, nativeFlags, range.all(), 0, range.length);
 	}
-	range.match = match || false; // remember this for the caller
+	range.match = match ?? false; // remember this for the caller
 	if (match) range.bounds([match.index, match.index+match[0].length]); // select the found string
 	return range;
 }
 
 function parseFlags (range, flags){
-	let flagobject = {
-		b: false,
-		g: range.data.global,
-		i: range.data.ignorecase,
-		m: range.data.multiline,
-		r: false,
-		s: range.data.dotall,
-		u: range.data.unicode,
-		v: range.data.magic,
-		w: range.data.wrapscan,
-		y: false
-	};
-	flags.split('').forEach( flag => flagobject[flag.toLowerCase()] = flag === flag.toLowerCase() );
-	return {
-		// these are the "real" flags
-		flags: (flagobject.g ? 'g' : '') + (flagobject.i ? 'i' : '') + (flagobject.m ? 'm' : '') +
-			(flagobject.s ? 's' : '') + (flagobject.u ? 'u' : '') + (flagobject.y ? 'y' : ''),
-		backward: flagobject.b,
-		global: flagobject.g,
-		magic: flagobject.v,
-		restricted: flagobject.r,
-		wrapscan: flagobject.w,
-		sticky: flagobject.y
-	};
+	const flagName = flag => FLAGS[flag]?.[0];
+	const nativeFlags = Object.keys(FLAGS).filter( flag => FLAGS[flag][1] );
+	const flagObject = {};
+	// get the defaults
+	for (const flag in FLAGS){
+		flagObject[flagName(flag)] = range.data[flagName(flag)];
+	}
+	const splitFlags = flags.split('-');
+	// get the positive flags
+	for (const flag of splitFlags[0]){
+		flagObject[flagName(flag.toLowerCase())] = false; // DEPRECATED NOTATION
+		flagObject[flagName(flag)] = true;
+	}
+	// get the negative flags
+	if (splitFlags[1]) for (const flag of splitFlags[1]){
+		flagObject[flagName(flag)] = false;
+	}
+	flagObject.nativeFlags = nativeFlags.filter(flag => flagObject[flagName(flag)]).join('');
+	return flagObject;
 }
+
+globalThis.parseFlags = parseFlags; // remove this!
 
 function quoteRegExp (source){
 	// from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Escaping
-	return source.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&');
+	return source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// code taken from XRegExp project, https://xregexp.com/
+const TOKENS = [];
+function processTokens(source, flagObject, range){
+	let currentScope = 'pattern';
+	let ret = '';
+	for (let i = 0; i < source.length;){
+		if (currentScope == 'pattern' && source[i] == '['){
+			currentScope = 'characterClass';
+		}else if (currentScope == 'characterClass' && source[i] == ']'){
+			currentScope = 'pattern';
+		}
+		for (const {pattern, handler, flag, scope} of TOKENS){
+			if ((!scope || scope == currentScope) && (!flag || flagObject[flag])){
+				const match = pattern.exec(source.substring(i));
+				if (match?.index === 0){
+					ret += handler(match[0], range);
+					i += match[0].length;
+					break;
+				}
+			}
+		}
+	}
+	return ret;
 }
 
 function findprimitive (source, flags, text, from, to){
@@ -156,26 +235,19 @@ function findprimitiveback (source, flags, text, from, to){
 		// sticky. Only match the end of the string.
 		flags = flags.replace('y','');
 		source = `(?:${source})(?![^]{${text.length-to+1}})`; // *don't* match too many characters
-		// this works even if $ won't, if multiline is true
 		const re = new RegExp (source, flags);
 		re.lastIndex = from;
 		return re.exec(text);
 	}else{
-		// no way to search backward; have to search forward until we fail
+		if (!flags.includes('g')) flags +='g';
+		re.lastIndex = from;	
 		const re = new RegExp (source, flags);
 		re.lastIndex = from;
-		let match = false;
-		do {
-			var lastmatch = match;
-			match = re.exec(text);
-			if (match && re.lastIndex == match.index) ++re.lastIndex; // beware zero-length matches and infinite loops
-		}while (match);
-		return lastmatch;
+		return [...str.matchAll(re)].pop();
 	}
 }
 
-function replaceprimitive (search, flagobject, text, replace, from, to){
-	if (!flagobject.magic) search = quoteRegExp (search);
+function replaceprimitive (search, flagObject, text, replacement, from, to){
 	if (from > 0){
 		// make sure we have at least (from) characters before the match
 		search = `(?<=[^]{${from}})(?:${search})`;
@@ -184,20 +256,87 @@ function replaceprimitive (search, flagobject, text, replace, from, to){
 		// make sure we have at least (length - to) characters after the match
 		search = `(?:${search})(?=[^]{${text.length - to}})`;
 	}
-	if (flagobject.sticky && flagobject.backward){
-		flagobject.flags = flagobject.flags.replace(/[gy]/g, '');
+	if (flagObject.sticky && flagObject.backward){
+		flagObject.nativeFlags = flagObject.nativeFlags.replace(/[gy]/g, '');
 		// make sure we don't have too many characters after the match
 		search = `(?:${search})(?![^]{${text.length - to + 1}})`;
-	}else if (flagobject.backward && ! flagobject.global){
+	}else if (flagObject.backward && ! flagObject.global){
 		// would anyone ever do this? Replace only the last match?
-		const match = findprimitiveback (search, flagobject.flags+'g', text, from, to);
+		const match = findprimitiveback (search, flagObject.flags+'g', text, from, to);
 		if (!match) return text.slice (from, to); // no match, no change
 		search = `(?<=[^]{${match.index}})(?:${search})`;
 	}
-	const re = new RegExp (search, flagobject.flags);
+	const re = new RegExp (search, flagObject.nativeFlags);
 	re.lastIndex = from; // only relevant for sticky && !backward
 	// if to == length, then go to the end of the string,not to position 0!
-	return text.replace (re, replace).slice(from, to-text.length || undefined);
+	return text.replace (re, replacement).slice(from, to-text.length || undefined);
 }
+
+// match all characters as the default
+TOKENS.unshift({
+	pattern: /\\.|./s,
+	handler: match => match,
+});
+
+TOKENS.unshift({
+	pattern: /\\G/,
+	handler: (_, rng) => `(?<=(?<![^])[^]{${rng[0]}})`,
+	scope: 'pattern'
+});
+
+TOKENS.unshift({
+	pattern: /\\g/,
+	handler: (_, rng) => `(?<=(?<![^])[^]{${rng[1]}})`,
+	scope: 'pattern'
+});
+
+TOKENS.unshift({
+	pattern: /\\A/,
+	handler: () => `(?<![^])`,
+	scope: 'pattern'
+});
+
+TOKENS.unshift({
+	pattern: /\\z/,
+	handler: () => `(?![^])`,
+	scope: 'pattern'
+});
+
+TOKENS.unshift({
+	pattern: /\\Z/,
+	handler: () => String.raw`(?![^\n])(?!\n[^])`,
+	scope: 'pattern'
+});
+
+TOKENS.unshift({
+	pattern: /\((?![?:])/,
+    handler: () => '(?:',
+	flag: 'explicitCapture',
+	scope: 'pattern'
+});
+
+TOKENS.unshift({
+	pattern: /\s+|#[^\n]*\n?/,
+    handler: () => '(?:)',
+    flag: 'freeSpacing',
+	scope: 'pattern'
+});
+
+TOKENS.unshift({ // comment in pattern
+	pattern: /\(\?#[^)]*\)/,
+    handler: () => '(?:)',
+	scope: 'pattern'
+});
+
+TOKENS.unshift({ // comment in character class
+	pattern: /\(\?#[^)]*\)/,
+    handler: () => '',
+	scope: 'characterClass'
+});
+
+TOKENS.unshift({
+	pattern: /\\Q[^]*?\\E/,
+	handler: (match) => quoteRegExp(match.slice(2,-2))
+});
 
 })(bililiteRange);
