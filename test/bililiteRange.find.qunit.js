@@ -7,7 +7,7 @@ multitest("Testing bililiteRange find", function (rng, el, text, i, assert){
 		text = 'one\n007\n\tthree';
 		bounds = [5,7];
 	}
-	rng.all(text).bounds(/07/);
+	rng.all(text).bounds([0,0]).bounds(/07/);
 	assert.deepEqual(rng.bounds(), bounds, 'simple RegExp search');
 	assert.equal (rng.match[0], '07', 'match recorded');
 	if (i === 3) return; // not too much we can do with NothingRange
@@ -19,6 +19,7 @@ multitest("Testing bililiteRange find", function (rng, el, text, i, assert){
 	assert.deepEqual(rng.bounds(), [0,3], 'backward RegExp search');
 	rng.bounds('start').bounds(/DEF/i).bounds('find', 'ABC', 'i');
 	assert.deepEqual(rng.bounds(), [8,11], 'ignorecase search');
+	rng.data.wrapScan = true;
 	rng.bounds('start').bounds([8,11]).bounds(/abc/);
 	assert.deepEqual(rng.bounds(), [0,3], 'search wraps');
 	rng.bounds('start').bounds([8,11]).bounds(/abc/, 'W');
@@ -26,11 +27,11 @@ multitest("Testing bililiteRange find", function (rng, el, text, i, assert){
 	assert.equal(rng.match, false, 'match is false on failed search');
 	
 	rng.all('test [a-z]');
-	rng.bounds('start').bounds('find', '[a-z]', 'v');
+	rng.bounds('start').bounds('find', '[a-z]', 'Q');
 	assert.equal(rng.text(), 't', 'magic option uses special characters');
-	rng.bounds('start').bounds('find', '\\[a-z\\]', 'v');
+	rng.bounds('start').bounds('find', '\\[a-z\\]', 'Q');
 	assert.equal(rng.text(), '[a-z]', 'magic option does not use escaped special characters');
-	rng.bounds('start').bounds('find', '[a-z]', 'V');
+	rng.bounds('start').bounds('find', '[a-z]', 'q');
 	assert.equal(rng.text(), '[a-z]', 'nomagic option does not use special characters');
 });
 multitest("Testing bililiteRange find restricted/sticky bounds", function (rng, el, text, i, assert){

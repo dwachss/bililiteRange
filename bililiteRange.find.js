@@ -240,10 +240,9 @@ function findprimitiveback (source, flags, text, from, to){
 		return re.exec(text);
 	}else{
 		if (!flags.includes('g')) flags +='g';
-		re.lastIndex = from;	
 		const re = new RegExp (source, flags);
-		re.lastIndex = from;
-		return [...str.matchAll(re)].pop();
+		re.lastIndex = from;	
+		return [...text.matchAll(re)].pop();
 	}
 }
 
