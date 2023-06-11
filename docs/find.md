@@ -55,7 +55,7 @@ Since the tagged template literal uses [`String.raw`](https://developer.mozilla.
 range.bounds`/\n/`; // searches for a newline
 ```
 
-## summary
+## Summary
 
 ```js
 range.all('foo bar baz');
@@ -147,7 +147,11 @@ range.bounds(/a/, 'ib'); // range.bounds is [2,3], the second 'A'. We searched b
 
 ### Negative Flags
 
-TODO
+Because the default values of the flags can be set with `range.data`, there has to be a way to unset the flags. Do this by prepending a `-` to the flag: `range.bounds(/a/, '-iw');` means "search case-*sensitive*, with wrap around"; `range.bounds(/a/, 'i-w');` means "search case-insensitive, *without* wrap around" and `range.bounds(/a/, '-i-w');` means "search case-*sensitive*, *without* wrap around".
+
+Note that unlike PCRE's `(?flag)` syntax, *each* flag needs the `-` sign.
+
+For historic reasons, capitalizing the flag has also negates it: `range.bounds(/a/, 'IW');` means "search case-*sensitive*, *without* wrap around", but this is **deprecated**, because there exist proposals and regular expression variations that use capitals as flags themselves.
 
 ### Special tokens
 
@@ -176,7 +180,7 @@ Since `replace` only replaces text *inside* the range, the `r` flag is redundant
 
 ``range.replace`/pattern/replacement/flags` `` uses the syntax from `vim`; as with ``bounds`/pattern/flags` ``, other characters can be used as delimiters.
 
-Specifying the `g` flag will replace all occurences of `search`. Specifying `bg` flag does nothing except if the `y`
+Specifying the `g` flag will replace all occurences of `search`. Specifying `bg` flag does nothing unless the `y`
 flag is set; in that case it will only match the end of the range.
 
 `b` without `g` just changes the *last* occurence of `search`.
