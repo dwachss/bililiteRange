@@ -167,7 +167,29 @@ These were were inspired by PCRE.
 
 ### Duck Typing
 
-TODO
+The functions here (`bounds`, `find`, and `replace`, below) use [duck typing](https://en.wikipedia.org/wiki/Duck_typing) to determine what is a RegExp. So
+
+```js
+range.bounds({source: 'foo', flags: 'i'}); // object with 'source' and 'flags' fields
+```
+
+is the same as
+
+```js
+range.bounds(/foo/i);
+```
+
+And
+
+```js
+range.bounds({raw: ['#foo#']}); // object with 'raw' field, which is an array of strings
+```
+
+is the same as 
+
+```js
+range.bounds`#foo#`;
+```
 
 ## `bililiteRange.prototype.replace`
 
