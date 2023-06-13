@@ -121,7 +121,7 @@ function parseRE(str, template){
 		replacement = rest;
 		rest = str.substring(matches[2]+1);
 	}
-	rest = rest.replace (/([-a-zA-Z]*)\s*/, (_, f) =>{
+	rest = rest.replace (/^([-a-zA-Z]*)\s*/, (_, f) =>{
 		flags = f;
 		return '';
 	});
@@ -181,8 +181,6 @@ function parseFlags (range, flags){
 	flagObject.nativeFlags = nativeFlags.filter(flag => flagObject[flagName(flag)]).join('');
 	return flagObject;
 }
-
-globalThis.parseFlags = parseFlags; // remove this!
 
 function quoteRegExp (source){
 	// from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#Escaping
@@ -316,20 +314,20 @@ TOKENS.unshift({
 
 TOKENS.unshift({
 	pattern: /\s+|#[^\n]*\n?/,
-    handler: () => '(?:)',
-    flag: 'freeSpacing',
+	handler: () => '(?:)',
+	flag: 'freeSpacing',
 	scope: 'pattern'
 });
 
 TOKENS.unshift({ // comment in pattern
 	pattern: /\(\?#[^)]*\)/,
-    handler: () => '(?:)',
+	handler: () => '(?:)',
 	scope: 'pattern'
 });
 
 TOKENS.unshift({ // comment in character class
 	pattern: /\(\?#[^)]*\)/,
-    handler: () => '',
+	handler: () => '',
 	scope: 'characterClass'
 });
 
