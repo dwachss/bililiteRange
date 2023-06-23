@@ -116,7 +116,7 @@ multitest("Testing bililiteRange words and sentences", function (rng, el, text, 
 	assert.equal(rng.text(), 'Hello', 'whole word');
 	rng.bounds('whole', 'sentence');
 	assert.equal(rng.text(), 'Hello, world', 'whole sentence');
-	rng.bounds(/,/);
+	rng.bounds(0).bounds(/,/);
 	rng.bounds('whole', 'word');
 	assert.equal (rng.text(), ', ', 'nonwords are selected with word separator');
 	rng.bounds(/This/).bounds('whole', 'word');
@@ -153,6 +153,7 @@ multitest("Testing bililiteRange two-sided separators", function (rng, el, text,
 multitest("Testing bililiteRange replace", function (rng, el, text, i, assert){
 	if (i == 3) return assert.expect(0);
 	text = 'abcdefabc';
+	rng.data.wrapScan = true;
 	rng.all (text);
 	rng.bounds({source: 'def', flags: ''});
 	assert.deepEqual(rng.bounds(), [3,6], 'ducktyped RegExp');
@@ -168,7 +169,7 @@ multitest("Testing bililiteRange replace", function (rng, el, text, i, assert){
 	rng.replace(/f/, '.', 'by');
 	assert.equal(rng.all(), 'abcde.abc', 'replace backward sticky with string, match');
 	rng.all (text).bounds('all');
-	rng.replace('[ab]', match => match.toUpperCase(), 'vg');
+	rng.replace('[ab]', match => match.toUpperCase(), '-qg');
 	assert.equal(rng.all(), 'ABcdefABc', 'replace global with function, flags parameter');
 	rng.all (text).bounds('all');
 	rng.replace('b', '.', 'b');

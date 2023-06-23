@@ -168,15 +168,12 @@ function parseFlags (range, flags){
 	for (const flag in FLAGS){
 		flagObject[flagName(flag)] = range.data[flagName(flag)];
 	}
-	const splitFlags = flags.split('-');
-	// get the positive flags
-	for (const flag of splitFlags[0]){
+	for (const matchedFlag of flags.matchAll(/(-?)([a-zA-Z])/g)){
+		const dash = matchedFlag[1].length > 0;
+		const flag = matchedFlag[2];
 		flagObject[flagName(flag.toLowerCase())] = false; // DEPRECATED NOTATION
 		flagObject[flagName(flag)] = true;
-	}
-	// get the negative flags
-	if (splitFlags[1]) for (const flag of splitFlags[1]){
-		flagObject[flagName(flag)] = false;
+		if (dash) flagObject[flagName(flag)] = !flagObject[flagName(flag)];
 	}
 	flagObject.nativeFlags = nativeFlags.filter(flag => flagObject[flagName(flag)]).join('');
 	return flagObject;
