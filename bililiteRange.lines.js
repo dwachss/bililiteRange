@@ -1,6 +1,6 @@
-'use strict';
+const { bililiteRange } = require('./bililiteRange.js');
 
-(function(){
+
 // a line goes from after the newline to before the next newline. The newline is not included in that line! It's
 // a separator only.
 bililiteRange.bounds.EOL = function () {
@@ -136,4 +136,4 @@ function unindent(str, count, tabsize){
 	return str.replace(restart, '').replace(remiddle, '$1');
 }
 
-})();
+module.exports = bililiteRange;

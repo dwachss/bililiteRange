@@ -1,6 +1,4 @@
-'use strict';
-
-(function(undefined){
+const { bililiteRange } = require('./bililiteRange.js');
 
 /*********************** the actual ex plugin *********************************/
 bililiteRange.ex = {}; // namespace for exporting utility functions
@@ -45,7 +43,7 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 
 		data.directory ??= this.window.location.origin;
 		data.file ??= this.window.location.pathname; // if this is set to the empty string, then don't save anything.
-		
+
 		addListener (this, 'visibilitychange', evt => {
 			if (document.visibilityState == 'hidden') preserve(this);
 		}, document);
@@ -83,7 +81,7 @@ bililiteRange.prototype.ex = function (commandstring = '', defaultaddress = '.')
 			let parsed = parseCommand(command, defaultaddress);
 			interpretAddresses(this, parsed.addresses, data);
 			parsed.command.call(this, parsed.parameter, parsed.variant);
-		}, this);	
+		}, this);
 		this.dispatch({type: 'excommand', command: commandstring, range: this});
 	}catch(err){
 		this.data.stderr(err);
@@ -100,7 +98,7 @@ function commandCompletion(command){
 		if (commands[command]) return commands[command];
 		command = command.toLowerCase();
 		for (var trialCommand in commands){
-			if (trialCommand.substr(0,command.length) == command) return commands[trialCommand];
+			if (trialCommand.substring(0,command.length) == command) return commands[trialCommand];
 		}
 		throw new Error(command+" not defined");
 	})();
@@ -115,7 +113,7 @@ function splitCommands(commandLine, splitter = '|'){
 	var delims = /[/"]/; // regular expressions and strings
 	var escaper = /\\/;
 	for (var i = 0; i < commandLine.length; ++i){
-		if (commandLine.substr(i, splitter.length) == splitter){
+		if (commandLine.substring(i, splitter.length) == splitter){
 			commands.push (commandLine.slice(0, i));
 			commandLine = commandLine.slice(i+splitter.length);
 			i = -1; // restart the loop
@@ -162,7 +160,7 @@ const addressRE = new RegExp('^\\s*' + // allow whitespace at the beginning
 );
 
 // command names. Technically multiple >>> and <<< are legal, but we will treat them as parameters
-const idRE = /^\s*([!=&~><]|[a-zA-Z]+)/; 
+const idRE = /^\s*([!=&~><]|[a-zA-Z]+)/;
 
 function parseCommand(command, defaultaddress){
 	return {
@@ -171,7 +169,7 @@ function parseCommand(command, defaultaddress){
 		variant: parseVariant(),
 		parameter: parseParameter()
 	};
-	
+
 	function parseAddresses(){
 		var addresses = [defaultaddress];
 		// basic addresses
@@ -351,7 +349,7 @@ function pushRegister(text, register){
 	}else{
 		// unnamed register is the delete stack
 		registers.unshift(text);
-	}		
+	}
 }
 
 function popRegister (register){
@@ -390,7 +388,7 @@ function addListener (rng, ...handler){
 function removeListeners (rng){
 	rng.element[exkey].forEach( handler => rng.dontlisten(...handler) );
 }
-	
+
 /*********************** the actual editing commands *********************************/
 
 // a command is a function (parameter {String}, variant {Boolean})
@@ -408,7 +406,7 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	c: 'change',
-	
+
 	cd: 'directory',
 
 	change: function (parameter, variant){
@@ -420,7 +418,7 @@ var commands = bililiteRange.ex.commands = {
 		// the test is variant XOR autoindent. the !'s turn booleany values to boolean, then != means XOR
 		if (!variant != !this.data.autoindent) this.indent(indentation);
 	},
-	
+
 	chdir: 'directory',
 
 	copy: function (parameter, variant){
@@ -447,9 +445,9 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	'delete': 'del',
-	
+
 	dir: 'directory',
-	
+
 	edit: function (parameter, variant){
 		if (this.data.confirm && this.data.savestatus == 'dirty' && !variant){
 			throw new Error (this.data.file + ' not saved. Use edit! to force reloading');
@@ -485,7 +483,7 @@ var commands = bililiteRange.ex.commands = {
 				const addedlines = this.all().split('\n').length - oldlines;
 				lines[1] += addedlines;
 				i += addedlines;
-				// note that this assumes the added lines are all  before or immediately after the current line. If not, we will skip the wrong lines			
+				// note that this assumes the added lines are all  before or immediately after the current line. If not, we will skip the wrong lines
 			}
 		}
 		this.bounds(line).bounds('EOL'); // move to the end of the last modified line
@@ -522,7 +520,7 @@ var commands = bililiteRange.ex.commands = {
 	k: 'mark',
 
 	m: 'move',
-	
+
 	map: function (parameter, variant){
 		const parameters = splitCommands (parameter, ' ');
 		const lhs = string(parameters.shift());
@@ -556,7 +554,7 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	print: function() { this.select() },
-	
+
 	preserve () { preserve(this) },
 
 	put: function (parameter, variant){
@@ -565,7 +563,7 @@ var commands = bililiteRange.ex.commands = {
 			ownline: true
 		}).bounds('endbounds');
 	},
-	
+
 	quit (parameter, variant){
 		const data = this.data;
 		if (!variant && data.savestatus != 'clean' && data.confirm){
@@ -578,7 +576,7 @@ var commands = bililiteRange.ex.commands = {
 		data.marks = {};
 		this.window.dispatchEvent( new CustomEvent('quit', { detail: this.element }) );
 	},
-	
+
 	read: function (parameter, variant){
 		if (variant) {
 			this.text(Function (parameter).call(this));
@@ -594,7 +592,7 @@ var commands = bililiteRange.ex.commands = {
 			);
 		}
 	},
-	
+
 	recover () { recover(this) },
 
 	redo: function (parameter, variant){
@@ -603,7 +601,7 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	s: 'substitute',
-	
+
 	sendkeys: function (parameter, variant){
 		this.sendkeys(parameter);
 	},
@@ -634,7 +632,7 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	shiftwidth: "tabsize",
-	
+
 	source: function (parameter, variant){
 		if (!parameter) throw new Error ('No file named in source');
 		this.data.reader(parameter, this.data.directory).then( sourcefile => {
@@ -652,19 +650,19 @@ var commands = bililiteRange.ex.commands = {
 		if (re.source == '' && re.replacement == '') re = lastSubstitutionRE;
 		if (re.source == '') re.source = lastRE.source;
 		this.replace(re, string(re.replacement)).bounds('EOL');
-		lastSubstitutionRE = Object.assign({}, re); // clone, so 
+		lastSubstitutionRE = Object.assign({}, re); // clone, so
 	},
 
 	sw: 'tabsize',
 
 	t: 'copy',
-	
+
 	tabstop: 'tabsize',
 
 	transcribe: 'copy',
 
 	ts: 'tabsize',
-	
+
 	unmap: function (parameter, variant){
 		this.dispatch ({type: 'map', detail: { command: 'unmap', variant, lhs: parameter }});
 	},
@@ -682,15 +680,15 @@ var commands = bililiteRange.ex.commands = {
 	},
 
 	v: 'notglobal',
-	
+
 	version: function (parameter, variant){
 		this.data.stdout(this.element[exkey]);
 	},
-	
+
 	wq: 'xit',
 
 	ws: 'wrapscan',
-	
+
 	xit: function(parameter, variant){
 		writer(this, parameter).finally( ()=> {
 			if (variant || this.data.savestatus == 'clean'){
@@ -714,7 +712,7 @@ var commands = bililiteRange.ex.commands = {
 		let lines = this.lines();
 		this.data.stdout ('['+(lines[0] == lines[1] ? lines[0] : lines[0]+', '+lines[1])+']');
 	},
-	
+
 	'&': 'substitute',
 
 	'~': function (parameter, variant){
@@ -722,19 +720,19 @@ var commands = bililiteRange.ex.commands = {
 		lastSubstitutionRE.flags = '';
 		commands.substitute.call (this, parameter, variant);
 	},
-	
+
 	'>': function (parameter, variant){
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
 		this.indent('\t'.repeat(parameter));
 	},
-	
+
 	'<': function (parameter, variant){
 		parameter = parseInt(parameter);
 		if (isNaN(parameter) || parameter < 0) parameter = 1;
 		this.unindent(parameter, this.data.tabsize);
 	},
-	
+
 	'!': function (parameter, variant){
 		// not a shell escape but a Javascript escape
 		Function (parameter).call(this);
@@ -809,4 +807,4 @@ createOption ('wrapscan');
 createOption ('directory', '');
 createOption ('file', 'document');
 
-})();
+module.exports = bililiteRange;

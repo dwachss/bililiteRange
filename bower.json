@@ -1,6 +1,6 @@
 {
    "name": "bililiteRange",
-   "version": "3.2",
+   "version": "5.0.0",
    "main": "bililiteRange.js",
    "ignore": [
       "test/**/*"

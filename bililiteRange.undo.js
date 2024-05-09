@@ -1,5 +1,4 @@
-'use strict';
-(function(){
+const { bililiteRange } = require('./bililiteRange.js');
 
 function keyhandler(evt){
 	if (!evt.ctrlKey || evt.altKey || evt.shiftKey || evt.metaKey) return;
@@ -55,4 +54,4 @@ bililiteRange.extend({
 	}
 });
 
-})();
+module.exports = bililiteRange;

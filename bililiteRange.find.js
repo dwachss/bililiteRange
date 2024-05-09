@@ -1,6 +1,4 @@
-'use strict';
-
-(function(bililiteRange){
+const { bililiteRange } = require('./bililiteRange.js');
 
 bililiteRange.createOption('dotall', {value: false});
 bililiteRange.createOption('global', {value: false});
@@ -33,7 +31,7 @@ bililiteRange.prototype.replace = function (search, replace, flags = ''){
 		replaceprimitive (search, parseFlags(this, flags), this.all(), replace, this[0], this[1]),
 		{ inputType: 'insertReplacementText' }
 	);
-}		
+}
 
 bililiteRange.createOption ('word', {value: /\b/});
 bililiteRange.createOption ('bigword', {value: /\s+/});
@@ -200,4 +198,4 @@ function replaceprimitive (search, flagobject, text, replace, from, to){
 	return text.replace (re, replace).slice(from, to-text.length || undefined);
 }
 
-})(bililiteRange);
+module.exports = bililiteRange;

@@ -1,6 +1,5 @@
-'use strict';
+const { bililiteRange } = require('./bililiteRange.js');
 
-(function(){
 const editorKey = Symbol(); // marker
 
 
@@ -41,7 +40,7 @@ bililiteRange.prototype.evim = function (toolbarContainer, statusbar){
 			}
 		}
 	});
-	
+
 	// A variation on VIM keys, in visual mode, as evim (every command starts with ctrl-o then goes back to insert mode)
 	this.listen('keydown', keymap(/ctrl-o (?:ctrl-)?[:;]/, evt => {
 		Promise.prompt(':', statusbar).
@@ -74,7 +73,7 @@ bililiteRange.prototype.evim = function (toolbarContainer, statusbar){
 		i: ['whole', false, undefined],
 		t: ['to', false, 'endbounds'],
 	};
-		
+
 	const evim1 = RegExp (`ctrl-o ([${Object.keys(vimverbs).join('')}]) ([${Object.keys(vimobjects).join('')}])`);
 	const handler1 = keymap(evim1, evt => {
 		const match = evim1.exec(evt.keymapSequence);
@@ -104,9 +103,9 @@ bililiteRange.prototype.evim = function (toolbarContainer, statusbar){
 		rng.select().scrollIntoView();
 	});
 	this.listen('keydown', handler3);
-	
-	
-		
+
+
+
 	this.ex('%%source .exrc');
 	this.initUndo(true); // attach the ctrl-z, ctrl-y handlers
 };
@@ -152,4 +151,4 @@ function parseToolbarCommand(string){
 	return ret;
 }
 
-})();
+module.exports = bililiteRange;
