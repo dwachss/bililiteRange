@@ -489,7 +489,7 @@ Toolbar.prototype = {
 };
 
 
-// bililiteRange.js commit 3771205
+// bililiteRange.js commit a4e44e6
 'use strict';
 
 let bililiteRange; // create one global variable
@@ -1168,7 +1168,7 @@ bililiteRange.createOption = function (name, desc = {}){
 
 })();
 
-// bililiteRange.undo.js commit 3771205
+// bililiteRange.undo.js commit a4e44e6
 'use strict';
 (function(){
 
@@ -1228,7 +1228,7 @@ bililiteRange.extend({
 
 })();
 
-// bililiteRange.lines.js commit 3771205
+// bililiteRange.lines.js commit a4e44e6
 'use strict';
 
 (function(){
@@ -1369,7 +1369,7 @@ function unindent(str, count, tabsize){
 
 })();
 
-// bililiteRange.find.js commit 3771205
+// bililiteRange.find.js commit a4e44e6
 'use strict';
 
 (function(bililiteRange){
@@ -1574,7 +1574,7 @@ function replaceprimitive (search, flagobject, text, replace, from, to){
 
 })(bililiteRange);
 
-// bililiteRange.ex.js commit 3771205
+// bililiteRange.ex.js commit a4e44e6
 'use strict';
 
 (function(undefined){
@@ -2388,7 +2388,7 @@ createOption ('file', 'document');
 
 })();
 
-// bililiteRange.evim.js commit 3771205
+// bililiteRange.evim.js commit a4e44e6
 'use strict';
 
 (function(){
