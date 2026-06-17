@@ -129,7 +129,7 @@ then get a class equal to the value of the attribute of the range element named 
 So
 
 ```js
-rng.ex('map! Save command=write observe=data-savestatus' title="Save the text to the current file");`
+rng.ex('map! Save command=write observe=data-savestatus title="Save the text to the current file"');`
 ```
 
 will do:
