@@ -24,7 +24,7 @@ $shaSize = 7
 function Get-Sha {
 	param($repo)
 	if ($repo) {
-		[char[]]((Invoke-WebRequest https://api.github.com/repos/$repo/commits/master -H @{Accept = 'application/vnd.github.sha'}).Content[0..$shaSize]) -join ''
+		[char[]]((Invoke-WebRequest https://api.github.com/repos/$repo/commits/master -Headers @{Accept = 'application/vnd.github.sha'}).Content[0..$shaSize]) -join ''
 	}else{
 		git rev-parse --short=$shaSize HEAD
 	}
