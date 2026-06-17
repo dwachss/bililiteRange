@@ -1,4 +1,4 @@
-// editor.js 2023-03-05
+// editor.js 2026-06-17
 
 // dwachss/historystack/history.js commit 806bac52
 // Implements the History interface for use with things other than browser history. I don't know why they won't let us use 
@@ -489,7 +489,7 @@ Toolbar.prototype = {
 };
 
 
-// bililiteRange.js commit ef1c276
+// bililiteRange.js commit 3771205
 'use strict';
 
 let bililiteRange; // create one global variable
@@ -1168,7 +1168,7 @@ bililiteRange.createOption = function (name, desc = {}){
 
 })();
 
-// bililiteRange.undo.js commit ef1c276
+// bililiteRange.undo.js commit 3771205
 'use strict';
 (function(){
 
@@ -1228,7 +1228,7 @@ bililiteRange.extend({
 
 })();
 
-// bililiteRange.lines.js commit ef1c276
+// bililiteRange.lines.js commit 3771205
 'use strict';
 
 (function(){
@@ -1369,7 +1369,7 @@ function unindent(str, count, tabsize){
 
 })();
 
-// bililiteRange.find.js commit ef1c276
+// bililiteRange.find.js commit 3771205
 'use strict';
 
 (function(bililiteRange){
@@ -1574,7 +1574,7 @@ function replaceprimitive (search, flagobject, text, replace, from, to){
 
 })(bililiteRange);
 
-// bililiteRange.ex.js commit ef1c276
+// bililiteRange.ex.js commit 3771205
 'use strict';
 
 (function(undefined){
@@ -2388,7 +2388,7 @@ createOption ('file', 'document');
 
 })();
 
-// bililiteRange.evim.js commit ef1c276
+// bililiteRange.evim.js commit 3771205
 'use strict';
 
 (function(){
